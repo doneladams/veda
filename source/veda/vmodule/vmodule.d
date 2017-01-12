@@ -73,7 +73,9 @@ class VedaModule
     string         message_header;
     string         module_id;
 
-    Logger         log;
+    bool[ string ]   subsrc;
+
+    Logger log;
 
     this(string _module_id, Logger in_log)
     {
@@ -118,10 +120,11 @@ class VedaModule
             context = new PThreadContext("cfg:standart_node", process_name, log, main_module_url);
 
         if (node == Individual.init)
-            node = context.getConfiguration();
+            node = context.get_configuration();
 
         cache_of_indv = new Cache!(string, string)(1000, "individuals");
 
+        open();
         if (configure() == false)
         {
             log.trace("[%s] configure is fail, terminate", process_name);
@@ -192,12 +195,26 @@ class VedaModule
                                 long op_id);
 
     abstract bool configure();
+    abstract bool close();
+    abstract bool open();
 
     abstract Context create_context();
 
     abstract void thread_id();
 
     abstract void receive_msg(string msg);
+
+    public void subscribe_on_prefetch(string uri)
+    {
+        subsrc[ uri.idup ] = true;
+    }
+
+    public void unsubscribe_on_prefetch(string uri)
+    {
+        subsrc.remove(uri.dup);
+    }
+
+    abstract void event_of_change(string uri);
 
     public void prepare_all()
     {
@@ -240,7 +257,7 @@ class VedaModule
             data = main_cs_prefetch.pop();
             if (data is null)
             {
-                log.trace("PREFETCH: pop return null");
+                //log.trace("PREFETCH: pop return null");
                 break;
             }
 
@@ -251,17 +268,34 @@ class VedaModule
                 continue;
             }
             string uri = imm.getFirstLiteral("uri");
-            log.trace("PREFETCH %s", uri);
+            //log.trace("PREFETCH %s", uri);
 
-            //    if (main_cs_prefetch.next() == false)
-            //    {
-            //      log.trace("PREFETCH: next break");
-            //        break;
-            //    }
+            if (context.get_config_uri() == uri)
+            {
+                log.trace("prefetch: found change in config [%s]", uri);
+                string new_bin = imm.getFirstLiteral("new_state");
+                if (new_bin !is null && cbor2individual(&node, new_bin) < 0)
+                {
+                    log.trace("ERR! invalid individual:[%s]", new_bin);
+                }
+                else
+                {
+                    log.trace("prefetch: reconfigure, use [%s]", node);
+                    close();
+                    open();
+                    context.get_onto();
+                    configure();
+                }
+            }
+            else if ((uri in subsrc) !is null)
+            {
+                event_of_change(uri);
+            }
+
             //Thread.sleep(dur!("seconds")(1));
-            main_cs_prefetch.commit_and_next(true);
+            main_cs_prefetch.commit_and_next(false);
         }
-        //main_cs_prefetch.commit_1();
+        main_cs_prefetch.sync();
     }
 
     private void prepare_queue(string msg)
@@ -274,7 +308,7 @@ class VedaModule
             if (f_listen_exit == true)
                 break;
 
-            //configuration_found_in_queue ();
+            configuration_found_in_queue();
 
             string data = main_cs.pop();
 
@@ -358,7 +392,7 @@ class VedaModule
             if (onto is null)
                 onto = context.get_onto();
 
-            onto.update_class_in_hierarchy(new_indv, true);
+            onto.update_onto_hierarchy(new_indv, true);
 
             cache_of_indv.put(new_indv.uri, new_bin);
 
@@ -381,7 +415,7 @@ class VedaModule
                 {
                     main_cs.commit_and_next(true);
                     module_info.put_info(op_id, committed_op_id);
-                    log.trace("ERR! message fail prepared (res=%s), skip.", text(res));
+                    log.trace("ERR! message fail prepared (res=%s), skip.  count=%d", text(res), count_success_prepared);
                 }
             }
             catch (Throwable ex)

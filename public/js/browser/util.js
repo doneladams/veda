@@ -81,7 +81,7 @@ veda.Module(function Util(veda) { "use strict";
   };
 
   veda.Util.toTTL = function (individualList, callback) {
-    var ontologies = query(veda.ticket, "'rdf:type'=='owl:Ontology'"),
+    var ontologies = query(veda.ticket, "'rdf:type'=='owl:Ontology'").result,
         all_prefixes = {},
         prefixes = {},
         triples = [],
@@ -92,7 +92,9 @@ veda.Module(function Util(veda) { "use strict";
     ontologies.map( function (ontology_uri) {
       var ontology = new veda.IndividualModel(ontology_uri);
       var prefix = ontology_uri.slice(0, -1);
-      all_prefixes[prefix] = ontology["v-s:fullUrl"][0].toString();
+      if (ontology.hasValue("v-s:fullUrl")) {
+        all_prefixes[prefix] = ontology["v-s:fullUrl"][0].toString();
+      }
     });
 
     function prefixer(uri) {
@@ -343,12 +345,12 @@ veda.Module(function Util(veda) { "use strict";
    */
   veda.Util.send = function (individual, template, transformId, modal) {
     if ( transformId ) {
-      template.trigger('save');
+      if ( !individual.isSync() ) template.trigger('save');
       var startForm = veda.Util.buildStartFormByTransformation(individual, new veda.IndividualModel(transformId));
       veda.Util.showModal(startForm, undefined, 'edit');
     } else {
       individual["v-wf:hasStatusWorkflow"] = [ new veda.IndividualModel("v-wf:ToBeSent") ];
-      var results = query(veda.ticket, "'rdf:type' == 'v-s:DocumentLinkRules' && 'v-s:classFrom' == '" + individual["rdf:type"][0].id + "'");
+      var results = query(veda.ticket, "'rdf:type' == 'v-s:DocumentLinkRules' && 'v-s:classFrom' == '" + individual["rdf:type"][0].id + "'").result;
       if ( results.length === 0 ) {
         $("#send.action", template).remove();
         $("#edit.action", template).remove();

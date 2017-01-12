@@ -2,7 +2,7 @@
  * XAPIAN indexer thread
  */
 
-module veda.veda.ft_indexer.xapian_indexer;
+module veda.ft_indexer.xapian_indexer;
 
 private import std.concurrency, std.outbuffer, std.datetime, std.conv, std.typecons, std.stdio, std.string, std.file, std.algorithm;
 private import backtrace.backtrace, Backtrace = backtrace.backtrace;
@@ -52,9 +52,20 @@ public class IndexerContext
 
     Ticket *ticket;
 
-    bool init(Ticket *_ticket)
+    void close()
     {
-        ticket = _ticket;
+        if (indexer_base_db !is null)
+            indexer_base_db.close(&err);
+        if (indexer_system_db !is null)
+            indexer_system_db.close(&err);
+        if (indexer_deleted_db !is null)
+            indexer_deleted_db.close(&err);
+    }
+
+    bool init(Ticket *_ticket, Context _context)
+    {
+        context = _context;
+        ticket  = _ticket;
         string file_name_key2slot = xapian_info_path ~ "/key2slot";
 
         if (exists(file_name_key2slot) == false)
@@ -107,6 +118,15 @@ public class IndexerContext
         }
         catch (Exception ex) {}
 
+        // check in key2slot for properties
+        string[] props = context.get_onto().get_properies();
+        foreach (prop; props)
+        {
+            //log.trace ("prop=%s", prop);
+            get_slot_and_set_if_not_found(prop, key2slot);
+        }
+
+
         // /////////// XAPIAN INDEXER ///////////////////////////
         XapianStem stemmer = new_Stem(cast(char *)this.lang, cast(uint)this.lang.length, &err);
 
@@ -147,16 +167,6 @@ public class IndexerContext
 
         if (count_created_db_folder != 0)
         {
-            try
-            {
-//		if (ictx.context.count_individuals() > 16)
-//			need_all_reindex = true;
-            }
-            catch (Throwable tr)
-            {
-//			writeln ("tr=", tr.toString());
-            }
-
             log.trace("index is empty or not completed");
 
             if (need_all_reindex == true)
@@ -170,11 +180,7 @@ public class IndexerContext
     void reload_index_schema()
     {
         if (iproperty !is null)
-        {
-            //writeln ("@@@1 RELOAD INDEX PROPERIES");
             iproperty.load(true);
-            //writeln ("@@@2 iproperty=", iproperty);
-        }
     }
 
     void index_msg(ref Individual indv, ref Individual prev_indv, INDV_OP cmd, long op_id, Context context)
@@ -801,9 +807,6 @@ public class IndexerContext
             log.trace("fail store__key2slot [%s] [%s]", data, tr.msg);
             return;
         }
-
-
-//    send(tid_subject_manager, CMD_PUT_KEY2SLOT, xapian_metadata_doc_id, data);
     }
 
     private int get_slot_and_set_if_not_found(string field, ref int[ string ] key2slot)
@@ -817,7 +820,7 @@ public class IndexerContext
             slot              = cast(int)key2slot.length + 1;
             key2slot[ field ] = slot;
             store__key2slot();
-//        send (key2slot_accumulator, PUT, data);
+            log.trace("create new slot %s=%d", field, slot);
         }
 
         return slot;

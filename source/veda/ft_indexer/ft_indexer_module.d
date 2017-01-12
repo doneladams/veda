@@ -8,7 +8,7 @@ private import backtrace.backtrace, Backtrace = backtrace.backtrace;
 private import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
 private import veda.common.logger, veda.util.cbor, veda.util.cbor8individual, veda.core.storage.lmdb_storage, veda.core.impl.thread_context;
 private import veda.bind.xapian_d_header;
-private import veda.core.common.context, veda.util.tools, veda.veda.ft_indexer.xapian_indexer;
+private import veda.core.common.context, veda.util.tools, veda.ft_indexer.xapian_indexer;
 private import veda.vmodule.vmodule;
 
 // ////// Logger ///////////////////////////////////////////
@@ -89,17 +89,29 @@ class FTIndexerProcess : VedaModule
         {
             prepare_all();
         }
+    }
 
-        //log.trace("@3");
+    override bool open()
+    {
+        ictx.thread_name = process_name;
+        ictx.init(&sticket, context);
+        return true;
     }
 
     override bool configure()
     {
-        //writeln("@ configure B");
-        ictx.thread_name = process_name;
-        ictx.init(&sticket);
-
-        //writeln("@ configure E");
         return true;
+    }
+
+    override bool close()
+    {
+        if (ictx !is null)
+            ictx.close();
+        return true;
+    }
+
+    override void event_of_change(string uri)
+    {
+        configure();
     }
 }

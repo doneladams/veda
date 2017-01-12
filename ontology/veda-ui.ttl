@@ -735,7 +735,13 @@ v-ui:IconModalTemplate
     if (parentTmpl.attr("resource") === individual.id) {
       newMode = parentTmpl.attr("data-mode");
     }
-    individual.present(cntr, undefined, newMode);
+
+    var tmpl = individual["rdf:type"][0].template ? $( individual["rdf:type"][0].template["v-ui:template"][0].toString() ) : undefined;
+    $(".action", tmpl).remove();
+    $(".well.well-sm", tmpl).remove();
+
+    individual.present(cntr, tmpl, newMode);
+
     individual.one("individual:beforeReset", function () {
       $modal.modal("hide");
     });
@@ -745,6 +751,7 @@ v-ui:IconModalTemplate
     template.on("remove", function () {
       $modal.modal("hide").remove();
     });
+
   });
   //# sourceURL=v-ui:IconModalTemplate
 </script>
@@ -1573,6 +1580,7 @@ v-ui:TreeTemplate
   rdfs:label "Template for tree-like structures"@en ;
   v-ui:template """
 <div class="table-responsive">
+  <br>
   <table class="table table-condensed table-striped">
     <thead id="thead"></thead>
     <tbody id="tbody"></tbody>
@@ -1581,7 +1589,7 @@ v-ui:TreeTemplate
 <script>
   var tbody = $("#tbody", template),
     thead = $("#thead", template),
-    headTmpl = "<th width='1px'><input type='checkbox' id='select-col' /></th>";
+    headTmpl = "<th width='1px'><input type='checkbox' id='select-col' /></th>",
     rowTmpl = "<td><input type='checkbox' class='select-row' /></td>",
     literals = ["rdfs:Literal", "xsd:string", "xsd:boolean", "xsd:integer", "xsd:nonNegativeInteger", "xsd:decimal", "xsd:dateTime"],
     allowedClassIds = individual.treeConfig.allowedClass ? individual.treeConfig.allowedClass.reduce(function (acc, _class) {

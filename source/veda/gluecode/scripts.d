@@ -195,8 +195,21 @@ class ScriptProcess : VedaModule
         return ResultCode.OK;
     }
 
+    override bool open()
+    {
+        vql       = new VQL(context);
+        script_vm = get_ScriptVM(context);
+
+        if (script_vm !is null)
+            return true;
+
+        return false;
+    }
+
     override bool configure()
     {
+        log.trace("configure scripts");
+
         vars_for_event_script =
             "var user_uri = get_env_str_var ('$user');"
             ~ "var parent_script_id = get_env_str_var ('$parent_script_id');"
@@ -205,13 +218,19 @@ class ScriptProcess : VedaModule
             ~ "var super_classes = get_env_str_var ('$super_classes');"
             ~ "var _event_id = document['@'] + '+' + _script_id;";
 
-        vql = new VQL(context);
-
-        script_vm = get_ScriptVM(context);
         load_event_scripts();
 
-
         return true;
+    }
+
+    override bool close()
+    {
+        return vql.close_db();
+    }
+
+    override void event_of_change(string uri)
+    {
+        configure();
     }
 
     public void load_event_scripts()
@@ -228,15 +247,15 @@ class ScriptProcess : VedaModule
                 "return { 'v-s:script'} filter { 'rdf:type' === 'v-s:Event'}",
                 res);
 
-        int count = 0;
-
         foreach (ss; res)
-        {
             prepare_script(event_scripts, event_scripts_order, ss, script_vm, vars_for_event_script);
-        }
 
-        if (trace_msg[ 300 ] == 1)
-            log.trace("end load db scripts, count=%d ", res.length);
+        string scripts_ordered_list;
+        foreach (_script_id; event_scripts_order)
+            scripts_ordered_list ~= "," ~ _script_id;
+
+//        if (trace_msg[ 300 ] == 1)
+        log.trace("load db scripts, count=%d, scripts_uris=[%s] ", event_scripts_order.length, scripts_ordered_list);
     }
 
     private void set_g_parent_script_id_etc(string event_id)

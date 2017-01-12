@@ -145,7 +145,10 @@
     <!-- Drafts template -->
     <script type="html/template" id="drafts-template">
       <div id="drafts" class="container-fluid">
-        <h3 id="drafts-title"></h3>
+        <ul class="nav nav-tabs nav-right" role="tablist">
+          <li class="pull-left"><h2 id="drafts-title"></h2></li>
+        </ul>
+        <br>
         <ol id="drafts-list"></ol>
         <button id="delete-all" class="btn btn-default"></button>
       </div>
@@ -284,9 +287,8 @@
       <div class="modal" id="search-modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="myModalLabel">Поиск объекта</h4>
             <div class="modal-body">
+              <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-primary pull-left" id="ok" data-dismiss="modal">Ok</button>
@@ -320,7 +322,6 @@
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
             <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="myModalLabel">Поиск объекта</h4>
             <div class="modal-body">
             </div>
             <div class="modal-footer">
@@ -720,6 +721,7 @@
 
     <!-- Veda browser & server -->
     <script type="text/javascript" src="/js/common/lib/riot.js"></script>
+    <script type="text/javascript" src="/js/common/lib/promiz.min.js"></script>
     <script type="text/javascript" src="/js/common/util.js"></script>
     <script type="text/javascript" src="/js/common/veda_spa.js"></script>
     <script type="text/javascript" src="/js/common/app_model.js"></script>

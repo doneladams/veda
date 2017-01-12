@@ -2,7 +2,7 @@
 
 # берет новые исходники из github, но не собирает
 
-DMD_VER=2.072.1
+DMD_VER=2.072.2
 DUB_VER=1.1.1
 GO_VER=go1.7.4
 
@@ -11,6 +11,7 @@ if ! dmd --version | grep $DMD_VER ; then
     wget http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
     sudo dpkg -i dmd_$DMD_VER-0_amd64.deb
     rm dmd_$DMD_VER-0_amd64.deb
+    rm -r ~/.dub
 fi
 
 # Get right version of DUB
@@ -44,14 +45,21 @@ if ! go version | grep $GO_VER ; then
     wget https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
     tar -xvf go1.7.4.linux-amd64.tar.gz
     sudo rm -r /usr/local/go
+    sudo rm /usr/bin/go
+    sudo rm /usr/bin/gofmt
     sudo mv go /usr/local
     export GOROOT=/usr/local/go
-    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+    export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
+    echo 'export GOROOT=/usr/local/go'  >> ~/.bashrc
+    echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> ~/.bashrc
+    source ~/.bashrc
     go version
     cd ..
 fi
 
 export GOPATH=$HOME/go
+echo 'export GOPATH=$HOME/go'  >> ~/.bashrc
+source ~/.bashrc
 go get github.com/gorilla/websocket
 go get github.com/divan/expvarmon
 cp -a ./source/golang-third-party/cbor $GOPATH/src
@@ -143,15 +151,19 @@ fi
 
 if ! ldconfig -p | grep libraptor2; then
 
+    sudo apt-get install gtk-doc-tools
+    sudo apt-get install libxml2-dev
+
     mkdir tmp
     cd tmp
 
-    wget http://download.librdf.org/source/raptor2-2.0.15.tar.gz -P tmp
+    wget https://github.com/dajobe/raptor/archive/raptor2_2_0_15.tar.gz -P tmp
     cd tmp
-    tar -xvzf raptor2-2.0.15.tar.gz
+    tar -xvzf raptor2_2_0_15.tar.gz
 
-    cd raptor2-2.0.15
-    ./configure
+    cd raptor-raptor2_2_0_15
+    autoreconf -i
+    ./autogen.sh
     ./make
     sudo make install
     sudo ldconfig

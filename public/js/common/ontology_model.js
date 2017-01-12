@@ -30,11 +30,11 @@ veda.Module(function (veda) { "use strict";
     //"owl:sameAs",
     "owl:topObjectProperty",
     "owl:topDataProperty",
-    "owl:versionInfo",
+    "owl:versionInfo"//,
     //"rdf:value",
-    "rdfs:isDefinedBy",
-    "rdfs:member",
-    "rdfs:seeAlso"
+    //"rdfs:isDefinedBy",
+    //"rdfs:member",
+    //"rdfs:seeAlso"
   ];
 
   veda.OntologyModel = function () {
@@ -284,7 +284,7 @@ veda.Module(function (veda) { "use strict";
           "'rdf:type' === 'v-ui:ObjectPropertySpecification'";
 
       var result = {};
-      get_individuals(veda.ticket, query(veda.ticket, q, undefined, undefined, undefined, undefined, 10000)).map( function (item) {
+      get_individuals(veda.ticket, query(veda.ticket, q, undefined, undefined, undefined, undefined, 10000).result).map( function (item) {
         result[ item["@"] ] = item;
       });
       return result;

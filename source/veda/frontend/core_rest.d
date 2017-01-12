@@ -94,9 +94,6 @@ interface VedaStorageRest_API {
     @path("flush") @method(HTTPMethod.GET)
     void flush(int module_id, long wait_op_id);
 
-    @path("restart") @method(HTTPMethod.GET)
-    OpResult restart(string ticket);
-
     @path("set_trace") @method(HTTPMethod.GET)
     void set_trace(int idx, bool state);
 
@@ -107,7 +104,7 @@ interface VedaStorageRest_API {
     long count_individuals();
 
     @path("query") @method(HTTPMethod.GET)
-    string[] query(string ticket, string query, string sort = null, string databases = null, bool reopen = false, int top = 10000,
+    SearchResult query(string ticket, string query, string sort = null, string databases = null, bool reopen = false, int from = 0, int top = 10000,
                    int limit = 10000);
 
     @path("get_individuals") @method(HTTPMethod.POST)
@@ -140,12 +137,19 @@ interface VedaStorageRest_API {
     @path("abort_transaction") @method(HTTPMethod.PUT)
     void abort_transaction(string transaction_id);
 
-    void trail(string[] vals);
+    //void trail(string ticket_id, string user_id, string action, Json args, string result, ResultCode result_code, int duration);
 }
 
 extern (C) void handleTerminationR(int _signal)
 {
 //    log.trace("!SYS: veda.app: caught signal: %s", text(_signal));
+
+	if (tdb_cons !is null)
+	{
+	    log.trace("flush trail db");
+	    tdb_cons.finalize();
+	}    
+
     writefln("!SYS: veda.app.rest: caught signal: %s", text(_signal));
 
     vibe.core.core.exitEventLoop();
@@ -154,6 +158,7 @@ extern (C) void handleTerminationR(int _signal)
 
     thread_term();
     Runtime.terminate();
+        
 //    kill(getpid(), SIGKILL);
 //    exit(_signal);
 }
@@ -161,10 +166,9 @@ extern (C) void handleTerminationR(int _signal)
 
 class VedaStorageRest : VedaStorageRest_API
 {
-    private Context            context;
-    private TrailDBConstructor tdb_cons;
+    private Context context;
 //    string[ string ] properties;
-    int                        last_used_tid = 0;
+    int             last_used_tid = 0;
     void function(int sig) shutdown;
 
     this(Context _local_context, void function(int sig) _shutdown)
@@ -247,7 +251,8 @@ class VedaStorageRest : VedaStorageRest_API
                 }
                 else
                 {
-                	log.trace ("ERR! get_file:incomplete individual of v-s:File, It does not contain predicate v-s:filePath or v-s:fileUri: %s", file_info);
+                    log.trace("ERR! get_file:incomplete individual of v-s:File, It does not contain predicate v-s:filePath or v-s:fileUri: %s",
+                              file_info);
                 }
             }
         }
@@ -298,7 +303,7 @@ class VedaStorageRest : VedaStorageRest_API
 
     Json get_membership(string _ticket, string uri)
     {
-        Json     json;
+        Json       json;
 
         Ticket     *ticket;
         ResultCode rc;
@@ -528,13 +533,14 @@ class VedaStorageRest : VedaStorageRest_API
 
     void flush(int module_id, long wait_op_id)
     {
+        ulong    timestamp = Clock.currTime().stdTime() / 10;
+
+        Json     jreq = Json.emptyObject;
+        OpResult op_res;
+
         try
         {
-            long     res = -1;
-
-            OpResult op_res;
-
-            Json     jreq = Json.emptyObject;
+            long res = -1;
 
             jreq[ "function" ]   = "flush";
             jreq[ "module_id" ]  = module_id;
@@ -548,37 +554,9 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
+            trail(null, null, "flush", jreq, "", op_res.result, timestamp);
         }
     }
-
-    OpResult restart(string _ticket)
-    {
-        OpResult res;
-
-        try
-        {
-            Ticket *ticket = context.get_ticket(_ticket);
-
-            if (ticket.result != ResultCode.OK)
-                throw new HTTPStatusException(ticket.result);
-
-            ResultCode rc = ticket.result;
-
-            if (rc == ResultCode.OK)
-            {
-                shutdown(-1);
-            }
-
-            if (res.result != ResultCode.OK)
-                throw new HTTPStatusException(res.result);
-
-            return res;
-        }
-        finally
-        {
-        }
-    }
-
 
     void set_trace(int idx, bool state)
     {
@@ -587,14 +565,14 @@ class VedaStorageRest : VedaStorageRest_API
 
     void backup(bool to_binlog)
     {
-        long res = -1;
+        ulong    timestamp = Clock.currTime().stdTime() / 10;
+
+        long     res  = -1;
+        Json     jreq = Json.emptyObject;
+        OpResult op_res;
 
         try
         {
-            OpResult op_res;
-
-            Json     jreq = Json.emptyObject;
-
             jreq[ "function" ]  = "backup";
             jreq[ "to_binlog" ] = to_binlog;
 
@@ -609,22 +587,27 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
-            trail([ "", "backup", text(to_binlog), text(res), "", "0" ]);
+            trail(null, null, "backup", jreq, "", op_res.result, timestamp);
         }
     }
 
     long count_individuals()
     {
-        long res;
+        ulong    timestamp = Clock.currTime().stdTime() / 10;
+        long     res;
 
-        res = context.count_individuals();
+        OpResult op_res;
 
-        trail([ "", "count_individuals", "", text(res), "", "0" ]);
+        res           = context.count_individuals();
+        op_res.result = ResultCode.OK;
+
+        trail(null, null, "count_individuals", Json.emptyObject, text(res), op_res.result, timestamp);
         return res;
     }
 
     bool is_ticket_valid(string ticket_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
         bool       res;
         Ticket     *ticket;
         ResultCode rc;
@@ -647,14 +630,16 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
-            trail([ ticket.user_uri, "is_ticket_valid", ticket_id, text(res), text(rc), "0" ]);
+            trail(ticket_id, ticket.user_uri, "is_ticket_valid", Json.emptyObject, text(res), rc, timestamp);
         }
     }
 
-    string[] query(string _ticket, string _query, string sort = null, string databases = null, bool reopen = false, int top = 10000,
+    SearchResult query(string _ticket, string _query, string sort = null, string databases = null, bool reopen = false, int from = 0, int top = 10000,
                    int limit = 10000)
     {
-        string[]   res;
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
+
+		SearchResult sr;
         Ticket     *ticket;
         ResultCode rc;
 
@@ -666,20 +651,32 @@ class VedaStorageRest : VedaStorageRest_API
             if (rc != ResultCode.OK)
                 throw new HTTPStatusException(rc, text(rc));
 
-            res = context.get_individuals_ids_via_query(ticket, _query, sort, databases, top, limit);
-
-            return res;
+            sr = context.get_individuals_ids_via_query(ticket, _query, sort, databases, from, top, limit);
+			
+            return sr;
         }
         finally
         {
-            trail([ ticket.user_uri, "query", _query, text(res), text(rc), "0" ]);
+            Json jreq = Json.emptyObject;
+            jreq[ "query" ]     = _query;
+            jreq[ "sort" ]      = sort;
+            jreq[ "databases" ] = databases;
+            jreq[ "reopen" ]    = reopen;
+            jreq[ "from" ]       = from;
+            jreq[ "top" ]       = top;
+            jreq[ "limit" ]     = limit;
+
+            trail(_ticket, ticket.user_uri, "query", jreq, text(sr.result), rc, timestamp);
         }
     }
 
     Json[] get_individuals(string _ticket, string[] uris)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
+
         Json[]     res;
         ResultCode rc;
+        Json       args = Json.emptyArray;
 
         Ticket     *ticket;
         try
@@ -696,6 +693,7 @@ class VedaStorageRest : VedaStorageRest_API
                 {
                     Json jj = individual_to_json(indv);
                     res ~= jj;
+                    args ~= indv.uri;
                 }
             }
             catch (Throwable ex)
@@ -707,12 +705,16 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
-            trail([ ticket.user_uri, "get_individuals", text(uris), text(res), text(rc), "0" ]);
+            Json jreq = Json.emptyObject;
+            jreq[ "uris" ] = args;
+            trail(_ticket, ticket.user_uri, "get_individuals", jreq, text(res), rc, timestamp);
         }
     }
 
     Json get_individual(string _ticket, string uri, bool reopen = false)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
+
         Json       res;
         ResultCode rc = ResultCode.Internal_Server_Error;
         Ticket     *ticket;
@@ -768,15 +770,20 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
-            trail([ ticket.user_uri, "get_individual", uri, res.toString(), text(rc), "0" ]);
+            Json jreq = Json.emptyObject;
+            jreq[ "uri" ] = uri;
+            trail(_ticket, ticket.user_uri, "get_individual", jreq, res.toString(), rc, timestamp);
         }
     }
 
     OpResult remove_individual(string _ticket, string uri, bool prepare_events, string event_id, string transaction_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
+
         OpResult   op_res;
         ResultCode rc = ResultCode.Internal_Server_Error;
         Ticket     *ticket;
+        Json       jreq = Json.emptyObject;
 
         try
         {
@@ -792,7 +799,6 @@ class VedaStorageRest : VedaStorageRest_API
                 throw new HTTPStatusException(rc, text(rc));
             }
 
-            Json jreq = Json.emptyObject;
             jreq[ "function" ]       = "remove";
             jreq[ "ticket" ]         = _ticket;
             jreq[ "uri" ]            = uri;
@@ -811,116 +817,93 @@ class VedaStorageRest : VedaStorageRest_API
         }
         finally
         {
-            trail([ ticket.user_uri, "remove_individual", uri, "", text(rc), "0" ]);
+            trail(_ticket, ticket.user_uri, "remove_individual", jreq, "", op_res.result, timestamp);
         }
     }
 
     OpResult put_individual(string _ticket, Json individual_json, bool prepare_events, string event_id, string transaction_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
+
         Ticket     *ticket;
         ResultCode rc = ResultCode.Internal_Server_Error;
 
-        try
-        {
-            ticket = context.get_ticket(_ticket);
-            rc     = ticket.result;
+        ticket = context.get_ticket(_ticket);
+        rc     = ticket.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            OpResult op_res = modify_individual(context, "put", _ticket, individual_json, prepare_events, event_id, transaction_id);
-            rc = op_res.result;
+        OpResult op_res = modify_individual(context, "put", _ticket, individual_json, prepare_events, event_id, transaction_id, timestamp);
+        rc = op_res.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            return op_res;
-        }
-        finally
-        {
-            trail([ ticket.user_uri, "put", text(individual_json), "", text(rc), "0" ]);
-        }
+        return op_res;
     }
 
     OpResult add_to_individual(string _ticket, Json individual_json, bool prepare_events, string event_id, string transaction_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
         Ticket     *ticket;
         ResultCode rc = ResultCode.Internal_Server_Error;
 
-        try
-        {
-            ticket = context.get_ticket(_ticket);
-            rc     = ticket.result;
+        ticket = context.get_ticket(_ticket);
+        rc     = ticket.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            OpResult op_res = modify_individual(context, "add_to", _ticket, individual_json, prepare_events, event_id, transaction_id);
-            rc = op_res.result;
+        OpResult op_res = modify_individual(context, "add_to", _ticket, individual_json, prepare_events, event_id, transaction_id, timestamp);
+        rc = op_res.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            return op_res;
-        }
-        finally
-        {
-            trail([ ticket.user_uri, "add_to_individual", text(individual_json), "", text(rc), "0" ]);
-        }
+        return op_res;
     }
 
     OpResult set_in_individual(string _ticket, Json individual_json, bool prepare_events, string event_id, string transaction_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
         Ticket     *ticket;
         ResultCode rc = ResultCode.Internal_Server_Error;
 
-        try
-        {
-            ticket = context.get_ticket(_ticket);
-            rc     = ticket.result;
+        ticket = context.get_ticket(_ticket);
+        rc     = ticket.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            OpResult op_res = modify_individual(context, "set_in", _ticket, individual_json, prepare_events, event_id, transaction_id);
-            rc = op_res.result;
+        OpResult op_res = modify_individual(context, "set_in", _ticket, individual_json, prepare_events, event_id, transaction_id, timestamp);
+        rc = op_res.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            return op_res;
-        }
-        finally
-        {
-            trail([ ticket.user_uri, "set_in_individual", text(individual_json), "", text(rc), "0" ]);
-        }
+        return op_res;
     }
 
     OpResult remove_from_individual(string _ticket, Json individual_json, bool prepare_events, string event_id, string transaction_id)
     {
+        ulong      timestamp = Clock.currTime().stdTime() / 10;
         Ticket     *ticket;
         ResultCode rc = ResultCode.Internal_Server_Error;
 
-        try
-        {
-            ticket = context.get_ticket(_ticket);
-            rc     = ticket.result;
+        ticket = context.get_ticket(_ticket);
+        rc     = ticket.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            OpResult op_res = modify_individual(context, "remove_from", _ticket, individual_json, prepare_events, event_id, transaction_id);
-            rc = op_res.result;
+        OpResult op_res = modify_individual(context, "remove_from", _ticket, individual_json, prepare_events, event_id, transaction_id, timestamp);
+        rc = op_res.result;
 
-            if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));
+        if (rc != ResultCode.OK)
+            throw new HTTPStatusException(rc, text(rc));
 
-            return op_res;
-        }
-        finally
-        {
-            trail([ ticket.user_uri, "remove_from_individual", text(individual_json), "", text(rc), "0" ]);
-        }
+        return op_res;
     }
 
     string begin_transaction()
@@ -937,58 +920,83 @@ class VedaStorageRest : VedaStorageRest_API
     {
         context.abort_transaction(transaction_id);
     }
+}
+//////////////////////////////
 
+private TrailDBConstructor tdb_cons;
+private bool               is_trail     = true;
+private long               count_trails = 0;
+private TrailDB exist_trail;
 
-    bool is_trail     = false;
-    long count_trails = 0;
+void trail(string ticket_id, string user_id, string action, Json args, string result, ResultCode result_code, ulong start_time)
+{
+    if (!is_trail)
+        return;
 
-    void trail(string[] vals)
+    try
     {
-        if (!is_trail)
-            return;
-
-        try
+        ulong    timestamp = Clock.currTime().stdTime() / 10;
+    	
+        if (tdb_cons is null)
         {
-            if (tdb_cons is null)
-            {
-                TrailDB exist_trail;
+            //try
+            //{
+            //	rename (trails_path ~ "/rest_trails_chunk.tdb", trails_path ~ "/rest_trails.tdb");
+            //    exist_trail = new TrailDB(trails_path ~ "/rest_trails.tdb");
+            //    //exist_trail.dontneed ();
+            //}
+            //catch (Throwable tr)
+            //{
+            //    log.trace("ERR! exist_trail: %s", tr.msg);
+            //}
 
-                try
-                {
-                    exist_trail = new TrailDB(trails_path ~ "/rest_trails");
-                }
-                catch (Throwable tr)
-                {
-                }
+            log.trace("open trail db");
 
-
-                tdb_cons = new TrailDBConstructor(trails_path ~ "/rest_trails", [ "user_id", "action", "args", "result", "result_code", "duration" ]);
-                if (exist_trail !is null)
-                    tdb_cons.append(exist_trail);
-            }
-
-            RawUuid uuid      = randomUUID().data;
-            ulong   timestamp = Clock.currTime().stdTime() / 10000;
-            tdb_cons.add(uuid, timestamp, vals);
-            count_trails++;
-
-            if (count_trails > 1000)
-            {
-                tdb_cons.finalize();
-                tdb_cons     = null;
-                count_trails = 0;
-            }
+            tdb_cons =
+                new TrailDBConstructor(trails_path ~ "/rest_trails_" ~ text(timestamp), [ "ticket", "user_id", "action", "args", "result", "result_code", "duration" ]);
+                
+            //if (exist_trail !is null)
+            //{
+            //    log.trace("append to exist trail db");
+            //    tdb_cons.append(exist_trail);
+            //    log.trace("merge is ok");
+            //}                
         }
-        catch (Throwable tr)
+
+        RawUuid  uuid      = randomUUID().data;
+
+        string[] vals;
+
+        vals ~= ticket_id;
+        vals ~= user_id;
+        vals ~= action;
+        vals ~= text(args);
+        vals ~= result;
+        vals ~= text(result_code);
+        vals ~= text(timestamp - start_time);
+
+        tdb_cons.add(uuid, timestamp / 1000, vals);
+        count_trails++;
+
+        if (count_trails > 1000)
         {
-            log.trace("ERR: trail %s", tr.msg);
+            log.trace("flush trail db");
+            tdb_cons.finalize();
+            delete tdb_cons;
+//            exist_trail.close ();
+            tdb_cons     = null;
+            count_trails = 0;
         }
+    }
+    catch (Throwable tr)
+    {
+        log.trace("ERR: error=[%s], stack=%s", tr.msg, tr.info);
     }
 }
 
 //////////////////////////////////////////////////////////////////// ws-server-transport
 private OpResult modify_individual(Context context, string cmd, string _ticket, Json individual_json, bool prepare_events, string event_id,
-                                   string transaction_id)
+                                   string transaction_id, ulong start_time)
 {
     OpResult op_res;
 
@@ -1004,7 +1012,8 @@ private OpResult modify_individual(Context context, string cmd, string _ticket, 
     if (juri.type == Json.Type.undefined)
         throw new HTTPStatusException(ResultCode.Internal_Server_Error, text(ResultCode.Internal_Server_Error));
 
-    Json jreq = Json.emptyObject;
+    string res;
+    Json   jreq = Json.emptyObject;
     jreq[ "function" ]       = cmd;
     jreq[ "ticket" ]         = _ticket;
     jreq[ "individual" ]     = individual_json;
@@ -1013,19 +1022,21 @@ private OpResult modify_individual(Context context, string cmd, string _ticket, 
     jreq[ "transaction_id" ] = transaction_id;
 
     vibe.core.concurrency.send(wsc_server_task, jreq, Task.getThis());
-    vibe.core.concurrency.receive((string res){ op_res = parseOpResult(res); });
+    vibe.core.concurrency.receive((string _res){ res = _res; op_res = parseOpResult(_res); });
 
     //if (trace_msg[ 500 ] == 1)
 //    log.trace("put_individual #end : indv=%s, res=%s", individual_json, text(op_res));
 
     if (op_res.result != ResultCode.OK)
         throw new HTTPStatusException(op_res.result, text(op_res.result));
-    Json juc = individual_json[ "v-s:updateCounter" ];
+//    Json juc = individual_json[ "v-s:updateCounter" ];
 
-    long update_counter = 0;
-    if (juc.type != Json.Type.undefined && juc.length > 0)
-        update_counter = juc[ 0 ][ "data" ].get!long;
-    set_updated_uid(juri.get!string, op_res.op_id, update_counter + 1);
+//    long update_counter = 0;
+//    if (juc.type != Json.Type.undefined && juc.length > 0)
+//        update_counter = juc[ 0 ][ "data" ].get!long;
+    //set_updated_uid(juri.get!string, op_res.op_id, update_counter + 1);
+
+    trail(_ticket, ticket.user_uri, cmd, jreq, res, op_res.result, start_time);
 
     return op_res;
 }
@@ -1129,270 +1140,4 @@ void handleWebSocketConnection(scope WebSocket socket)
     }
 
     log.trace("ws channel [%s] is closed", module_name);
-}
-
-/////////////////////////// CCUS WS
-private shared        UidInfo[ string ] _info_2_uid;
-private shared long   _last_opid;
-private shared Object _mutex = new Object();
-
-struct UidInfo
-{
-    long update_counter;
-    long opid;
-}
-
-public void set_updated_uid(string uid, long opid, long update_counter)
-{
-    synchronized (_mutex)
-    {
-        //log.trace("set_updated_uid (uid=%s, opid=%d, update_counter=%d)", uid, opid, update_counter);
-        if ((uid in _info_2_uid) !is null)
-            _info_2_uid[ uid ] = UidInfo(update_counter, opid);
-
-        atomicStore(_last_opid, opid);
-    }
-}
-
-public long get_counter_4_uid(string uid)
-{
-    long res;
-
-    synchronized (_mutex)
-    {
-        if ((uid in _info_2_uid) !is null)
-            res = _info_2_uid[ uid ].update_counter;
-        else
-            _info_2_uid[ uid ] = UidInfo(0, 0);
-
-        //log.trace ("get_counter_4_uid(uid=%s)=%d", uid, res);
-    }
-    return res;
-}
-
-public long get_last_opid()
-{
-    synchronized (_mutex)
-    {
-        //log.trace ("@ get_last_opid()=[%d]", _last_opid);
-        return _last_opid;
-    }
-}
-
-void handleWebSocketConnection_CCUS(scope WebSocket socket)
-{
-    const(HTTPServerRequest)hsr = socket.request();
-
-    string ch_uid = text(hsr.clientAddress);
-
-    log.trace("CCUS spawn socket connection [%s]", ch_uid);
-
-    // Client Cache Update Subscription
-    string chid;
-    long[ string ] count_2_uid;
-
-    string get_list_of_changes()
-    {
-        string   res;
-
-        string[] keys = count_2_uid.keys;
-        foreach (i_uid; keys)
-        {
-            long i_count = count_2_uid[ i_uid ];
-            long g_count = get_counter_4_uid(i_uid);
-            if (g_count > i_count)
-            {
-                i_count = g_count;
-
-                if (res is null)
-                    res ~= i_uid ~ "=" ~ text(i_count);
-                else
-                    res ~= "," ~ i_uid ~ "=" ~ text(i_count);
-
-                count_2_uid[ i_uid ] = i_count;
-            }
-        }
-        //log.trace("get_list_of_changes, res = (%s)", res);
-        return res;
-    }
-
-    string get_list_of_subscribe()
-    {
-        string   res;
-
-        string[] keys = count_2_uid.keys;
-        foreach (i_uid; keys)
-        {
-            long i_count = count_2_uid[ i_uid ];
-            long g_count = get_counter_4_uid(i_uid);
-            if (g_count > i_count)
-            {
-                i_count              = g_count;
-                count_2_uid[ i_uid ] = i_count;
-            }
-            if (res is null)
-                res ~= i_uid ~ "=" ~ text(i_count);
-            else
-                res ~= "," ~ i_uid ~ "=" ~ text(i_count);
-        }
-        // log.trace("get_list_of_subscribe = (%s)", res);
-        return res;
-    }
-
-    try
-    {
-        while (true)
-        {
-            if (!socket.connected)
-                break;
-
-            string inital_message = socket.receiveText();
-            //socket.send("Ok");
-
-            string[] kv = inital_message.split('=');
-            if (kv.length == 2)
-            {
-                if (kv[ 0 ] == "ccus")
-                {
-                    chid = kv[ 1 ];
-                    log.trace("[%s] init channel [%s]", ch_uid, chid);
-                }
-            }
-
-            if (chid !is null)
-            {
-                long last_check_opid = 0;
-
-                long timeout = 1;
-
-                while (true)
-                {
-                    if (!socket.connected)
-                        break;
-
-                    string msg_from_sock = null;
-
-                    if (socket.waitForData(dur!("msecs")(1000)) == true)
-                        msg_from_sock = socket.receiveText();
-
-                    if (msg_from_sock !is null && msg_from_sock.length > 0)
-                    {
-                        //log.trace ("[%s] recv msg [%s]", ch_uid, msg_from_sock);
-
-                        if (msg_from_sock[ 0 ] == '#' && msg_from_sock.length > 3) // server уведомляет об изменении индивида
-                        {
-                            string   update_indv_msg = msg_from_sock[ 1..$ ];
-                            string[] msg_parts       = update_indv_msg.split(';');
-                            if (msg_parts.length == 3)
-                            {
-                                string uid            = msg_parts[ 0 ];
-                                long   update_counter = to!long (msg_parts[ 1 ]);
-                                long   opid           = to!long (msg_parts[ 2 ]);
-                                set_updated_uid(uid, opid, update_counter);
-                                //log.trace ("[%s] server уведомляет об изменении индивида uid=%s opid=%d update_counter=%d", ch_uid, uid, opid, update_counter);
-                                //socket.send("Ok");
-                            }
-                            else
-                                socket.send("Err:invalid message");
-                            continue;
-                        }
-                        else if (msg_from_sock[ 0 ] == '=')
-                        {
-                            string res = get_list_of_subscribe();
-
-                            if (res !is null)
-                                socket.send("=" ~ res);
-                            else
-                                socket.send("=");
-                        }
-                        else if (msg_from_sock.length == 2 && msg_from_sock[ 0 ] == '-' && msg_from_sock[ 1 ] == '*')
-                        {
-                            count_2_uid = count_2_uid.init;
-                        }
-                        else if (msg_from_sock.length > 3)
-                        {
-                            foreach (data; msg_from_sock.split(','))
-                            {
-                                try
-                                {
-                                    string[] expr = data.split('=');
-
-                                    string   uid_info;
-                                    if (expr.length > 0)
-                                        uid_info = expr[ 0 ];
-
-                                    if (expr.length == 2)
-                                    {
-                                        if (uid_info.length > 2)
-                                        {
-                                            string uid = uid_info[ 1..$ ];
-
-                                            if (uid_info[ 0 ] == '+')
-                                            {
-                                                uid = uid_info[ 1..$ ];
-                                                long uid_counter = to!long (expr[ 1 ]);
-                                                count_2_uid[ uid ] = uid_counter;
-                                                long g_count = get_counter_4_uid(uid);
-                                                if (uid_counter < g_count)
-                                                {
-                                                    string res = get_list_of_changes();
-                                                    if (res !is null)
-                                                    {
-                                                        socket.send(res);
-                                                    }
-                                                    last_check_opid = get_last_opid();
-                                                }
-
-                                                //log.trace("subscribe uid=%s, counter=%d", uid, uid_counter);
-                                            }
-                                        }
-                                    }
-                                    else if (expr.length == 1)
-                                    {
-                                        if (uid_info.length > 2)
-                                        {
-                                            string uid = uid_info[ 1..$ ];
-                                            if (uid_info[ 0 ] == '-')
-                                            {
-                                                uid = uid_info[ 1..$ ];
-                                                count_2_uid.remove(uid);
-                                                //log.trace("unsubscribe uid=%s", uid);
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Throwable tr)
-                                {
-                                    log.trace("[%s] Client Cache Update Subscription: recv msg:[%s], %s", ch_uid, data, tr.msg);
-                                }
-                            }
-                        }
-                    }
-
-                    //log.trace ("last_check_opid=%d", last_check_opid);
-                    long last_opid = get_last_opid();
-                    if (last_check_opid < last_opid)
-                    {
-                        //log.trace ("[%s] last_check_opid(%d) < last_opid(%d)", ch_uid, last_check_opid, last_opid);
-                        string res = get_list_of_changes();
-                        if (res !is null)
-                        {
-                            //log.trace ("[%s] send list of change, res=%s", ch_uid, res);
-                            socket.send(res);
-                        }
-                        last_check_opid = last_opid;
-                    }
-                }
-            }
-        }
-    }
-    catch (Throwable tr)
-    {
-        log.trace("[%s] err on channel, ex=%s", ch_uid, tr.msg);
-    }
-
-    scope (exit)
-    {
-        log.trace("[%s] channel closed", ch_uid);
-    }
 }

@@ -162,7 +162,7 @@ shared static this()
             return Individual.init;
     }
 
-    string[] uris = context.get_individuals_ids_via_query(&sys_ticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 100000, 100000);
+    string[] uris = context.get_individuals_ids_via_query(&sys_ticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000).result;
 
 //    long count_individuals = context.count_individuals();
     if (uris.length == 0)
@@ -236,10 +236,13 @@ bool start_http_listener(Context context, ushort http_port)
         //settings.bindAddresses = ["127.0.0.1"];
         settings.errorPageHandler = toDelegate(&view_error);
         //settings.options = HTTPServerOption.parseURL|HTTPServerOption.distribute;
+        
+        HTTPFileServerSettings file_serve_settings = new HTTPFileServerSettings; 
+		file_serve_settings.maxAge = dur!"hours"(8);
 
         auto router = new URLRouter;
         router.get("/files/*", &vsr.fileManager);
-        router.get("*", serveStaticFiles("public"));
+        router.get("*", serveStaticFiles("public", file_serve_settings));
         router.get("/", serveStaticFile("public/index.html"));
         router.get("/tests", serveStaticFile("public/tests.html"));
         router.post("/files", &uploadFile);
