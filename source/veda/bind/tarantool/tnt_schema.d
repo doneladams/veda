@@ -4,7 +4,7 @@ import veda.bind.tarantool.tnt_reply;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -51,7 +51,7 @@ struct mh_assoc_t;
  */
 struct tnt_schema_ival
 {
-    const(char)* name;
+    const(char)*name;
     uint name_len;
     uint number;
 }
@@ -62,10 +62,10 @@ struct tnt_schema_ival
  */
 struct tnt_schema_sval
 {
-    char* name;
-    uint name_len;
-    uint number;
-    mh_assoc_t* index;
+    char       *name;
+    uint       name_len;
+    uint       number;
+    mh_assoc_t *index;
 }
 
 /**
@@ -73,8 +73,8 @@ struct tnt_schema_sval
  */
 struct tnt_schema
 {
-    mh_assoc_t* space_hash; /*!< hash with spaces */
-    int alloc; /*!< allocation mark */
+    mh_assoc_t *space_hash; /*!< hash with spaces */
+    int        alloc;       /*!< allocation mark */
 }
 
 /**
@@ -93,7 +93,7 @@ struct tnt_schema
  */
 
 
-int tnt_schema_add_spaces (tnt_schema* sch, tnt_reply_* r);
+int tnt_schema_add_spaces(tnt_schema *sch, tnt_reply_ *r);
 
 /**
  * \brief Add indexes definitions to schema
@@ -111,7 +111,7 @@ int tnt_schema_add_spaces (tnt_schema* sch, tnt_reply_* r);
  */
 
 
-int tnt_schema_add_indexes (tnt_schema* sch, tnt_reply_* r);
+int tnt_schema_add_indexes(tnt_schema *sch, tnt_reply_ *r);
 
 /**
  * \brief Get spaceno by space name
@@ -123,7 +123,7 @@ int tnt_schema_add_indexes (tnt_schema* sch, tnt_reply_* r);
  * \returns space id
  * \retval -1 error, space not found
  */
-int tnt_schema_stosid (tnt_schema* sch, const(char)* sstr, uint sslen);
+int tnt_schema_stosid(tnt_schema *sch, const(char) *sstr, uint sslen);
 
 /**
  * \brief Get indexno by space no and index name
@@ -136,11 +136,11 @@ int tnt_schema_stosid (tnt_schema* sch, const(char)* sstr, uint sslen);
  * \returns index id
  * \retval -1 error, index/space not found
  */
-int tnt_schema_stoiid (
-    tnt_schema* sch,
-    uint sno,
-    const(char)* istr,
-    uint islen);
+int tnt_schema_stoiid(
+                      tnt_schema *sch,
+                      uint sno,
+                      const(char) *istr,
+                      uint islen);
 
 /**
  * \brief Create and init schema object
@@ -151,24 +151,24 @@ int tnt_schema_stoiid (
  * \returns new schema object
  * \retval  NULL oom
  */
-tnt_schema* tnt_schema_new (tnt_schema* sch);
+tnt_schema *tnt_schema_new(tnt_schema *sch);
 
 /**
  * \brief Reset schema to default state (empty)
  * \param sch schema pointer
  */
-void tnt_schema_flush (tnt_schema* sch);
+void tnt_schema_flush(tnt_schema *sch);
 
 /**
  * \brief Reset and free schema
  * \param sch schema pointer
  */
-void tnt_schema_free (tnt_schema* sch);
+void tnt_schema_free(tnt_schema *sch);
 
 
-ssize_t tnt_get_space (tnt_stream* s);
+ssize_t tnt_get_space(tnt_stream *s);
 
 
-ssize_t tnt_get_index (tnt_stream* s);
+ssize_t tnt_get_index(tnt_stream *s);
 
 /* TNT_SCHEMA_H_INCLUDED */

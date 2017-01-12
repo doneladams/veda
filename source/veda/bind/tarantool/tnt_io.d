@@ -4,7 +4,7 @@ import veda.bind.tarantool.tnt_opt;
 import veda.bind.tarantool.tnt_net;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -43,21 +43,21 @@ alias c_long ssize_t;
  * \brief Basic network layer io
  */
 
-tnt_error_ tnt_io_connect (tnt_stream_net* s);
-void tnt_io_close (tnt_stream_net* s);
+tnt_error_ tnt_io_connect(tnt_stream_net *s);
+void tnt_io_close(tnt_stream_net *s);
 
-ssize_t tnt_io_flush (tnt_stream_net* s);
+ssize_t tnt_io_flush(tnt_stream_net *s);
 
-ssize_t tnt_io_send_raw (
-    tnt_stream_net* s,
-    const(char)* buf,
-    size_t size,
-    int all);
-ssize_t tnt_io_sendv_raw (tnt_stream_net* s, iovec* iov, int count, int all);
-ssize_t tnt_io_recv_raw (tnt_stream_net* s, char* buf, size_t size, int all);
+ssize_t tnt_io_send_raw(
+                        tnt_stream_net *s,
+                        const(char) *buf,
+                        size_t size,
+                        int all);
+ssize_t tnt_io_sendv_raw(tnt_stream_net *s, iovec *iov, int count, int all);
+ssize_t tnt_io_recv_raw(tnt_stream_net *s, char *buf, size_t size, int all);
 
-ssize_t tnt_io_send (tnt_stream_net* s, const(char)* buf, size_t size);
-ssize_t tnt_io_sendv (tnt_stream_net* s, iovec* iov, int count);
-ssize_t tnt_io_recv (tnt_stream_net* s, char* buf, size_t size);
+ssize_t tnt_io_send(tnt_stream_net *s, const(char) *buf, size_t size);
+ssize_t tnt_io_sendv(tnt_stream_net *s, iovec *iov, int count);
+ssize_t tnt_io_recv(tnt_stream_net *s, char *buf, size_t size);
 
 /* TNT_IO_H_INCLUDED */

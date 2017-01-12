@@ -4,7 +4,7 @@ import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 import core.stdc.stdarg;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -48,8 +48,8 @@ alias c_long ssize_t;
 struct tnt_sbo_stack
 {
     size_t offset;
-    uint size;
-    byte type;
+    uint   size;
+    byte   type;
 }
 
 /**
@@ -70,18 +70,18 @@ enum tnt_sbo_type
 
 struct tnt_sbuf_object
 {
-    tnt_sbo_stack* stack;
-    ubyte stack_size;
-    ubyte stack_alloc;
-    tnt_sbo_type type;
+    tnt_sbo_stack *stack;
+    ubyte         stack_size;
+    ubyte         stack_alloc;
+    tnt_sbo_type  type;
 }
 
-extern (D) auto TNT_OBJ_CAST(T)(auto ref T SB)
+extern (D) auto TNT_OBJ_CAST(T) (auto ref T SB)
 {
-    return cast(tnt_sbuf_object*) SB.subdata;
+    return cast(tnt_sbuf_object *)SB.subdata;
 }
 
-extern (D) auto TNT_SOBJ_CAST(T)(auto ref T S)
+extern (D) auto TNT_SOBJ_CAST(T) (auto ref T S)
 {
     return TNT_OBJ_CAST(TNT_SBUF_CAST(S));
 }
@@ -100,7 +100,7 @@ extern (D) auto TNT_SOBJ_CAST(T)(auto ref T S)
  */
 
 
-int tnt_object_type (tnt_stream* s, tnt_sbo_type type);
+int tnt_object_type(tnt_stream *s, tnt_sbo_type type);
 
 /**
  * \brief create and initialize tnt_object
@@ -115,89 +115,89 @@ int tnt_object_type (tnt_stream* s, tnt_sbo_type type);
  * \retval NULL error
  */
 
-tnt_stream* tnt_object (tnt_stream* s);
+tnt_stream *tnt_object(tnt_stream *s);
 
 /**
  * \brief Add nil to a stream object
  */
-ssize_t tnt_object_add_nil (tnt_stream* s);
+ssize_t tnt_object_add_nil(tnt_stream *s);
 
 /**
  * \brief Add integer to a stream object
  */
-ssize_t tnt_object_add_int (tnt_stream* s, long value);
+ssize_t tnt_object_add_int(tnt_stream *s, long value);
 
 /**
  * \brief Add unsigned integer to a stream object
  */
-ssize_t tnt_object_add_uint (tnt_stream* s, ulong value);
+ssize_t tnt_object_add_uint(tnt_stream *s, ulong value);
 
 /**
  * \brief Add string to a stream object
  */
-ssize_t tnt_object_add_str (tnt_stream* s, const(char)* str, uint len);
+ssize_t tnt_object_add_str(tnt_stream *s, const(char) *str, uint len);
 
 /**
  * \brief Add null terminated string to a stream object
  */
-ssize_t tnt_object_add_strz (tnt_stream* s, const(char)* strz);
+ssize_t tnt_object_add_strz(tnt_stream *s, const(char) *strz);
 
 /**
  * \brief Add binary object to a stream object
  */
-ssize_t tnt_object_add_bin (tnt_stream* s, const(void)* bin, uint len);
+ssize_t tnt_object_add_bin(tnt_stream *s, const(void) *bin, uint len);
 
 /**
  * \brief Add boolean to a stream object
  */
-ssize_t tnt_object_add_bool (tnt_stream* s, char value);
+ssize_t tnt_object_add_bool(tnt_stream *s, char value);
 
 /**
  * \brief Add floating value to a stream object
  */
-ssize_t tnt_object_add_float (tnt_stream* s, float value);
+ssize_t tnt_object_add_float(tnt_stream *s, float value);
 
 /**
  * \brief Add double precision floating value to a stream object
  */
-ssize_t tnt_object_add_double (tnt_stream* s, double value);
+ssize_t tnt_object_add_double(tnt_stream *s, double value);
 
 /**
  * \brief Append array header to stream object
  * \sa tnt_sbo_type
  */
-ssize_t tnt_object_add_array (tnt_stream* s, uint size);
+ssize_t tnt_object_add_array(tnt_stream *s, uint size);
 
 /**
  * \brief Append map header to stream object
  * \sa tnt_sbo_type
  */
-ssize_t tnt_object_add_map (tnt_stream* s, uint size);
+ssize_t tnt_object_add_map(tnt_stream *s, uint size);
 
 /**
  * \brief Close array/map in case TNT_SBO_PACKED/TNT_SBO_SPARSE were used
  * \sa tnt_sbo_type
  */
-ssize_t tnt_object_container_close (tnt_stream* s);
+ssize_t tnt_object_container_close(tnt_stream *s);
 
 /**
  * \brief create immutable tnt_object from given buffer
  */
-tnt_stream* tnt_object_as (tnt_stream* s, char* buf, size_t buf_len);
+tnt_stream *tnt_object_as(tnt_stream *s, char *buf, size_t buf_len);
 
 /**
  * \brief verify that object is valid msgpack structure
  * \param s object pointer
  * \param type -1 on check without validating type, otherwise `enum mp_type`
  */
-int tnt_object_verify (tnt_stream* s, byte type);
+int tnt_object_verify(tnt_stream *s, byte type);
 
 /**
  * \brief reset tnt_object to basic state
  * this function doesn't deallocate memory, but instead it simply sets all
  * pointers to beginning
  */
-int tnt_object_reset (tnt_stream* s);
+int tnt_object_reset(tnt_stream *s);
 
 /**
  * \brief create tnt_object from format string/values (va_list variation)
@@ -235,13 +235,13 @@ int tnt_object_reset (tnt_stream* s);
  * \sa tnt_object_vformat
  * \sa tnt_object_format
  */
-ssize_t tnt_object_format (tnt_stream* s, const(char)* fmt, ...);
+ssize_t tnt_object_format(tnt_stream *s, const(char) *fmt, ...);
 
 /**
  * \brief create tnt_object from format string/values
  * \sa tnt_object_vformat
  * \sa tnt_object_format
  */
-ssize_t tnt_object_vformat (tnt_stream* s, const(char)* fmt, va_list vl);
+ssize_t tnt_object_vformat(tnt_stream *s, const(char) *fmt, va_list vl);
 
 /* TNT_OBJECT_H_INCLUDED */

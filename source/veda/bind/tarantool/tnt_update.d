@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_update;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -55,12 +55,12 @@ alias c_long ssize_t;
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update (
-    tnt_stream* s,
-    uint space,
-    uint index,
-    tnt_stream* key,
-    tnt_stream* ops);
+ssize_t tnt_update(
+                   tnt_stream *s,
+                   uint space,
+                   uint index,
+                   tnt_stream *key,
+                   tnt_stream *ops);
 
 /**
  * \brief Add bit operation for update to tnt_object
@@ -75,7 +75,7 @@ ssize_t tnt_update (
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_bit (tnt_stream* ops, uint fieldno, char op, ulong value);
+ssize_t tnt_update_bit(tnt_stream *ops, uint fieldno, char op, ulong value);
 
 /**
  * \brief Add int arithmetic operation for update to tnt_object
@@ -90,11 +90,11 @@ ssize_t tnt_update_bit (tnt_stream* ops, uint fieldno, char op, ulong value);
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_arith_int (
-    tnt_stream* ops,
-    uint fieldno,
-    char op,
-    long value);
+ssize_t tnt_update_arith_int(
+                             tnt_stream *ops,
+                             uint fieldno,
+                             char op,
+                             long value);
 
 /**
  * \brief Add float arithmetic operation for update to tnt_object
@@ -109,11 +109,11 @@ ssize_t tnt_update_arith_int (
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_arith_float (
-    tnt_stream* ops,
-    uint fieldno,
-    char op,
-    float value);
+ssize_t tnt_update_arith_float(
+                               tnt_stream *ops,
+                               uint fieldno,
+                               char op,
+                               float value);
 
 /**
  * \brief Add double arithmetic operation for update to tnt_object
@@ -128,11 +128,11 @@ ssize_t tnt_update_arith_float (
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_arith_double (
-    tnt_stream* ops,
-    uint fieldno,
-    char op,
-    double value);
+ssize_t tnt_update_arith_double(
+                                tnt_stream *ops,
+                                uint fieldno,
+                                char op,
+                                double value);
 
 /**
  * \brief Add delete operation for update to tnt_object
@@ -146,7 +146,7 @@ ssize_t tnt_update_arith_double (
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_delete (tnt_stream* ops, uint fieldno, uint fieldco);
+ssize_t tnt_update_delete(tnt_stream *ops, uint fieldno, uint fieldco);
 
 /**
  * \brief Add insert before operation for update to tnt_object
@@ -160,7 +160,7 @@ ssize_t tnt_update_delete (tnt_stream* ops, uint fieldno, uint fieldco);
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_insert (tnt_stream* ops, uint fieldno, tnt_stream* val);
+ssize_t tnt_update_insert(tnt_stream *ops, uint fieldno, tnt_stream *val);
 
 /**
  * \brief Add assign operation for update to tnt_object
@@ -174,7 +174,7 @@ ssize_t tnt_update_insert (tnt_stream* ops, uint fieldno, tnt_stream* val);
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_assign (tnt_stream* ops, uint fieldno, tnt_stream* val);
+ssize_t tnt_update_assign(tnt_stream *ops, uint fieldno, tnt_stream *val);
 
 /**
  * \brief Add splice operation for update to tnt_object
@@ -191,27 +191,27 @@ ssize_t tnt_update_assign (tnt_stream* ops, uint fieldno, tnt_stream* val);
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_update_splice (
-    tnt_stream* ops,
-    uint fieldno,
-    uint position,
-    uint offset,
-    const(char)* buffer,
-    size_t buffer_len);
+ssize_t tnt_update_splice(
+                          tnt_stream *ops,
+                          uint fieldno,
+                          uint position,
+                          uint offset,
+                          const(char) *buffer,
+                          size_t buffer_len);
 
 /**
  * \brief shortcut for tnt_object() with type == TNT_SBO_SPARSE
  */
-tnt_stream* tnt_update_container (tnt_stream* ops);
+tnt_stream *tnt_update_container(tnt_stream *ops);
 
 /**
  * \brief shortcut for tnt_object_container_close()
  */
-tnt_stream* tnt_update_container (tnt_stream* ops);
+tnt_stream *tnt_update_container(tnt_stream *ops);
 
-int tnt_update_container_close (tnt_stream* ops);
+int tnt_update_container_close(tnt_stream *ops);
 
-int tnt_update_container_reset (tnt_stream* ops);
+int tnt_update_container_reset(tnt_stream *ops);
 
 /**
  * \brief Generate and write upsert operation with predefined
@@ -226,10 +226,10 @@ int tnt_update_container_reset (tnt_stream* ops);
  * \sa tnt_update_cointainer
  * \sa tnt_update_cointainer_close
  */
-ssize_t tnt_upsert (
-    tnt_stream* s,
-    uint space,
-    tnt_stream* tuple,
-    tnt_stream* ops);
+ssize_t tnt_upsert(
+                   tnt_stream *s,
+                   uint space,
+                   tnt_stream *tuple,
+                   tnt_stream *ops);
 
 /* TNT_UPDATE_H_INCLUDED */

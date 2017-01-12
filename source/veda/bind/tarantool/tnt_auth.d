@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_auth;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -56,24 +56,24 @@ alias c_long ssize_t;
  * \retval number of bytes written to stream
  */
 
-ssize_t tnt_auth (
-    tnt_stream* s,
-    const(char)* user,
-    int ulen,
-    const(char)* pass,
-    int plen);
+ssize_t tnt_auth(
+                 tnt_stream *s,
+                 const(char) *user,
+                 int ulen,
+                 const(char) *pass,
+                 int plen);
 
 /**
  * \brief tnt_auth version with providing base64 encoded salt from tarantool
  */
 
-ssize_t tnt_auth_raw (
-    tnt_stream* s,
-    const(char)* user,
-    int ulen,
-    const(char)* pass,
-    int plen,
-    const(char)* base64_salt);
+ssize_t tnt_auth_raw(
+                     tnt_stream *s,
+                     const(char) *user,
+                     int ulen,
+                     const(char) *pass,
+                     int plen,
+                     const(char) *base64_salt);
 
 /**
  * \brief Write deauth request to stream
@@ -85,6 +85,6 @@ ssize_t tnt_auth_raw (
  * \retval number of bytes written to stream
  */
 
-ssize_t tnt_deauth (tnt_stream* s);
+ssize_t tnt_deauth(tnt_stream *s);
 
 /* TNT_AUTH_H_INCLUDED */

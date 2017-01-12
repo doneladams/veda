@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_call;
 import core.stdc.config;
 import veda.bind.tarantool.tnt_stream;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -55,11 +55,11 @@ alias c_long ssize_t;
  */
 
 
-ssize_t tnt_call (
-    tnt_stream* s,
-    const(char)* proc,
-    size_t plen,
-    tnt_stream* args);
+ssize_t tnt_call(
+                 tnt_stream *s,
+                 const(char) *proc,
+                 size_t plen,
+                 tnt_stream *args);
 
 /**
  * \brief Construct call request and write it into stream
@@ -74,11 +74,11 @@ ssize_t tnt_call (
  * \retval number of bytes written to stream
  */
 
-ssize_t tnt_call_16 (
-    tnt_stream* s,
-    const(char)* proc,
-    size_t proc_len,
-    tnt_stream* args);
+ssize_t tnt_call_16(
+                    tnt_stream *s,
+                    const(char) *proc,
+                    size_t proc_len,
+                    tnt_stream *args);
 
 /**
  * \brief Construct eval request and write it into stream
@@ -92,10 +92,10 @@ ssize_t tnt_call_16 (
  * \retval number of bytes written to stream
  */
 
-ssize_t tnt_eval (
-    tnt_stream* s,
-    const(char)* expr,
-    size_t elen,
-    tnt_stream* args);
+ssize_t tnt_eval(
+                 tnt_stream *s,
+                 const(char) *expr,
+                 size_t elen,
+                 tnt_stream *args);
 
 /* TNT_CALL_H_INCLUDED */

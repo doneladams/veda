@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_iter;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -47,10 +47,10 @@ alias c_long ssize_t;
 enum tnt_iter_type
 {
     TNT_ITER_ARRAY = 0,
-    TNT_ITER_MAP = 1,
+    TNT_ITER_MAP   = 1,
     TNT_ITER_REPLY = 2
-    //	TNT_ITER_REQUEST,
-    //	TNT_ITER_STORAGE
+                     //	TNT_ITER_REQUEST,
+                     //	TNT_ITER_STORAGE
 }
 
 /*!
@@ -58,12 +58,12 @@ enum tnt_iter_type
  */
 struct tnt_iter_array_
 {
-    const(char)* data; /*!< pointer to the beginning of array */
-    const(char)* first_elem; /*!< pointer to the first element of array */
-    const(char)* elem; /*!< pointer to current element of array */
-    const(char)* elem_end; /*!< pointer to current element end of array */
-    uint elem_count; /*!< number of elements in array */
-    int cur_index; /*!< index of current element */
+    const(char)*data;       /*!< pointer to the beginning of array */
+    const(char)*first_elem; /*!< pointer to the first element of array */
+    const(char)*elem;       /*!< pointer to current element of array */
+    const(char)*elem_end;   /*!< pointer to current element end of array */
+    uint elem_count;        /*!< number of elements in array */
+    int  cur_index;         /*!< index of current element */
 }
 
 /* msgpack array iterator accessors */
@@ -71,7 +71,7 @@ struct tnt_iter_array_
 /**
  * \brief access msgpack array iterator
  */
-extern (D) auto TNT_IARRAY(T)(auto ref T I)
+extern (D) auto TNT_IARRAY(T) (auto ref T I)
 {
     return &I.data.array;
 }
@@ -79,7 +79,7 @@ extern (D) auto TNT_IARRAY(T)(auto ref T I)
 /**
  * \brief access current element form iterator
  */
-extern (D) auto TNT_IARRAY_ELEM(T)(auto ref T I)
+extern (D) auto TNT_IARRAY_ELEM(T) (auto ref T I)
 {
     return TNT_IARRAY(I).elem;
 }
@@ -87,7 +87,7 @@ extern (D) auto TNT_IARRAY_ELEM(T)(auto ref T I)
 /**
  * \brief access end of current element from iterator
  */
-extern (D) auto TNT_IARRAY_ELEM_END(T)(auto ref T I)
+extern (D) auto TNT_IARRAY_ELEM_END(T) (auto ref T I)
 {
     return TNT_IARRAY(I).elem_end;
 }
@@ -97,14 +97,14 @@ extern (D) auto TNT_IARRAY_ELEM_END(T)(auto ref T I)
  */
 struct tnt_iter_map_
 {
-    const(char)* data; /*!< pointer to the beginning of map */
-    const(char)* first_key; /*!< pointer to the first key of map */
-    const(char)* key; /*!< pointer to current key of map */
-    const(char)* key_end; /*!< pointer to current key end */
-    const(char)* value; /*!< pointer to current value of map */
-    const(char)* value_end; /*!< pointer to current value end */
-    uint pair_count; /*!< number of key-values pairs in array */
-    int cur_index; /*!< index of current pair */
+    const(char)*data;      /*!< pointer to the beginning of map */
+    const(char)*first_key; /*!< pointer to the first key of map */
+    const(char)*key;       /*!< pointer to current key of map */
+    const(char)*key_end;   /*!< pointer to current key end */
+    const(char)*value;     /*!< pointer to current value of map */
+    const(char)*value_end; /*!< pointer to current value end */
+    uint pair_count;       /*!< number of key-values pairs in array */
+    int  cur_index;        /*!< index of current pair */
 }
 
 /* msgpack array iterator accessors */
@@ -112,7 +112,7 @@ struct tnt_iter_map_
 /**
  * \brief access msgpack map iterator
  */
-extern (D) auto TNT_IMAP(T)(auto ref T I)
+extern (D) auto TNT_IMAP(T) (auto ref T I)
 {
     return &I.data.map;
 }
@@ -120,7 +120,7 @@ extern (D) auto TNT_IMAP(T)(auto ref T I)
 /**
  * \brief access current key from iterator
  */
-extern (D) auto TNT_IMAP_KEY(T)(auto ref T I)
+extern (D) auto TNT_IMAP_KEY(T) (auto ref T I)
 {
     return TNT_IMAP(I).key;
 }
@@ -128,7 +128,7 @@ extern (D) auto TNT_IMAP_KEY(T)(auto ref T I)
 /**
  * \brief access current key end from iterator
  */
-extern (D) auto TNT_IMAP_KEY_END(T)(auto ref T I)
+extern (D) auto TNT_IMAP_KEY_END(T) (auto ref T I)
 {
     return TNT_IMAP(I).key_end;
 }
@@ -136,7 +136,7 @@ extern (D) auto TNT_IMAP_KEY_END(T)(auto ref T I)
 /**
  * \brief access current value from iterator
  */
-extern (D) auto TNT_IMAP_VAL(T)(auto ref T I)
+extern (D) auto TNT_IMAP_VAL(T) (auto ref T I)
 {
     return TNT_IMAP(I).value;
 }
@@ -144,7 +144,7 @@ extern (D) auto TNT_IMAP_VAL(T)(auto ref T I)
 /**
  * \brief access current value end from iterator
  */
-extern (D) auto TNT_IMAP_VAL_END(T)(auto ref T I)
+extern (D) auto TNT_IMAP_VAL_END(T) (auto ref T I)
 {
     return TNT_IMAP(I).value_end;
 }
@@ -155,20 +155,20 @@ extern (D) auto TNT_IMAP_VAL_END(T)(auto ref T I)
 struct tnt_iter_reply_
 {
     struct tnt_stream;
-    tnt_stream* s; /*!< stream pointer */
+    tnt_stream *s; /*!< stream pointer */
     struct tnt_reply_
     {
-        int alloc;
-        ulong bitmap;
-        const(char)* buf;
+        int    alloc;
+        ulong  bitmap;
+        const(char)*buf;
         size_t buf_size;
-        ulong code;
-        ulong sync;
-        ulong schema_id;
-        const(char)* error;
-        const(char)* error_end;
-        const(char)* data;
-        const(char)* data_end;
+        ulong  code;
+        ulong  sync;
+        ulong  schema_id;
+        const(char)*error;
+        const(char)*error_end;
+        const(char)*data;
+        const(char)*data_end;
     }
 
     tnt_reply_ r; /*!< current reply */
@@ -179,7 +179,7 @@ struct tnt_iter_reply_
 /**
  * \brief access reply iterator
  */
-extern (D) auto TNT_IREPLY(T)(auto ref T I)
+extern (D) auto TNT_IREPLY(T) (auto ref T I)
 {
     return &I.data.reply;
 }
@@ -187,15 +187,15 @@ extern (D) auto TNT_IREPLY(T)(auto ref T I)
 /**
  * \brief access current reply form iterator
  */
-extern (D) auto TNT_IREPLY_PTR(T)(auto ref T I)
+extern (D) auto TNT_IREPLY_PTR(T) (auto ref T I)
 {
     return &TNT_IREPLY(I).r;
 }
 
 /* request iterator */
 // struct tnt_iter_request {
-// 	struct tnt_stream *s; /* stream pointer */
-// 	struct tnt_request r; /* current request */
+//  struct tnt_stream *s; /* stream pointer */
+//  struct tnt_request r; /* current request */
 // };
 
 /* request iterator accessors */
@@ -205,8 +205,8 @@ extern (D) auto TNT_IREPLY_PTR(T)(auto ref T I)
 
 /* storage iterator */
 // struct tnt_iter_storage {
-// 	struct tnt_stream *s; /* stream pointer */
-// 	struct tnt_tuple t;   /* current fetched tuple */
+//  struct tnt_stream *s; /* stream pointer */
+//  struct tnt_tuple t;   /* current fetched tuple */
 // };
 
 /* storage iterator accessors */
@@ -219,8 +219,8 @@ extern (D) auto TNT_IREPLY_PTR(T)(auto ref T I)
  */
 enum tnt_iter_status
 {
-    TNT_ITER_OK = 0, /*!< iterator is ok */
-    TNT_ITER_FAIL = 1 /*!< error or end of iteration */
+    TNT_ITER_OK   = 0, /*!< iterator is ok */
+    TNT_ITER_FAIL = 1  /*!< error or end of iteration */
 }
 
 /**
@@ -228,17 +228,17 @@ enum tnt_iter_status
  */
 struct tnt_iter
 {
-    tnt_iter_type type; /*!< iterator type
-    				  * \sa enum tnt_iter_type
-    				  */
-    tnt_iter_status status; /*!< iterator status
-    				      * \sa enum tnt_iter_status
-    				      */
-    int alloc; /*!< allocation mark */
+    tnt_iter_type   type;                 /*!< iterator type
+                                           * \sa enum tnt_iter_type
+                                           */
+    tnt_iter_status status;               /*!< iterator status
+                                           * \sa enum tnt_iter_status
+                                           */
+    int             alloc;                /*!< allocation mark */
     /* interface callbacks */
-    int function (tnt_iter* iter) next; /*!< callback for next element */
-    void function (tnt_iter* iter) rewind; /*!< callback for rewind */
-    void function (tnt_iter* iter) free; /*!< callback for free of custom iter type */
+    int function(tnt_iter *iter) next;    /*!< callback for next element */
+    void function(tnt_iter *iter) rewind; /*!< callback for rewind */
+    void function(tnt_iter *iter) free;   /*!< callback for free of custom iter type */
     /* iterator data */
 
     /*!< msgpack array iterator */
@@ -249,7 +249,7 @@ struct tnt_iter
     union _Anonymous_0
     {
         tnt_iter_array_ array;
-        tnt_iter_map_ map;
+        tnt_iter_map_   map;
         tnt_iter_reply_ reply;
     }
 
@@ -267,7 +267,7 @@ struct tnt_iter
  * \returns iterator pointer
  * \retval  NULL on error.
  */
-tnt_iter* tnt_iter_array_object (tnt_iter* i, tnt_stream* s);
+tnt_iter *tnt_iter_array_object(tnt_iter *i, tnt_stream *s);
 
 /**
  * \brief create msgpack array iterator from pointer
@@ -281,7 +281,7 @@ tnt_iter* tnt_iter_array_object (tnt_iter* i, tnt_stream* s);
  * \returns iterator pointer
  * \retval  NULL on error.
  */
-tnt_iter* tnt_iter_array (tnt_iter* i, const(char)* data, size_t size);
+tnt_iter *tnt_iter_array(tnt_iter *i, const(char) *data, size_t size);
 
 /**
  * \brief create msgpack map iterator from object
@@ -294,7 +294,7 @@ tnt_iter* tnt_iter_array (tnt_iter* i, const(char)* data, size_t size);
  * \returns iterator pointer
  * \retval  NULL error.
  */
-tnt_iter* tnt_iter_map_object (tnt_iter* i, tnt_stream* s);
+tnt_iter *tnt_iter_map_object(tnt_iter *i, tnt_stream *s);
 
 /**
  * \brief create msgpack map iterator from pointer
@@ -308,7 +308,7 @@ tnt_iter* tnt_iter_map_object (tnt_iter* i, tnt_stream* s);
  * \returns iterator pointer
  * \retval  NULL error.
  */
-tnt_iter* tnt_iter_map (tnt_iter* i, const(char)* data, size_t size);
+tnt_iter *tnt_iter_map(tnt_iter *i, const(char) *data, size_t size);
 
 /**
  * \brief create and initialize tuple reply iterator;
@@ -321,8 +321,8 @@ tnt_iter* tnt_iter_map (tnt_iter* i, const(char)* data, size_t size);
  *
  * \returns stream iterator pointer
  * \retval NULL error.
-*/
-tnt_iter* tnt_iter_reply (tnt_iter* i, tnt_stream* s);
+ */
+tnt_iter *tnt_iter_reply(tnt_iter *i, tnt_stream *s);
 
 // struct tnt_iter *tnt_iter_request(struct tnt_iter *i, struct tnt_stream *s);
 // struct tnt_iter *tnt_iter_storag(struct tnt_iter *i, struct tnt_stream *s);
@@ -332,7 +332,7 @@ tnt_iter* tnt_iter_reply (tnt_iter* i, tnt_stream* s);
  *
  * \param i iterator pointer
  */
-void tnt_iter_free (tnt_iter* i);
+void tnt_iter_free(tnt_iter *i);
 
 /**
  * \brief iterate to next element in tuple
@@ -345,13 +345,13 @@ void tnt_iter_free (tnt_iter* i);
  * \retval 0 end of iteration
  * \retval 1 next step of iteration
  */
-int tnt_next (tnt_iter* i);
+int tnt_next(tnt_iter *i);
 
 /**
  * \brief reset iterator pos to beginning
  *
  * \param i iterator pointer
  */
-void tnt_rewind (tnt_iter* i);
+void tnt_rewind(tnt_iter *i);
 
 /* TNT_ITER_H_INCLUDED */

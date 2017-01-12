@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_insert;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -52,7 +52,7 @@ alias c_long ssize_t;
  */
 
 
-ssize_t tnt_insert (tnt_stream* s, uint space, tnt_stream* tuple);
+ssize_t tnt_insert(tnt_stream *s, uint space, tnt_stream *tuple);
 
 /**
  * \brief Construct replace request and write it into stream
@@ -64,6 +64,6 @@ ssize_t tnt_insert (tnt_stream* s, uint space, tnt_stream* tuple);
  * \retval number of bytes written to stream
  */
 
-ssize_t tnt_replace (tnt_stream* s, uint space, tnt_stream* tuple);
+ssize_t tnt_replace(tnt_stream *s, uint space, tnt_stream *tuple);
 
 /* TNT_INSERT_H_INCLUDED */

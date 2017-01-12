@@ -1,6 +1,6 @@
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -50,6 +50,6 @@ alias c_long ssize_t;
  */
 
 struct tnt_stream;
-ssize_t tnt_delete (tnt_stream* s, uint space, uint index, tnt_stream* key);
+ssize_t tnt_delete(tnt_stream *s, uint space, uint index, tnt_stream *key);
 
 /* TNT_DELETE_H_INCLUDED */

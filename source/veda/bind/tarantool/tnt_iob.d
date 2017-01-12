@@ -2,7 +2,7 @@ module veda.bind.tarantool.tnt_iob;
 
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -41,30 +41,30 @@ alias c_long ssize_t;
  * \brief Basic network layer static sized buffer
  */
 
-alias c_long function (void* ptr, const(char)* buf, size_t size) tnt_iob_tx_t;
+alias c_long function(void *ptr, const(char) *buf, size_t size) tnt_iob_tx_t;
 struct iovec;
-alias c_long function (void* ptr, iovec* iov, int count) tnt_iob_txv_t;
+alias c_long function(void *ptr, iovec *iov, int count) tnt_iob_txv_t;
 
 struct tnt_iob
 {
-    char* buf;
-    size_t off;
-    size_t top;
-    size_t size;
-    tnt_iob_tx_t tx;
+    char          *buf;
+    size_t        off;
+    size_t        top;
+    size_t        size;
+    tnt_iob_tx_t  tx;
     tnt_iob_txv_t txv;
-    void* ptr;
+    void          *ptr;
 }
 
-int tnt_iob_init (
-    tnt_iob* iob,
-    size_t size,
-    tnt_iob_tx_t tx,
-    tnt_iob_txv_t txv,
-    void* ptr);
+int tnt_iob_init(
+                 tnt_iob *iob,
+                 size_t size,
+                 tnt_iob_tx_t tx,
+                 tnt_iob_txv_t txv,
+                 void *ptr);
 
-void tnt_iob_clear (tnt_iob* iob);
+void tnt_iob_clear(tnt_iob *iob);
 
-void tnt_iob_free (tnt_iob* iob);
+void tnt_iob_free(tnt_iob *iob);
 
 /* TNT_IOB_H_INCLUDED */

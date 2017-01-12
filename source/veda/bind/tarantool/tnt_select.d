@@ -3,7 +3,7 @@ module veda.bind.tarantool.tnt_select;
 import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -55,13 +55,13 @@ alias c_long ssize_t;
  * \returns        number of bytes written to stream
  * \retval      -1 oom
  */
-ssize_t tnt_select (
-    tnt_stream* s,
-    uint space,
-    uint index,
-    uint limit,
-    uint offset,
-    ubyte iterator,
-    tnt_stream* key);
+ssize_t tnt_select(
+                   tnt_stream *s,
+                   uint space,
+                   uint index,
+                   uint limit,
+                   uint offset,
+                   ubyte iterator,
+                   tnt_stream *key);
 
 /* TNT_SELECT_H_INCLUDED */

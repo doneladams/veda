@@ -1,6 +1,6 @@
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -49,6 +49,6 @@ alias c_long ssize_t;
  */
 
 struct tnt_stream;
-ssize_t tnt_ping (tnt_stream* s);
+ssize_t tnt_ping(tnt_stream *s);
 
 /* TNT_PING_H_INCLUDED */

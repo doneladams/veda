@@ -7,7 +7,7 @@ import veda.bind.tarantool.tnt_stream;
 import core.stdc.config;
 import core.stdc.time;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -52,17 +52,17 @@ alias c_long __suseconds_t;
  */
 enum tnt_error_
 {
-    TNT_EOK = 0, /*!< Everything is OK */
-    TNT_EFAIL = 1, /*!< Fail */
-    TNT_EMEMORY = 2, /*!< Memory allocation failed */
-    TNT_ESYSTEM = 3, /*!< System error */
-    TNT_EBIG = 4, /*!< Buffer is too big */
-    TNT_ESIZE = 5, /*!< Bad buffer size */
+    TNT_EOK      = 0, /*!< Everything is OK */
+    TNT_EFAIL    = 1, /*!< Fail */
+    TNT_EMEMORY  = 2, /*!< Memory allocation failed */
+    TNT_ESYSTEM  = 3, /*!< System error */
+    TNT_EBIG     = 4, /*!< Buffer is too big */
+    TNT_ESIZE    = 5, /*!< Bad buffer size */
     TNT_ERESOLVE = 6, /*!< gethostbyname(2) failed */
-    TNT_ETMOUT = 7, /*!< Operation timeout */
-    TNT_EBADVAL = 8, /*!< Bad argument (value) */
-    TNT_ELOGIN = 9, /*!< Failed to login */
-    TNT_LAST = 10 /*!< Not an error */
+    TNT_ETMOUT   = 7, /*!< Operation timeout */
+    TNT_EBADVAL  = 8, /*!< Bad argument (value) */
+    TNT_ELOGIN   = 9, /*!< Failed to login */
+    TNT_LAST     = 10 /*!< Not an error */
 }
 
 /**
@@ -70,7 +70,7 @@ enum tnt_error_
  */
 struct tnt_stream_net
 {
- /*!< Options for connection */
+    /*!< Options for connection */
     /*!< Connection status. 1 - true, 0 - false */
     /*!< fd of connection */
     /*!< Send buffer */
@@ -107,7 +107,7 @@ struct tnt_stream_net
      */
     struct tnt_opt
     {
-        const(char)* uristr;
+        const(char)*uristr;
 
         /**
          * \brief Set options for connection
@@ -138,55 +138,55 @@ struct tnt_stream_net
 
         struct timeval
         {
-            time_t tv_sec;
+            time_t        tv_sec;
             __suseconds_t tv_usec;
         }
 
         timeval tmout_connect;
         timeval tmout_recv;
         timeval tmout_send;
-        void* send_cb;
-        void* send_cbv;
-        void* send_cb_arg;
-        int send_buf;
-        void* recv_cb;
-        void* recv_cb_arg;
-        int recv_buf;
+        void    *send_cb;
+        void    *send_cbv;
+        void    *send_cb_arg;
+        int     send_buf;
+        void    *recv_cb;
+        void    *recv_cb_arg;
+        int     recv_buf;
     }
 
     tnt_opt opt;
-    int connected;
-    int fd;
+    int     connected;
+    int     fd;
 
     struct tnt_iob
     {
-        char* buf;
-        size_t off;
-        size_t top;
-        size_t size;
-        tnt_iob_tx_t tx;
+        char          *buf;
+        size_t        off;
+        size_t        top;
+        size_t        size;
+        tnt_iob_tx_t  tx;
         tnt_iob_txv_t txv;
-        void* ptr;
+        void          *ptr;
     }
 
-    tnt_iob sbuf;
+    tnt_iob    sbuf;
 
-    tnt_iob rbuf;
+    tnt_iob    rbuf;
     tnt_error_ error;
-    int errno_;
-    char* greeting;
+    int        errno_;
+    char       *greeting;
     struct tnt_schema;
-    tnt_schema* schema;
-    int inited;
+    tnt_schema *schema;
+    int        inited;
 }
 
-extern (D) auto TNT_SNET_CAST(T)(auto ref T S)
+extern (D) auto TNT_SNET_CAST(T) (auto ref T S)
 {
-    return cast(tnt_stream_net*) S.data;
+    return cast(tnt_stream_net *)S.data;
 }
 
-tnt_stream* tnt_net (tnt_stream* s);
-int tnt_set (tnt_stream* s, int opt, ...);
+tnt_stream *tnt_net(tnt_stream *s);
+int tnt_set(tnt_stream *s, int opt, ...);
 
 /*!
  * \internal
@@ -202,7 +202,7 @@ int tnt_set (tnt_stream* s, int opt, ...);
  * \retval 0  ok
  * \retval -1 error (oom/einval)
  */
-int tnt_init (tnt_stream* s);
+int tnt_init(tnt_stream *s);
 
 /**
  * \brief Connect to tarantool with preconfigured and allocated settings
@@ -212,13 +212,13 @@ int tnt_init (tnt_stream* s);
  * \retval 0  ok
  * \retval -1 error (network/oom)
  */
-int tnt_connect (tnt_stream* s);
+int tnt_connect(tnt_stream *s);
 
 /**
  * \brief Close connection
  * \param s stream pointer
  */
-void tnt_close (tnt_stream* s);
+void tnt_close(tnt_stream *s);
 
 /**
  * \brief Send written to buffer queries
@@ -228,27 +228,27 @@ void tnt_close (tnt_stream* s);
  * \returns number of bytes written to socket
  * \retval -1 on network error
  */
-ssize_t tnt_flush (tnt_stream* s);
+ssize_t tnt_flush(tnt_stream *s);
 
 /**
  * \brief Get tnt_net stream fd
  */
-int tnt_fd (tnt_stream* s);
+int tnt_fd(tnt_stream *s);
 
 /**
  * \brief Error accessor for tnt_net stream
  */
-tnt_error_ tnt_error (tnt_stream* s);
+tnt_error_ tnt_error(tnt_stream *s);
 
 /**
  * \brief Format error as string
  */
-char* tnt_strerror (tnt_stream* s);
+char *tnt_strerror(tnt_stream *s);
 
 /**
  * \brief Get last errno on socket
  */
-int tnt_errno (tnt_stream* s);
+int tnt_errno(tnt_stream *s);
 
 /**
  * \brief Flush space/index schema and get it from server
@@ -259,7 +259,7 @@ int tnt_errno (tnt_stream* s);
  * \retval  -1 error
  * \retval  0  ok
  */
-int tnt_reload_schema (tnt_stream* s);
+int tnt_reload_schema(tnt_stream *s);
 
 /**
  * \brief Get space number from space name
@@ -267,7 +267,7 @@ int tnt_reload_schema (tnt_stream* s);
  * \returns space number
  * \retval  -1 error
  */
-int tnt_get_spaceno (tnt_stream* s, const(char)* space, size_t space_len);
+int tnt_get_spaceno(tnt_stream *s, const(char) *space, size_t space_len);
 
 /**
  * \brief Get index number from index name and spaceid
@@ -275,10 +275,10 @@ int tnt_get_spaceno (tnt_stream* s, const(char)* space, size_t space_len);
  * \returns index number
  * \retval  -1 error
  */
-int tnt_get_indexno (
-    tnt_stream* s,
-    int spaceno,
-    const(char)* index,
-    size_t index_len);
+int tnt_get_indexno(
+                    tnt_stream *s,
+                    int spaceno,
+                    const(char) *index,
+                    size_t index_len);
 
 /* TNT_NET_H_INCLUDED */

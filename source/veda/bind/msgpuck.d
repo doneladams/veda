@@ -4,10 +4,10 @@ import core.stdc.config;
 import core.stdc.stdio;
 import core.stdc.stdarg;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
-alias uint wchar_t;
+alias uint   wchar_t;
 alias c_long ptrdiff_t;
 
 /*
@@ -129,24 +129,24 @@ alias c_long ptrdiff_t;
 
 /* GNU inline or C99 inline */
 
-extern (D) auto MP_GCC_VERSION(T0, T1)(auto ref T0 major, auto ref T1 minor)
+extern (D) auto MP_GCC_VERSION(T0, T1) (auto ref T0 major, auto ref T1 minor)
 {
     return __GNUC__ > major || (__GNUC__ == major && __GNUC_MINOR__ >= minor);
 }
 
 /* clang */
 
-extern (D) auto mp_likely(T)(auto ref T x)
+extern (D) auto mp_likely(T) (auto ref T x)
 {
     return __builtin_expect(x, 1);
 }
 
-extern (D) auto mp_unlikely(T)(auto ref T x)
+extern (D) auto mp_unlikely(T) (auto ref T x)
 {
     return __builtin_expect(x, 0);
 }
 
-extern (D) auto mp_bswap_u8(T)(auto ref T x)
+extern (D) auto mp_bswap_u8(T) (auto ref T x)
 {
     return x;
 } /* just to simplify mp_load/mp_store macroses */
@@ -163,22 +163,22 @@ extern (D) auto mp_bswap_u8(T)(auto ref T x)
 //enum __FLOAT_WORD_ORDER__ = __BYTE_ORDER__;
 /* defined(__FLOAT_WORD_ORDER__) */
 
-float mp_bswap_float (float f);
+float mp_bswap_float(float f);
 
-double mp_bswap_double (double d);
+double mp_bswap_double(double d);
 
-ubyte mp_load_u8 (const(char*)* data);
-char* mp_store_u8 (char* data, ubyte val);
-ushort mp_load_u16 (const(char*)* data);
-char* mp_store_u16 (char* data, ushort val);
-uint mp_load_u32 (const(char*)* data);
-char* mp_store_u32 (char* data, uint val);
-ulong mp_load_u64 (const(char*)* data);
-char* mp_store_u64 (char* data, ulong val);
-float mp_load_float (const(char*)* data);
-char* mp_store_float (char* data, float val);
-double mp_load_double (const(char*)* data);
-char* mp_store_double (char* data, double val);
+ubyte mp_load_u8(const(char *) *data);
+char *mp_store_u8(char *data, ubyte val);
+ushort mp_load_u16(const(char *) *data);
+char *mp_store_u16(char *data, ushort val);
+uint mp_load_u32(const(char *) *data);
+char *mp_store_u32(char *data, uint val);
+ulong mp_load_u64(const(char *) *data);
+char *mp_store_u64(char *data, ulong val);
+float mp_load_float(const(char *) *data);
+char *mp_store_float(char *data, float val);
+double mp_load_double(const(char *) *data);
+char *mp_store_double(char *data, double val);
 
 /** \endcond */
 
@@ -195,17 +195,17 @@ char* mp_store_double (char* data, double val);
  */
 enum mp_type
 {
-    MP_NIL = 0,
-    MP_UINT = 1,
-    MP_INT = 2,
-    MP_STR = 3,
-    MP_BIN = 4,
-    MP_ARRAY = 5,
-    MP_MAP = 6,
-    MP_BOOL = 7,
-    MP_FLOAT = 8,
+    MP_NIL    = 0,
+    MP_UINT   = 1,
+    MP_INT    = 2,
+    MP_STR    = 3,
+    MP_BIN    = 4,
+    MP_ARRAY  = 5,
+    MP_MAP    = 6,
+    MP_BOOL   = 7,
+    MP_FLOAT  = 8,
     MP_DOUBLE = 9,
-    MP_EXT = 10
+    MP_EXT    = 10
 }
 
 /**
@@ -220,7 +220,7 @@ enum mp_type
  * \return MsgPack type
  */
 //MP_PROTO __attribute__((pure)) enum mp_type
-mp_type mp_typeof (const char c);
+mp_type mp_typeof(const char c);
 
 /**
  * \brief Calculate exact buffer size needed to store an array header of
@@ -229,7 +229,7 @@ mp_type mp_typeof (const char c);
  * \param size - a number of elements
  * \return buffer size in bytes (max is 5)
  */
-uint mp_sizeof_array (uint size);
+uint mp_sizeof_array(uint size);
 
 /**
  * \brief Encode an array header of \a size elements.
@@ -259,7 +259,7 @@ uint mp_sizeof_array (uint size);
  * \return \a data + \link mp_sizeof_array() mp_sizeof_array(size) \endlink
  * \sa mp_sizeof_array
  */
-char* mp_encode_array (char* data, uint size);
+char *mp_encode_array(char *data, uint size);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode an array header
@@ -270,7 +270,7 @@ char* mp_encode_array (char* data, uint size);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_ARRAY
  */
-ptrdiff_t mp_check_array (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_array(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode an array header from MsgPack \a data.
@@ -281,7 +281,7 @@ ptrdiff_t mp_check_array (const(char)* cur, const(char)* end);
  * \post *data = *data + mp_sizeof_array(retval)
  * \sa \link mp_encode_array() An usage example \endlink
  */
-uint mp_decode_array (const(char*)* data);
+uint mp_decode_array(const(char *) *data);
 
 /**
  * \brief Calculate exact buffer size needed to store a map header of
@@ -290,7 +290,7 @@ uint mp_decode_array (const(char*)* data);
  * \param size - a number of elements
  * \return buffer size in bytes (max is 5)
  */
-uint mp_sizeof_map (uint size);
+uint mp_sizeof_map(uint size);
 
 /**
  * \brief Encode a map header of \a size elements.
@@ -326,7 +326,7 @@ uint mp_sizeof_map (uint size);
  * \return \a data + \link mp_sizeof_map() mp_sizeof_map(size)\endlink
  * \sa mp_sizeof_map
  */
-char* mp_encode_map (char* data, uint size);
+char *mp_encode_map(char *data, uint size);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a map header
@@ -337,7 +337,7 @@ char* mp_encode_map (char* data, uint size);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_MAP
  */
-ptrdiff_t mp_check_map (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_map(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode a map header from MsgPack \a data.
@@ -348,7 +348,7 @@ ptrdiff_t mp_check_map (const(char)* cur, const(char)* end);
  * \post *data = *data + mp_sizeof_array(retval)
  * \sa \link mp_encode_map() An usage example \endlink
  */
-uint mp_decode_map (const(char*)* data);
+uint mp_decode_map(const(char *) *data);
 
 /**
  * \brief Calculate exact buffer size needed to store an integer \a num.
@@ -365,7 +365,7 @@ uint mp_decode_map (const(char*)* data);
  * \param num - a number
  * \return buffer size in bytes (max is 9)
  */
-uint mp_sizeof_uint (ulong num);
+uint mp_sizeof_uint(ulong num);
 
 /**
  * \brief Calculate exact buffer size needed to store an integer \a num.
@@ -375,7 +375,7 @@ uint mp_sizeof_uint (ulong num);
  * \return buffer size in bytes (max is 9)
  * \pre \a num < 0
  */
-uint mp_sizeof_int (long num);
+uint mp_sizeof_int(long num);
 
 /**
  * \brief Encode an unsigned integer \a num.
@@ -386,7 +386,7 @@ uint mp_sizeof_int (long num);
  * \sa \link mp_encode_array() An usage example \endlink
  * \sa mp_sizeof_uint()
  */
-char* mp_encode_uint (char* data, ulong num);
+char *mp_encode_uint(char *data, ulong num);
 
 /**
  * \brief Encode a signed integer \a num.
@@ -398,7 +398,7 @@ char* mp_encode_uint (char* data, ulong num);
  * \sa mp_sizeof_int()
  * \pre \a num < 0
  */
-char* mp_encode_int (char* data, long num);
+char *mp_encode_int(char *data, long num);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode an uint
@@ -409,7 +409,7 @@ char* mp_encode_int (char* data, long num);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_UINT
  */
-ptrdiff_t mp_check_uint (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_uint(const(char) *cur, const(char) *end);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode an int
@@ -420,7 +420,7 @@ ptrdiff_t mp_check_uint (const(char)* cur, const(char)* end);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_INT
  */
-ptrdiff_t mp_check_int (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_int(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode an unsigned integer from MsgPack \a data
@@ -428,7 +428,7 @@ ptrdiff_t mp_check_int (const(char)* cur, const(char)* end);
  * \return an unsigned number
  * \post *data = *data + mp_sizeof_uint(retval)
  */
-ulong mp_decode_uint (const(char*)* data);
+ulong mp_decode_uint(const(char *) *data);
 
 /**
  * \brief Decode a signed integer from MsgPack \a data
@@ -436,7 +436,7 @@ ulong mp_decode_uint (const(char*)* data);
  * \return an unsigned number
  * \post *data = *data + mp_sizeof_int(retval)
  */
-long mp_decode_int (const(char*)* data);
+long mp_decode_int(const(char *) *data);
 
 /**
  * \brief Compare two packed unsigned integers.
@@ -448,7 +448,7 @@ long mp_decode_int (const(char*)* data);
  * \retval   0 when \a a == \a b
  * \retval > 0 when \a a > \a b
  */
-int mp_compare_uint (const(char)* data_a, const(char)* data_b);
+int mp_compare_uint(const(char) *data_a, const(char) *data_b);
 
 /**
  * \brief Calculate exact buffer size needed to store a float \a num.
@@ -457,7 +457,7 @@ int mp_compare_uint (const(char)* data_a, const(char)* data_b);
  * \param num - a float
  * \return buffer size in bytes (always 5)
  */
-uint mp_sizeof_float (float num);
+uint mp_sizeof_float(float num);
 
 /**
  * \brief Calculate exact buffer size needed to store a double \a num.
@@ -467,7 +467,7 @@ uint mp_sizeof_float (float num);
  * \param num - a double
  * \return buffer size in bytes (5 or 9)
  */
-uint mp_sizeof_double (double num);
+uint mp_sizeof_double(double num);
 
 /**
  * \brief Encode a float \a num.
@@ -478,7 +478,7 @@ uint mp_sizeof_double (double num);
  * \sa mp_sizeof_float()
  * \sa \link mp_encode_array() An usage example \endlink
  */
-char* mp_encode_float (char* data, float num);
+char *mp_encode_float(char *data, float num);
 
 /**
  * \brief Encode a double \a num.
@@ -489,7 +489,7 @@ char* mp_encode_float (char* data, float num);
  * \sa \link mp_encode_array() An usage example \endlink
  * \sa mp_sizeof_double()
  */
-char* mp_encode_double (char* data, double num);
+char *mp_encode_double(char *data, double num);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a float
@@ -500,7 +500,7 @@ char* mp_encode_double (char* data, double num);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_FLOAT
  */
-ptrdiff_t mp_check_float (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_float(const(char) *cur, const(char) *end);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a double
@@ -511,7 +511,7 @@ ptrdiff_t mp_check_float (const(char)* cur, const(char)* end);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_DOUBLE
  */
-ptrdiff_t mp_check_double (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_double(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode a float from MsgPack \a data
@@ -519,7 +519,7 @@ ptrdiff_t mp_check_double (const(char)* cur, const(char)* end);
  * \return a float
  * \post *data = *data + mp_sizeof_float(retval)
  */
-float mp_decode_float (const(char*)* data);
+float mp_decode_float(const(char *) *data);
 
 /**
  * \brief Decode a double from MsgPack \a data
@@ -527,7 +527,7 @@ float mp_decode_float (const(char*)* data);
  * \return a double
  * \post *data = *data + mp_sizeof_double(retval)
  */
-double mp_decode_double (const(char*)* data);
+double mp_decode_double(const(char *) *data);
 
 /**
  * \brief Calculate exact buffer size needed to store a string header of
@@ -536,14 +536,14 @@ double mp_decode_double (const(char*)* data);
  * \param len - a string length
  * \return size in chars (max is 5)
  */
-uint mp_sizeof_strl (uint len);
+uint mp_sizeof_strl(uint len);
 
 /**
  * \brief Equivalent to mp_sizeof_strl(\a len) + \a len.
  * \param len - a string length
  * \return size in chars (max is 5 + \a len)
  */
-uint mp_sizeof_str (uint len);
+uint mp_sizeof_str(uint len);
 
 /**
  * \brief Calculate exact buffer size needed to store a binstring header of
@@ -552,14 +552,14 @@ uint mp_sizeof_str (uint len);
  * \param len - a string length
  * \return size in chars (max is 5)
  */
-uint mp_sizeof_binl (uint len);
+uint mp_sizeof_binl(uint len);
 
 /**
  * \brief Equivalent to mp_sizeof_binl(\a len) + \a len.
  * \param len - a string length
  * \return size in chars (max is 5 + \a len)
  */
-uint mp_sizeof_bin (uint len);
+uint mp_sizeof_bin(uint len);
 
 /**
  * \brief Encode a string header of length \a len.
@@ -597,7 +597,7 @@ uint mp_sizeof_bin (uint len);
  * \return \a data + mp_sizeof_strl(len)
  * \sa mp_sizeof_strl()
  */
-char* mp_encode_strl (char* data, uint len);
+char *mp_encode_strl(char *data, uint len);
 
 /**
  * \brief Encode a string of length \a len.
@@ -609,7 +609,7 @@ char* mp_encode_strl (char* data, uint len);
  * data + mp_sizeof_strl(len) + len
  * \sa mp_encode_strl
  */
-char* mp_encode_str (char* data, const(char)* str, uint len);
+char *mp_encode_str(char *data, const(char) *str, uint len);
 
 /**
  * \brief Encode a binstring header of length \a len.
@@ -619,7 +619,7 @@ char* mp_encode_str (char* data, const(char)* str, uint len);
  * \return data + mp_sizeof_binl(\a len)
  * \sa mp_encode_strl
  */
-char* mp_encode_binl (char* data, uint len);
+char *mp_encode_binl(char *data, uint len);
 
 /**
  * \brief Encode a binstring of length \a len.
@@ -631,7 +631,7 @@ char* mp_encode_binl (char* data, uint len);
  * data + mp_sizeof_binl(\a len) + \a len
  * \sa mp_encode_strl
  */
-char* mp_encode_bin (char* data, const(char)* str, uint len);
+char *mp_encode_bin(char *data, const(char) *str, uint len);
 
 /**
  * \brief Encode a sequence of values according to format string.
@@ -669,7 +669,7 @@ char* mp_encode_bin (char* data, const(char)* str, uint len);
  * \retval > data_size means that is not enough space
  * and whole msgpack was not encoded.
  */
-size_t mp_format (char* data, size_t data_size, const(char)* format, ...);
+size_t mp_format(char *data, size_t data_size, const(char) *format, ...);
 
 /**
  * \brief mp_format variation, taking variable argument list
@@ -680,11 +680,11 @@ size_t mp_format (char* data, size_t data_size, const(char)* format, ...);
  *  va_end(args);
  * \sa \link mp_format()
  */
-size_t mp_vformat (
-    char* data,
-    size_t data_size,
-    const(char)* format,
-    va_list args);
+size_t mp_vformat(
+                  char *data,
+                  size_t data_size,
+                  const(char) *format,
+                  va_list args);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a string header
@@ -695,7 +695,7 @@ size_t mp_vformat (
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_STR
  */
-ptrdiff_t mp_check_strl (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_strl(const(char) *cur, const(char) *end);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a binstring header
@@ -706,7 +706,7 @@ ptrdiff_t mp_check_strl (const(char)* cur, const(char)* end);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_BIN
  */
-ptrdiff_t mp_check_binl (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_binl(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode a length of a string from MsgPack \a data
@@ -715,7 +715,7 @@ ptrdiff_t mp_check_binl (const(char)* cur, const(char)* end);
  * \post *data = *data + mp_sizeof_strl(retval)
  * \sa mp_encode_strl
  */
-uint mp_decode_strl (const(char*)* data);
+uint mp_decode_strl(const(char *) *data);
 
 /**
  * \brief Decode a string from MsgPack \a data
@@ -725,7 +725,7 @@ uint mp_decode_strl (const(char*)* data);
  * \post *data = *data + mp_sizeof_str(*len)
  * \sa mp_encode_binl
  */
-char* mp_decode_str (const(char*)* data, uint* len);
+char *mp_decode_str(const(char *) *data, uint *len);
 
 /**
  * \brief Decode a length of a binstring from MsgPack \a data
@@ -734,7 +734,7 @@ char* mp_decode_str (const(char*)* data, uint* len);
  * \post *data = *data + mp_sizeof_binl(retval)
  * \sa mp_encode_binl
  */
-uint mp_decode_binl (const(char*)* data);
+uint mp_decode_binl(const(char *) *data);
 
 /**
  * \brief Decode a binstring from MsgPack \a data
@@ -744,7 +744,7 @@ uint mp_decode_binl (const(char*)* data);
  * \post *data = *data + mp_sizeof_str(*len)
  * \sa mp_encode_binl
  */
-const(char)* mp_decode_bin (const(char*)* data, uint* len);
+const(char) *mp_decode_bin(const(char *) *data, uint *len);
 
 /**
  * \brief Calculate exact buffer size needed to store the nil value.
@@ -752,7 +752,7 @@ const(char)* mp_decode_bin (const(char*)* data, uint* len);
  * the library.
  * \return buffer size in bytes (always 1)
  */
-uint mp_sizeof_nil ();
+uint mp_sizeof_nil();
 
 /**
  * \brief Encode the nil value.
@@ -762,7 +762,7 @@ uint mp_sizeof_nil ();
  * \sa \link mp_encode_array() An usage example \endlink
  * \sa mp_sizeof_nil()
  */
-char* mp_encode_nil (char* data);
+char *mp_encode_nil(char *data);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode nil
@@ -773,14 +773,14 @@ char* mp_encode_nil (char* data);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_NIL
  */
-ptrdiff_t mp_check_nil (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_nil(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode the nil value from MsgPack \a data
  * \param data - the pointer to a buffer
  * \post *data = *data + mp_sizeof_nil()
  */
-void mp_decode_nil (const(char*)* data);
+void mp_decode_nil(const(char *) *data);
 
 /**
  * \brief Calculate exact buffer size needed to store a boolean value.
@@ -788,7 +788,7 @@ void mp_decode_nil (const(char*)* data);
  * the library.
  * \return buffer size in bytes (always 1)
  */
-uint mp_sizeof_bool (bool val);
+uint mp_sizeof_bool(bool val);
 
 /**
  * \brief Encode a bool value \a val.
@@ -799,7 +799,7 @@ uint mp_sizeof_bool (bool val);
  * \sa \link mp_encode_array() An usage example \endlink
  * \sa mp_sizeof_bool()
  */
-char* mp_encode_bool (char* data, bool val);
+char *mp_encode_bool(char *data, bool val);
 
 /**
  * \brief Check that \a cur buffer has enough bytes to decode a bool value
@@ -810,7 +810,7 @@ char* mp_encode_bool (char* data, bool val);
  * \pre cur < end
  * \pre mp_typeof(*cur) == MP_BOOL
  */
-ptrdiff_t mp_check_bool (const(char)* cur, const(char)* end);
+ptrdiff_t mp_check_bool(const(char) *cur, const(char) *end);
 
 /**
  * \brief Decode a bool value from MsgPack \a data
@@ -818,7 +818,7 @@ ptrdiff_t mp_check_bool (const(char)* cur, const(char)* end);
  * \return a decoded bool value
  * \post *data = *data + mp_sizeof_bool(retval)
  */
-bool mp_decode_bool (const(char*)* data);
+bool mp_decode_bool(const(char *) *data);
 
 /**
  * \brief Skip one element in a packed \a data.
@@ -878,7 +878,7 @@ bool mp_decode_bool (const(char*)* data);
  * \param data - the pointer to a buffer
  * \post *data = *data + mp_sizeof_TYPE() where TYPE is mp_typeof(**data)
  */
-void mp_next (const(char*)* data);
+void mp_next(const(char *) *data);
 
 /**
  * \brief Equivalent to mp_next() but also validates MsgPack in \a data.
@@ -890,7 +890,7 @@ void mp_next (const(char*)* data);
  * \post *data is not defined if MsgPack is not valid
  * \sa mp_next()
  */
-int mp_check (const(char*)* data, const(char)* end);
+int mp_check(const(char *) *data, const(char) *end);
 
 /*
  * }}}
@@ -904,25 +904,25 @@ int mp_check (const(char*)* data, const(char)* end);
 //extern const enum mp_type mp_type_hint[];
 //extern const int8_t mp_parser_hint[];
 
-uint mp_decode_array_slowpath (ubyte c, const(char*)* data);
+uint mp_decode_array_slowpath(ubyte c, const(char *) *data);
 
 /** See mp_parser_hint */
 enum
 {
-    MP_HINT = -32,
-    MP_HINT_STR_8 = -32,
-    MP_HINT_STR_16 = -33,
-    MP_HINT_STR_32 = -34,
+    MP_HINT          = -32,
+    MP_HINT_STR_8    = -32,
+    MP_HINT_STR_16   = -33,
+    MP_HINT_STR_32   = -34,
     MP_HINT_ARRAY_16 = -35,
     MP_HINT_ARRAY_32 = -36,
-    MP_HINT_MAP_16 = -37,
-    MP_HINT_MAP_32 = -38,
-    MP_HINT_EXT_8 = -39,
-    MP_HINT_EXT_16 = -40,
-    MP_HINT_EXT_32 = -41
+    MP_HINT_MAP_16   = -37,
+    MP_HINT_MAP_32   = -38,
+    MP_HINT_EXT_8    = -39,
+    MP_HINT_EXT_16   = -40,
+    MP_HINT_EXT_32   = -41
 }
 
-void mp_next_slowpath (const(char*)* data, int k);
+void mp_next_slowpath(const(char *) *data, int k);
 
 /** \endcond */
 

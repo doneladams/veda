@@ -2,7 +2,7 @@ module veda.bind.tarantool.tnt_reply;
 
 import core.stdc.config;
 
-extern (C):
+extern (C) :
 
 alias c_ulong size_t;
 alias c_long ssize_t;
@@ -50,30 +50,30 @@ alias c_long ssize_t;
  * \returns size of bytes written
  * \retval  -1 error
  */
-alias c_long function (void* ptr, char* dst, ssize_t size) tnt_reply_t;
+alias c_long function(void *ptr, char *dst, ssize_t size) tnt_reply_t;
 
 /*!
  * \brief basic reply structure
  */
 struct tnt_reply_
 {
-    int alloc; /*!< allocation mark */
-    ulong bitmap; /*!< bitmap of field IDs that was read */
-    const(char)* buf; /*!< points to beginning of buffer */
-    size_t buf_size; /*!< size of query buffer */
-    ulong code; /*!< response code (0 is success, error number if not) */
-    ulong sync; /*!< synchronization id */
-    ulong schema_id; /*!< unique schema id */
-    const(char)* error; /*!< error message (NULL if not present) */
-    const(char)* error_end; /*!< end of error message (NULL if not present) */
-    const(char)* data; /*!< tuple data (NULL if not present) */
-    const(char)* data_end; /*!< end if tuple data (NULL if not present) */
+    int    alloc;          /*!< allocation mark */
+    ulong  bitmap;         /*!< bitmap of field IDs that was read */
+    const(char)*buf;       /*!< points to beginning of buffer */
+    size_t buf_size;       /*!< size of query buffer */
+    ulong  code;           /*!< response code (0 is success, error number if not) */
+    ulong  sync;           /*!< synchronization id */
+    ulong  schema_id;      /*!< unique schema id */
+    const(char)*error;     /*!< error message (NULL if not present) */
+    const(char)*error_end; /*!< end of error message (NULL if not present) */
+    const(char)*data;      /*!< tuple data (NULL if not present) */
+    const(char)*data_end;  /*!< end if tuple data (NULL if not present) */
 }
 
 /*!
  * \brief Get error number
  */
-extern (D) auto TNT_REPLY_ERR(T)(auto ref T R)
+extern (D) auto TNT_REPLY_ERR(T) (auto ref T R)
 {
     return R.code;
 }
@@ -88,14 +88,14 @@ extern (D) auto TNT_REPLY_ERR(T)(auto ref T R)
  * \returns reply object pointer
  * \retval  NULL memory allocation failure
  */
-tnt_reply_* tnt_reply_init (tnt_reply_* r);
+tnt_reply_ *tnt_reply_init(tnt_reply_ *r);
 
 /*!
  * \brief Free previously inited reply object
  *
  * \param r reply object pointer
  */
-void tnt_reply_free (tnt_reply_* r);
+void tnt_reply_free(tnt_reply_ *r);
 
 /*!
  * \brief process buffer as iproto reply
@@ -118,7 +118,7 @@ void tnt_reply_free (tnt_reply_* r);
  * \retval 1  need 'offset' bytes more
  * \retval -1 error while parsing request
  */
-int tnt_reply (tnt_reply_* r, char* buf, size_t size, size_t* off);
+int tnt_reply(tnt_reply_ *r, char *buf, size_t size, size_t *off);
 
 /*!
  * \brief Process iproto reply with supplied recv function
@@ -131,6 +131,6 @@ int tnt_reply (tnt_reply_* r, char* buf, size_t size, size_t* off);
  * \retval  0 ok
  * \retval -1 error, while parsing response
  */
-int tnt_reply_from (tnt_reply_* r, tnt_reply_t rcv, void* ptr);
+int tnt_reply_from(tnt_reply_ *r, tnt_reply_t rcv, void *ptr);
 
 /* TNT_REPLY_H_INCLUDED */
