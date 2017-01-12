@@ -9,7 +9,7 @@
 	},
 	"versions": ["VibeDefaultMain", "WebServer"],	
         "libs": [
-                "raptor2"
+                "raptor2", "tarantool"
         ],
         "license": "LGPL v3",
 	"sourceFiles":[
@@ -17,7 +17,8 @@
 	    "../../lib64/libxapiand.a",
     	    "../../veda/bind/lmdb_header.d",
             "../../veda/bind/xapian_d_header.d",
-            "../../veda/bind/libraptor_header.d"
+            "../../veda/bind/libraptor_header.d",
+    	    "../../veda/bind/msgpuck.d"
 	],
 	"sourcePaths":[
             "../../veda/util",
@@ -30,6 +31,7 @@
 	    "../../veda/core/search", 
 	    "../../veda/core/storage", 
 	    "../../veda/core/util"
+
 	],
 	"configurations": [
 	{

@@ -5,6 +5,7 @@
 DMD_VER=2.072.2
 DUB_VER=1.1.1
 GO_VER=go1.7.4
+TARANTOOL_VER=1.7.3
 
 # Get right version of DMD
 if ! dmd --version | grep $DMD_VER ; then    
@@ -170,5 +171,26 @@ if ! ldconfig -p | grep libraptor2; then
     cd ..
     cd ..
     cd ..
+
+fi
+
+if ! tarantool -V | grep $TARANTOOL_VER; then
+
+curl http://download.tarantool.org/tarantool/1.7/gpgkey | sudo apt-key add -
+release=`lsb_release -c -s`
+
+# install https download transport for APT
+sudo apt-get -y install apt-transport-https
+
+# append two lines to a list of source repositories
+sudo rm -f /etc/apt/sources.list.d/*tarantool*.list
+sudo tee /etc/apt/sources.list.d/tarantool_1_7.list <<- EOF
+deb http://download.tarantool.org/tarantool/1.7/ubuntu/ $release main
+deb-src http://download.tarantool.org/tarantool/1.7/ubuntu/ $release main
+EOF
+
+# install
+sudo apt-get update
+sudo apt-get -y install tarantool
 
 fi

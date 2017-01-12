@@ -7,7 +7,7 @@
 	},
 	"versions": ["isServer"],	
         "libs": [
-                    "websockets", "nanomsg"
+                    "websockets", "nanomsg", "tarantool"
         ],
         "license": "LGPL v3",
 	"sourceFiles":[
@@ -26,6 +26,7 @@
         "../../veda/util/module_info.d"
  	],
 	"sourcePaths":[
+            "../../veda/bind/tarantool",
 	    "../../veda/server", 
 	    "../../veda/common", 
 	    "../../veda/core",  
