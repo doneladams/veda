@@ -178,6 +178,7 @@ if ! ldconfig -p | grep libraptor2; then
 
 fi
 
+
 if ! tarantool -V | grep $TARANTOOL_VER; then
 
 curl http://download.tarantool.org/tarantool/1.7/gpgkey | sudo apt-key add -
