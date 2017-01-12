@@ -197,7 +197,7 @@ EOF
 # install
 sudo apt-get update
 sudo apt-get -y install tarantool
-sudo apt-get -y install tarantool-dev
+sudo apt-get -y install libtarantool-dev
 
 tarantool -V
 
