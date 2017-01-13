@@ -1,1 +1,1 @@
-/usr/bin/tarantool init.lua
+tarantool init.lua
