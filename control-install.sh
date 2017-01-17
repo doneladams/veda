@@ -225,6 +225,7 @@ if ! ldconfig -p | grep libtarantool; then
     cmake ..
     make
     sudo make install
+    sudo ldconfig
 
     cd ..
     cd ..
