@@ -181,13 +181,20 @@ if ! ldconfig -p | grep libraptor2; then
 
 fi
 
+if ! ldconfig -p | grep libtarantool; then
+
     mkdir tmp
     cd tmp
 
-    wget https://github.com/tarantool/msgpuck/archive/1.1.tar.gz -P .
+    wget https://github.com/tarantool/tarantool-c/archive/3e022207513fc79fcde1e9da3d99511cef80c7df.tar.gz -P .
+    tar -xvzf 3e022207513fc79fcde1e9da3d99511cef80c7df.tar.gz
+
+    wget https://github.com/tarantool/msgpuck/archive/1.1.tar.gz -P third_party/msgpuck -P .
     tar -xvzf 1.1.tar.gz
 
-    cd msgpuck-1.1
+    cp msgpuck-1.1/* tarantool-c-3e022207513fc79fcde1e9da3d99511cef80c7df/third_party/msgpuck 
+    cd tarantool-c-3e022207513fc79fcde1e9da3d99511cef80c7df
+
     mkdir build
     cd build
     cmake ..
@@ -198,8 +205,7 @@ fi
     cd ..
     cd ..
     
-
-
+fi
 
 if ! tarantool -V | grep $TARANTOOL_VER; then
 
