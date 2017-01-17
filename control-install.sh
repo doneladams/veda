@@ -167,7 +167,6 @@ if ! ldconfig -p | grep libraptor2; then
     cd tmp
 
     wget https://github.com/dajobe/raptor/archive/raptor2_2_0_15.tar.gz -P tmp
-    cd tmp
     tar -xvzf raptor2_2_0_15.tar.gz
 
     cd raptor-raptor2_2_0_15
@@ -181,6 +180,25 @@ if ! ldconfig -p | grep libraptor2; then
     cd ..
 
 fi
+
+    mkdir tmp
+    cd tmp
+
+    wget https://github.com/tarantool/msgpuck/archive/1.1.tar.gz -P .
+    tar -xvzf 1.1.tar.gz
+
+    cd msgpuck-1.1
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
+    cd ..
+    cd ..
+    cd ..
+    
+
 
 
 if ! tarantool -V | grep $TARANTOOL_VER; then
