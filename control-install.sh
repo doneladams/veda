@@ -225,6 +225,8 @@ if ! ldconfig -p | grep libtarantool; then
     make
     sudo make install
 
+    ls build/tnt
+
     cd ..
     cd ..
     cd ..
