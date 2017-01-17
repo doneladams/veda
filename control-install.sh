@@ -167,7 +167,7 @@ if ! ldconfig -p | grep libraptor2; then
     mkdir tmp
     cd tmp
 
-    wget https://github.com/dajobe/raptor/archive/raptor2_2_0_15.tar.gz -P tmp
+    wget https://github.com/dajobe/raptor/archive/raptor2_2_0_15.tar.gz -P .
     tar -xvzf raptor2_2_0_15.tar.gz
 
     cd raptor-raptor2_2_0_15
@@ -225,9 +225,6 @@ if ! ldconfig -p | grep libtarantool; then
     cmake ..
     make
     sudo make install
-
-    ls build
-    ls build/tnt
 
     cd ..
     cd ..
