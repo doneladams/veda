@@ -216,12 +216,11 @@ if ! ldconfig -p | grep libtarantool; then
     wget https://github.com/tarantool/msgpuck/archive/1.1.tar.gz -P third_party/msgpuck -P .
     tar -xvzf 1.1.tar.gz
 
-    ls .
+    ls>>ls.log
+    cat ls.log
 
     cp msgpuck-1.1/* tarantool-c-3e022207513fc79fcde1e9da3d99511cef80c7df/third_party/msgpuck 
     cd tarantool-c-3e022207513fc79fcde1e9da3d99511cef80c7df
-
-    ls .
 
     mkdir build
     cd build
@@ -229,7 +228,8 @@ if ! ldconfig -p | grep libtarantool; then
     make
     sudo make install
 
-    ls .
+    ls>>ls.log
+    cat ls.log
     ls build
     ls build/tnt
 
