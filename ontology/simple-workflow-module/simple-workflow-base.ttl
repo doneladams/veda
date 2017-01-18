@@ -2252,13 +2252,11 @@ s-wf:UserTaskFormTemplate
   <div about="@" rel="v-wf:onDocument" class="view edit -search"></div>
 </div>
 <script>
-  var isMine = (
-    veda.appointment
-    && veda.appointment.hasValue("v-s:occupation")
-    && veda.appointment["v-s:occupation"][0].id === individual["v-wf:to"][0].id
-  ) || veda.user && veda.user.id === individual["v-wf:to"][0].id ;
-
-  if ( isMine && ( !individual.hasValue("v-wf:takenDecision") || !individual.isSync() ) ) {
+  var isMine = (veda.appointment && veda.appointment.id === individual["v-wf:to"][0].id)
+            || (veda.appointment && veda.appointment.hasValue("v-s:occupation") && veda.appointment["v-s:occupation"][0].id === individual["v-wf:to"][0].id)
+            || (veda.user && veda.user.id === individual["v-wf:to"][0].id);
+  var isOpen = !individual.hasValue("v-wf:takenDecision") || !individual.isSync();
+  if (isMine && isOpen) {
     $(".radio.decision input", template).first().prop("checked", true).change();
     template.trigger("edit");
   } else {
