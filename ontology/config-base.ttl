@@ -335,7 +335,6 @@ cfg:Event_3
   rdfs:label "Скрипт создает журнал документа" ;
   rdfs:comment "Скрипт создает журнал документа" ;
   v-s:triggerByType v-s:Journaling, v-s:AutomaticallyVersioned ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 /* Available variables:
  * ticket = superuser ticket
@@ -416,7 +415,7 @@ if (super_classes.indexOf('v-s:Journaling')>=0)
                 type: _Uri
             }];
         }
-  
+
         if (user['v-s:hasAppointment']) {
           journal_record['v-s:actor'] = user['v-s:hasAppointment']
         }
@@ -840,9 +839,23 @@ if (!membership) {
   }
 }
 put_individual (ticket, membership, _event_id);
-
 //print('cfg:Event_9', uri);
 
+// Delete embedded tree
+if (doc_deleted) {
+  Object.keys(document).map(function (property_uri) {
+    if (property_uri === "@") { return }
+    document[property_uri].map(function (value) {
+      if (value.type !== _Uri) { return }
+      var embedded = get_individual(ticket, value.data);
+      if (embedded && hasValue(embedded, "v-s:parent", {data: doc_uri, type: _Uri}) && !hasValue(embedded, "v-s:deleted", {data: true, type: _Boolean}) ) {
+        embedded["v-s:deleted"] = newBool(true);
+        put_individual (ticket, embedded, _event_id);
+        //print("embedded deleted:", embedded["@"]);
+      }
+    });
+  });
+}
   """ ;
 .
 
@@ -1116,7 +1129,6 @@ cfg:Event_Hourly_1
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт запускается раз в час" ;
   v-s:triggerByUid cfg:hourly ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 print("[cfg:Event_Hourly_1] ************************** START **************************");
 print("[cfg:Event_Hourly_1] *************************** END ***************************");
@@ -1127,7 +1139,6 @@ cfg:Event_Daily_1
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт запускается раз в день" ;
   v-s:triggerByUid cfg:daily ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 print("[cfg:Event_Daily_1] ************************** START **************************");
 print("[cfg:Event_Daily_1] *************************** END ***************************");
@@ -1138,7 +1149,6 @@ cfg:Event_Weekly_1
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт запускается раз в неделю" ;
   v-s:triggerByUid cfg:weekly ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 print("[cfg:Event_Weekly_1] ************************** START **************************");
 print("[cfg:Event_Weekly_1] *************************** END ***************************");
@@ -1148,7 +1158,6 @@ cfg:Event_Monthly_1
   rdf:type v-s:Event ;
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт запускается раз в месяц" ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:triggerByUid cfg:monthly ;
   v-s:script """
 print("[cfg:Event_Monthly_1] ************************** START **************************");
@@ -1159,7 +1168,6 @@ cfg:Event_Yearly_1
   rdf:type v-s:Event ;
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт запускается раз в год" ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:triggerByUid cfg:yearly ;
   v-s:script """
 print("[cfg:Event_Yearly_1] ************************** START **************************");
@@ -1171,7 +1179,6 @@ cfg:Event_Notify_Task
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт уведомления о новой задаче" ;
   v-s:triggerByType v-wf:UserTaskForm ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 var task_id = document["@"],
     to = getUri(document["v-wf:to"]);
@@ -1183,7 +1190,6 @@ cfg:Event_Notify_Comment
   v-s:author cfg:VedaSystem ;
   rdfs:label "Скрипт уведомления о новом комментарии" ;
   v-s:triggerByType v-s:Comment ;
-  v-s:runAt "V8.LowPriority" ;
   v-s:script """
 var comment_id = document["@"],
     comment_target = getUri(document["v-s:backwardTarget"]);

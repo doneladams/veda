@@ -476,10 +476,10 @@
     var opts = $.extend( {}, $.fn.veda_multilingualString.defaults, options ),
         $this = $(this);
     init();
-    veda.on("language:changed", init);
+    /*veda.on("language:changed", init);
     $this.one("remove", function () {
       veda.off("language:changed", init);
-    });
+    });*/
     function init() {
       $this.empty();
       $this.append( veda_multilingual.call($this, opts) );
@@ -495,10 +495,10 @@
     var opts = $.extend( {}, $.fn.veda_multilingualText.defaults, options ),
       $this = $(this);
     init();
-    veda.on("language:changed", init);
+    /*veda.on("language:changed", init);
     $this.one("remove", function () {
       veda.off("language:changed", init);
-    });
+    });*/
     function init() {
       $this.empty();
       var control = veda_multilingual.call($this, opts);
@@ -1213,7 +1213,9 @@
             select(newVal);
             $modal.modal("hide").remove();
           });
-          newVal.present(cntr, undefined, "edit");
+          var tmpl = newVal["rdf:type"][0].template ? $( newVal["rdf:type"][0].template["v-ui:template"][0].toString() ) : undefined;
+           $(".action", tmpl).remove();
+          newVal.present(cntr, tmpl, "edit");
           var template = cntr.children().first();
           template.on("internal-validated", function () {
             var validation = template.data("validation");

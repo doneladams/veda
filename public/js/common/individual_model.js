@@ -372,9 +372,7 @@ veda.Module(function (veda) { "use strict";
       self._.isNew = false;
       self._.isSync = true;
     }
-    if ( this.hasValue("v-s:isDraft", true) ) {
-      veda.drafts.remove(this.id);
-    }
+    veda.drafts.remove(this.id);
   };
 
   /**
@@ -386,8 +384,10 @@ veda.Module(function (veda) { "use strict";
     if ( this.hasValue("v-s:isDraft", true) ) {
       veda.drafts.remove(this.id);
     }
-    this["v-s:deleted"] = [ true ];
-    this.save(parent);
+    if ( !this.isNew() ) {
+      this["v-s:deleted"] = [ true ];
+      this.save(parent);
+    }
     this.trigger("individual:afterDelete");
     return this;
   };
