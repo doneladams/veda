@@ -162,7 +162,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     // Define handlers
     function saveHandler (e, parent) {
       if (parent !== individual.id) {
-        individual.save(parent);
+        individual.save();
       }
       template.trigger("view");
       e.stopPropagation();
@@ -171,7 +171,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
 
     function draftHandler (e, parent) {
       if (parent !== individual.id) {
-        individual.draft(parent);
+        individual.draft();
       }
       template.trigger("view");
       e.stopPropagation();
@@ -223,7 +223,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
 
     function deleteHandler (e, parent) {
       if (parent !== individual.id) {
-        individual.delete(parent);
+        individual.delete();
       }
       e.stopPropagation();
     }
@@ -231,7 +231,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
 
     function recoverHandler (e, parent) {
       if (parent !== individual.id) {
-        individual.recover(parent);
+        individual.recover();
       }
       e.stopPropagation();
     }
@@ -308,7 +308,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           if ( !template.parent().closest("[resource='" + individual.id + "']").length && !draftLabel ) {
             draftLabel = $("<div class='label label-default label-draft'></div>").text(Draft);
             if (template.css("display") === "table-row" || template.prop("tagName") === "TR") {
-              var cell = template.children().last();
+              var cell = template.children().first();
               cell.css("position", "relative").append(draftLabel);
             } else {
               template.css("position", "relative");
