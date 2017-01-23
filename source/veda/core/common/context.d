@@ -193,15 +193,29 @@ public struct SearchResult
     ResultCode result_code = ResultCode.Not_Ready;
 }
 
+/// Результат
+public enum Result
+{
+    /// OK
+    Ok,
+
+    /// Ошибка
+    Err,
+
+    /// Ничего
+    Nothing
+}
+
 interface Storage
 {
-    public ResultCode put(string in_key, string in_value, long op_id);
+    public ResultCode put(string in_key, string in_value, long op_id);    
     public string find(string uri, bool return_value = true);
     public int get_of_cursor(bool delegate(string key, string value) prepare);
     public long count_entries();
     public void reopen_db();
     public void close_db();
     public long dump_to_binlog();
+    public ResultCode remove(string in_key);
 }
 
 interface ScriptVM

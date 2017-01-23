@@ -23,19 +23,6 @@ enum DBMode
     RW = false
 }
 
-/// Результат
-public enum Result
-{
-    /// OK
-    Ok,
-
-    /// Ошибка
-    Err,
-
-    /// Ничего
-    Nothing
-}
-
 public bool[ string ] db_is_open;
 
 /// key-value хранилище на lmdb
@@ -758,21 +745,6 @@ public class LmdbStorage : Storage
         }
         else
             return str;
-    }
-
-    public Individual find_individual(string uri)
-    {
-        Individual ind;
-        string     str = find(uri);
-
-        if (str !is null)
-        {
-            if (cbor2individual(&ind, str) < 0)
-            {
-                log.trace("ERR! invalid individual=", uri);
-            }
-        }
-        return ind;
     }
 
     public long dump_to_binlog()
