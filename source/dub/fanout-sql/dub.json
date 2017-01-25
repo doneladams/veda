@@ -33,7 +33,7 @@
         "../../veda/util/module_info.d",
         "../../veda/fanout/fanout_sql.d"
 	],
-        "libs":["nanomsg"],
+        "libs":["nanomsg", "tarantool"],
 	"configurations": [
 	{
 	    "name": "app",

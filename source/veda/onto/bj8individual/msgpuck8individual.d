@@ -1,12 +1,12 @@
 /**
  * msgpuck <-> individual
 
-   Copyright: © 2014-2016 Semantic Machines
+   Copyright: © 2014-2017 Semantic Machines
    License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
    Authors: Valeriy Bushenev
  */
 
-module veda.util.msgpuck8individual;
+module veda.onto.bj8individual.msgpuck8individual;
 
 private import std.outbuffer, std.stdio, std.string;
 private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.onto.lang, veda.bind.msgpuck;

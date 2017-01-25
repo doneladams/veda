@@ -32,7 +32,7 @@
         "../../veda/util/container.d",
         "../../veda/util/module_info.d"
 	],
-	"libs":["nanomsg"],
+	"libs":["nanomsg", "tarantool"],
 	"configurations": [
 	{
 	    "name": "app",

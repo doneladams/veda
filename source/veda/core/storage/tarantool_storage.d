@@ -41,4 +41,10 @@ public class LmdbStorage : Storage
     {
     	throw new Exception ("not implemented");    	
     }	
+
+    public ResultCode remove(string in_key)
+    {
+    	throw new Exception ("not implemented");    	
+    }	
+
 }
