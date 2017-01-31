@@ -1,12 +1,12 @@
 /**
- * msgpuck <-> individual
+ * msgpack <-> individual
 
    Copyright: © 2014-2017 Semantic Machines
    License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
    Authors: Valeriy Bushenev
  */
 
-module veda.onto.bj8individual.msgpuck8individual;
+module veda.onto.bj8individual.msgpack8individual;
 
 private import std.outbuffer, std.stdio, std.string;
 private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.onto.lang, veda.bind.msgpuck;
@@ -99,7 +99,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
     return w;
 }
 
-public ubyte[] individual2msgpuck(Individual *in_obj)
+public ubyte[] individual2msgpack(Individual *in_obj)
 {
     if (buff is null)
         buff = new ubyte[ 1024 * 1024 ];
@@ -107,4 +107,31 @@ public ubyte[] individual2msgpuck(Individual *in_obj)
     long len = write_individual(in_obj, cast(char *)buff);
 
     return buff[ 0..len ];
+}
+
+/////////////////////////////////////////////////////////////////////
+
+public int msgpack2individual(Individual *individual, string in_str)
+{
+    try
+    {
+    	char *ptr = cast(char*)in_str.ptr;
+    	int size = mp_decode_array(&ptr);
+    	
+    	if (size != 2)
+	    	return -1;
+	    	
+	    uint uri_lenght; 	
+	    char *uri = mp_decode_str(&ptr, &uri_lenght);
+	
+    	
+        return -1;//read_element(individual, cast(ubyte[])in_str, dummy);
+    }
+    catch (Throwable ex)
+    {
+        writeln("ERR! msgpack2individual ex=", ex.msg, ", in_str=", in_str);
+        //printPrettyTrace(stderr);
+        //throw new Exception("invalid cbor");
+        return -1;
+    }
 }
