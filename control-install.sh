@@ -4,8 +4,8 @@
 
 DMD_VER=2.073.0
 DUB_VER=1.2.0
-GO_VER=go1.7.4
 TARANTOOL_VER=1.7.3
+GO_VER=go1.7.5
 
 # Get right version of DMD
 if ! dmd --version | grep $DMD_VER ; then    
@@ -44,8 +44,8 @@ F_UL=0
 if ! go version | grep $GO_VER ; then    
     mkdir tmp
     cd tmp
-    wget https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
-    tar -xvf go1.7.4.linux-amd64.tar.gz
+    wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
+    tar -xvf $GO_VER.linux-amd64.tar.gz
     sudo rm -r /usr/local/go
     sudo rm /usr/bin/go
     sudo rm /usr/bin/gofmt

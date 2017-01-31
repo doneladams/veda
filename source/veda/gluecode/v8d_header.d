@@ -15,23 +15,23 @@ Logger log;
 // //////////////////////////  call D from C //////////////////////////////////////////
 
 string[ string ] g_prop;
-Context    g_context;
+Context g_context;
 
-string     g_vm_id;
+string  g_vm_id;
 
-_Buff      g_super_classes;
-_Buff      g_parent_script_id;
-_Buff      g_parent_document_id;
-_Buff      g_prev_state;
-_Buff      g_execute_script;
-_Buff      g_document;
-_Buff      g_user;
-_Buff      g_ticket;
+_Buff   g_super_classes;
+_Buff   g_parent_script_id;
+_Buff   g_parent_document_id;
+_Buff   g_prev_state;
+_Buff   g_execute_script;
+_Buff   g_document;
+_Buff   g_user;
+_Buff   g_ticket;
 
-_Buff      tmp_individual;
+_Buff   tmp_individual;
 
-_Buff      g_script_result;
-_Buff      g_script_out;
+//_Buff      g_script_result;
+//_Buff      g_script_out;
 
 ResultCode g_last_result;
 Cache!(string, string) g_cache_of_indv;
@@ -285,8 +285,9 @@ extern (C++) ResultCode put_individual(const char *_ticket, int _ticket_length, 
 extern (C++) ResultCode add_to_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
                                           int _event_id_length)
 {
-    TransactionItem *ti = new TransactionItem(INDV_OP.ADD_IN, cast(string)_binobj[ 0.._binobj_length ].dup, cast(string)_ticket[ 0.._ticket_length ].dup,
-                                              cast(string)_event_id[ 0.._event_id_length ].dup);
+    TransactionItem *ti =
+        new TransactionItem(INDV_OP.ADD_IN, cast(string)_binobj[ 0.._binobj_length ].dup, cast(string)_ticket[ 0.._ticket_length ].dup,
+                            cast(string)_event_id[ 0.._event_id_length ].dup);
 
 
     if (ti.rc == ResultCode.OK)
@@ -302,8 +303,9 @@ extern (C++) ResultCode add_to_individual(const char *_ticket, int _ticket_lengt
 extern (C++) ResultCode set_in_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
                                           int _event_id_length)
 {
-    TransactionItem *ti = new TransactionItem(INDV_OP.SET_IN, cast(string)_binobj[ 0.._binobj_length ].dup, cast(string)_ticket[ 0.._ticket_length ].dup,
-                                              cast(string)_event_id[ 0.._event_id_length ].dup);
+    TransactionItem *ti =
+        new TransactionItem(INDV_OP.SET_IN, cast(string)_binobj[ 0.._binobj_length ].dup, cast(string)_ticket[ 0.._ticket_length ].dup,
+                            cast(string)_event_id[ 0.._event_id_length ].dup);
 
 
     if (ti.rc == ResultCode.OK)
@@ -316,7 +318,8 @@ extern (C++) ResultCode set_in_individual(const char *_ticket, int _ticket_lengt
         return ti.rc;
 }
 
-extern (C++) ResultCode remove_from_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
+extern (C++) ResultCode remove_from_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length,
+                                               const char *_event_id,
                                                int _event_id_length)
 {
     TransactionItem *ti =
@@ -416,7 +419,7 @@ extern (C++)_Buff * query(const char *_ticket, int _ticket_length, const char *_
         Ticket   *ticket = g_context.get_ticket(ticket_id);
 
         string[] icb;
-        icb = g_context.get_individuals_ids_via_query(ticket, query, sort, databases, 0, top, limit).result;
+        icb = g_context.get_individuals_ids_via_query(ticket, query, sort, databases, 0, top, limit, null).result;
         res = text(icb);
 
         if (icb !is null)
@@ -442,10 +445,10 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
 
         //writeln ("@p:v8d read_individual, uri=[", uri, "],  ticket=[", ticket, "]");
 
-		if (uri == "undefined")
-		{
-			return null;
-		}	
+        if (uri == "undefined")
+        {
+            return null;
+        }
         else if (uri == "$document")
         {
             return &g_document;
@@ -498,7 +501,11 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
                     return &tmp_individual;
                 }
                 else
+                {
+                    tmp_individual.data   = cast(char *)"";
+                    tmp_individual.length = cast(int)0;
                     return null;
+                }
             }
             return null;
         }
@@ -594,14 +601,14 @@ ScriptVM get_ScriptVM(Context ctx)
                 g_context = ctx;
                 log       = ctx.get_logger();
 
-                string g_str_script_result = new char[ 1024 * 64 ];
-                string g_str_script_out    = new char[ 1024 * 64 ];
+                //string g_str_script_result = new char[ 1024 * 64 ];
+                //string g_str_script_out    = new char[ 1024 * 64 ];
 
-                g_script_result.data           = cast(char *)g_str_script_result;
-                g_script_result.allocated_size = cast(int)g_str_script_result.length;
+                //g_script_result.data           = cast(char *)g_str_script_result;
+                //g_script_result.allocated_size = cast(int)g_str_script_result.length;
 
-                g_script_out.data           = cast(char *)g_str_script_out;
-                g_script_out.allocated_size = cast(int)g_str_script_out.length;
+                //g_script_out.data           = cast(char *)g_str_script_out;
+                //g_script_out.allocated_size = cast(int)g_str_script_out.length;
 
                 reload_ext_scripts();
             }
