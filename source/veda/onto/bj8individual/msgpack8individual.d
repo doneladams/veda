@@ -98,14 +98,14 @@ private char *write_resources(string uri, ref Resources vv, char *w)
     return w;
 }
 
-public ubyte[] individual2msgpack(Individual *in_obj)
+public string individual2msgpack(Individual *in_obj)
 {
     if (buff is null)
         buff = new ubyte[ 1024 * 1024 ];
 
     long len = write_individual(in_obj, cast(char *)buff);
 
-    return buff[ 0..len ];
+    return cast(string)buff[ 0..len ];
 }
 
 /////////////////////////////////////////////////////////////////////
