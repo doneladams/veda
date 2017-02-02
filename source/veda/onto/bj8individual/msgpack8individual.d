@@ -44,8 +44,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
 {
     w = mp_encode_str(w, cast(char *)uri, cast(uint)uri.length);
 
-    if (vv.length > 1)
-        w = mp_encode_array(w, cast(uint)vv.length);
+    w = mp_encode_array(w, cast(uint)vv.length);
 
     foreach (value; vv)
     {
@@ -135,76 +134,79 @@ public int msgpack2individual(Individual *individual, string in_str)
 
             Resources resources = Resources.init;
 
-            mp_type   el_type = mp_typeof(*ptr);
-
-            if (el_type == mp_type.MP_ARRAY)
+            int       resources_el_length = mp_decode_array(&ptr);
+            foreach (i_resource; 0..resources_el_length)
             {
-                int predicate_el_length = mp_decode_array(&ptr);
-                if (predicate_el_length == 2)
-                {
-                    long type = mp_decode_uint(&ptr);
+                mp_type el_type = mp_typeof(*ptr);
 
-                    if (type == DataType.Datetime)
+                if (el_type == mp_type.MP_ARRAY)
+                {
+                    int predicate_el_length = mp_decode_array(&ptr);
+                    if (predicate_el_length == 2)
                     {
-                        long value = mp_decode_uint(&ptr);
-                        resources ~= Resource(DataType.Datetime, value);
+                        long type = mp_decode_uint(&ptr);
+
+                        if (type == DataType.Datetime)
+                        {
+                            long value = mp_decode_uint(&ptr);
+                            resources ~= Resource(DataType.Datetime, value);
+                        }
+                        else if (type == DataType.String)
+                        {
+                            uint val_length;
+                            char *val = mp_decode_str(&ptr, &val_length);
+                            resources ~= Resource(DataType.String, val[ 0..val_length ].dup);
+                        }
+                        else
+                            return -1;
                     }
-                    else if (type == DataType.String)
+                    else if (predicate_el_length == 3)
                     {
-                        uint val_length;
-                        char *val = mp_decode_str(&ptr, &val_length);
-                        resources ~= Resource(DataType.String, val[ 0..val_length ].dup);
+                        long type = mp_decode_uint(&ptr);
+
+                        if (type == DataType.Decimal)
+                        {
+                            long mantissa = mp_decode_uint(&ptr);
+                            long exponent = mp_decode_uint(&ptr);
+                            resources ~= Resource(decimal(mantissa, cast(byte)exponent));
+                        }
+                        else if (type == DataType.String)
+                        {
+                            uint val_length;
+                            char *val = mp_decode_str(&ptr, &val_length);
+                            long lang = mp_decode_uint(&ptr);
+                            resources ~= Resource(DataType.String, val[ 0..val_length ].dup, cast(LANG)lang);
+                        }
+                        else
+                            return -1;
                     }
                     else
+                    {
                         return -1;
+                    }
                 }
-                else if (predicate_el_length == 3)
+                else if (el_type == mp_type.MP_STR)
                 {
-                    long type = mp_decode_uint(&ptr);
-
-                    if (type == DataType.Decimal)
-                    {
-                        long mantissa = mp_decode_uint(&ptr);
-                        long exponent = mp_decode_uint(&ptr);
-                        resources ~= Resource(decimal(mantissa, cast(byte)exponent));
-                    }
-                    else if (type == DataType.String)
-                    {
-                        uint val_length;
-                        char *val = mp_decode_str(&ptr, &val_length);
-                        long lang = mp_decode_uint(&ptr);
-                        resources ~= Resource(DataType.String, val[ 0..val_length ].dup, cast(LANG)lang);
-                    }
-                    else
-                        return -1;
+                    // this uri
+                    uint val_length;
+                    char *val = mp_decode_str(&ptr, &val_length);
+                    resources ~= Resource(DataType.Uri, val[ 0..val_length ].dup);
+                }
+                else if (el_type == mp_type.MP_INT)
+                {
+                    // this int
+                    long val = mp_decode_uint(&ptr);
+                    resources ~= Resource(DataType.Integer, val);
+                }
+                else if (el_type == mp_type.MP_BOOL)
+                {
+                    // this bool
+                    long val = mp_decode_bool(&ptr);
+                    resources ~= Resource(DataType.Boolean, val);
                 }
                 else
-                {
                     return -1;
-                }
             }
-            else if (el_type == mp_type.MP_STR)
-            {
-                // this uri
-                uint val_length;
-                char *val = mp_decode_str(&ptr, &val_length);
-                resources ~= Resource(DataType.Uri, val[ 0..val_length ].dup);
-            }
-            else if (el_type == mp_type.MP_INT)
-            {
-                // this int
-                long val = mp_decode_uint(&ptr);
-                resources ~= Resource(DataType.Integer, val);
-            }
-            else if (el_type == mp_type.MP_BOOL)
-            {
-                // this bool
-                long val = mp_decode_bool(&ptr);
-                resources ~= Resource(DataType.Boolean, val);
-            }
-            else
-                return -1;
-
             individual.resources[ predicate ] = resources;
         }
 
