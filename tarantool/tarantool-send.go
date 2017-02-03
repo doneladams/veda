@@ -68,29 +68,12 @@ func peekFromTarantool(inKey string) []interface{} {
 
 func rightsFromTarantool(tuple []interface{}, newRightSet *RightSet) {
 	for i := 1; i < len(tuple) && tuple[i] != nil; i++ {
-		rightsInterface := tuple[i].([]interface{})
-		uri := rightsInterface[0].(string)
-		access := uint8(0)
-		canCreate := rightsInterface[1].(bool)
-		canRead := rightsInterface[2].(bool)
-		canUpdate := rightsInterface[3].(bool)
-		canDelete := rightsInterface[4].(bool)
-
-		if canCreate {
-			access |= ACCESS_CAN_CREATE
-		}
-
-		if canRead {
-			access |= ACCESS_CAN_READ
-		}
-
-		if canUpdate {
-			access |= ACCESS_CAN_UPDATE
-		}
-
-		if canDelete {
-			access |= ACCESS_CAN_DELETE
-		}
+		//rightsInterface :=
+		bytes := []byte(tuple[i].(string)[:])
+		access := uint8(bytes[len(bytes)-1]) - 1
+		//	fmt.Println(bytes[:], bytes[len(bytes)-1], access)
+		uri := string(bytes[:len(bytes)-1])
+		//fmt.Println(uri)
 
 		newRightSet.data[uri] = new(Right)
 		newRightSet.data[uri].Access = access
@@ -115,13 +98,15 @@ func pushRightSetToTarantool(prefix string, inKey string, newRights RightSet, mu
 
 	for _, right := range newRights.data {
 		if !right.IsDeleted {
-			rightSlice := make([]interface{}, 5)
-			rightSlice[0] = right.Id
-			rightSlice[1] = (right.Access & ACCESS_CAN_CREATE) > 0
-			rightSlice[2] = (right.Access & ACCESS_CAN_READ) > 0
-			rightSlice[3] = (right.Access & ACCESS_CAN_UPDATE) > 0
-			rightSlice[4] = (right.Access & ACCESS_CAN_DELETE) > 0
-			tuple[i] = rightSlice
+			val := make([]byte, len(right.Id)+1)
+			for j, c := range []byte(right.Id) {
+				val[j] = c
+			}
+			val[len(val)-1] = right.Access + 1
+			if inKey == "Mcfg:AdministratorAppointment" {
+				fmt.Println(val, string(val[:]), right.Access, len(val))
+			}
+			tuple[i] = string(val[:])
 			i++
 		}
 	}
@@ -134,13 +119,6 @@ func pushRightSetToTarantool(prefix string, inKey string, newRights RightSet, mu
 		realElemsLast++
 	}
 
-	if inKey == "Mcfg:ClientSettings" {
-		fmt.Println(tuple)
-	}
-
-	/*	fmt.Println(spaceId)
-		fmt.Println(mustReplace)
-		fmt.Println(tuple[1] == nil)*/
 	if !mustReplace {
 		if tuple[1] != nil {
 			resp, err = client.Insert(spaceId, tuple[0:realElemsLast])
@@ -246,19 +224,21 @@ func prepareRightSet(individ *Individual, defaultAccess uint8, resource []Resour
 
 			}
 
-			/*			if inSetUri == "cfg:ClientSettings" || resourceUri == "cfg:ClientSettings" {
-						fmt.Println(individ)
-						fmt.Println(newRightSet)
-					}*/
+			if inSetUri == "cfg:TTLResourcesGroup" && resourceUri == "cfg:AdministratorAppointment" {
+				fmt.Println(individ)
+				fmt.Println(access)
+				fmt.Println(mustReplace)
+				//fmt.Println(newRightSet, mustReplace)
+			}
 
 			//	newRightSet.data[inSetUri] = newRightPointer(inSetUri, access, isDeleted)
 		}
 
-		if resourceUri == "cfg:ClientSettings" {
+		/*if resourceUri == "cfg:ClientSettings" {
 			fmt.Println(prefix)
 			fmt.Println(individ)
 			fmt.Println(newRightSet)
-		}
+		}*/
 
 		// fmt.Println(len(newRightSet.data))
 		// fmt.Println(len(deltaRightSet.data))

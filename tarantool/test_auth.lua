@@ -67,14 +67,14 @@ function test_auth.test()
             --incorrect_count = incorrect_count + 1
         end
 
-        if i % 50000 == 0 then
+        if i % 100000 == 0 then
             print(i)
-            print(50000 / (os.clock() - current_clock))
+            print(100000 / (os.clock() - current_clock))
             current_clock = os.clock()
         end
     end
 
---[[    ret_code = authorize("Mcfg:VedaSystem", "Mcfg:")
+    --[[ret_code = authorize("Md:SYK-SMEN-PM15I_person", "Mcfg:AdministratorAppointment")
     print(ret_code)]]
 end
 return test_auth

@@ -20,7 +20,6 @@
 #define ACCESS_NUMBER		4
 
 #define MAX_RIGHTS 	50
-#define MAX_CHILDREN 	50	
 #define MAX_BUF_SIZE	1024
 #define MAX_BUF_SIZE2	(8388608*2)
 
@@ -29,7 +28,7 @@ struct Right {
 	const char *buf;
 	char buf_start[MAX_BUF_SIZE];
 	int32_t id_len;	
-	int32_t i, nelems, parent, nchildren, children[MAX_CHILDREN];
+	int32_t i, nelems, parent, nchildren;
 	uint8_t access;
 };
 
@@ -75,12 +74,9 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 	key_end = mp_encode_array(key_end, 1);
 	key_end = mp_encode_str(key_end, uri, rights[curr].id_len);
 	if (box_index_count(space_id, index_id, ITER_EQ, key_start, key_end) < 1) {
-		//sprintf(rights[curr].id, "%s", uri);
-		//len = strlen(uri);
 		memcpy(rights[curr].id, uri, rights[curr].id_len);
 		rights[curr].id[rights[curr].id_len]  = '\0';
 		// printf("%d %s\n", curr, rights[curr].id);
-		//rights[curr].i = 0;
 		return 1;
 	}
 
@@ -105,33 +101,31 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 			rights[curr].nelems = mp_decode_array(&rights[curr].buf);
 			// printf("curr nelems %d\n", rights[curr].nelems);
 			tmp = mp_decode_str(&rights[curr].buf, &len);
-			//bzero(rights[curr].id, MAX_URI_LEN);
-			//snprintf(rights[curr].id, len + 1, "%s", tmp);
 			memcpy(rights[curr].id, tmp, len);
 			rights[curr].id[len] = '\0';
 			rights[curr].id_len = len;
-			//printf("%d %s\n", curr, rights[curr].id);
+			// printf("%d %s\n", curr, rights[curr].id);
 			rights[curr].i = 0;
 		}
 
 		gone_previous = 0;
 		
 		for (; rights[curr].i < rights[curr].nelems - 1; rights[curr].i++) {
-			uint8_t can_create, can_read, can_update, can_delete;
-			int32_t next, nchildren;
+			int32_t next;
 			uint8_t right_access;
 
-			mp_decode_array(&rights[curr].buf);
-			//next = ++rights_count;
 			next = rights_count++;
 			tmp = mp_decode_str(&rights[curr].buf, &len);
-			// bzero(rights[next].id, MAX_URI_LEN);
-			//snprintf(rights[next].id, len + 2, "%c%s", MEMBERSHIP_PREFIX, tmp);
-			memcpy(rights[next].id + 1, tmp, len + 1);
+			memcpy(rights[next].id + 1, tmp, len);
 			rights[next].id[0] = MEMBERSHIP_PREFIX;
-			rights[next].id[len + 1] = '\0';
-			rights[next].id_len = len + 1;
-			// printf("\t%s\n", rights[next].id);
+			right_access = rights[next].id[len	] - 1;
+			// printf("\tnext uri %s len=%d\n", rights[next].id, len);
+			rights[next].access = rights[curr].access & right_access;
+			rights[next].id[len] = '\0';
+			rights[next].id_len = len;
+			// printf("\tnext uri %s\n", rights[next].id);
+			/*printf("\tcurr=%u next=%u right_access=%u\n", rights[curr].access, 
+				rights[next].access, right_access);*/
 
 			for (i = 0; i < rights_count - 1; i++) {
 				//  printf("\tvisit check: %s %s\n", rights[i].id, rights[next].id);
@@ -145,18 +139,9 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 				continue;
 			}
 
-			can_create = mp_decode_bool(&rights[curr].buf) * ACCESS_CAN_CREATE;
-			can_read = mp_decode_bool(&rights[curr].buf) * ACCESS_CAN_READ;
-			can_update = mp_decode_bool(&rights[curr].buf) * ACCESS_CAN_UPDATE;
-			can_delete = mp_decode_bool(&rights[curr].buf) * ACCESS_CAN_DELETE;
-			right_access = can_create | can_read | can_update | can_delete;
-			rights[next].access = rights[curr].access & right_access;
-			// printf("\t%d %d %d %d\n\n", can_create, can_read, can_update, can_delete);
 			rights[next].parent = curr;
-			nchildren = rights[curr].nchildren;
-			rights[curr].children[nchildren++] = next;
 		
-			//printf("\tnew uri %s\n", rights[next].id);
+			// printf("\tnew uri %s\n", rights[next].id);
 			key_end = key_start;
 			key_end = mp_encode_array(key_end, 1);
 			key_end = mp_encode_str(key_end, rights[next].id, rights[next].id_len);
@@ -241,16 +226,11 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 		uint8_t object_access;
 
 		object_access = object_rights[i].access;
-
-		//bzero(perm_uri, MAX_URI_LEN);
-		//sprintf(perm_uri, "%s", object_rights[i].id);
 		object_rights[i].id[0] = PERMISSION_PREFIX;
-		// printf("%s %s\n", object_rights[i].id, perm_uri);
 		key_end = key_start;
 		key_end = mp_encode_array(key_end, 1);
-		// key_end = mp_encode_str(key_end, perm_uri, strlen(perm_uri));
 		key_end = mp_encode_str(key_end, object_rights[i].id, object_rights[i].id_len);
-		// printf("object_rights[%d].id=%s\n", i, object_rights[i].id);	
+		// printf("%s %d\n", object_rights[i].id, object_rights[i].access);	
 		// printf("key %s\n", key_start);
 		if (box_index_count(space_id, index_id, ITER_EQ, key_start, key_end) < 1) {
 			// printf("no such permission\n");
@@ -266,47 +246,33 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 
 		nperms = mp_decode_array(&perm_buf);
 		nperms--;
-		//printf("nperms=%d\n", nperms);
+		// printf("nperms=%d\n", nperms);
 		mp_decode_str(&perm_buf, &len);
 		// printf("len=%u\n", len);
 			
 		// printf("%s\n", perm_buf);	
 	//	printf("%s\n", perm_buf);		
 		for (j = 0; j < nperms; j++) {	
-			uint8_t can_create, can_read, can_update, can_delete;
 			char perm_obj_uri[MAX_URI_LEN];
 			const char *tmp;
 			int idx, k;
 			uint8_t perm_access;
 
-			mp_decode_array(&perm_buf);	
 			tmp = mp_decode_str(&perm_buf, &len);
-			//bzero(perm_obj_uri, MAX_URI_LEN);
-			//snprintf(perm_obj_uri, len + 2, "%c%s", MEMBERSHIP_PREFIX, tmp);
 			memcpy(perm_obj_uri + 1, tmp, len);
 			perm_obj_uri[0] = MEMBERSHIP_PREFIX;
-			perm_obj_uri[len + 1] = '\0';
+			perm_access = (perm_obj_uri[len] - 1);
+			perm_obj_uri[len] = '\0';
 			// printf("\t%s\n", perm_obj_uri);
-			can_create = mp_decode_bool(&perm_buf) * ACCESS_CAN_CREATE;
-			can_read = mp_decode_bool(&perm_buf) * ACCESS_CAN_READ;
-			can_update = mp_decode_bool(&perm_buf) * ACCESS_CAN_UPDATE;
-			can_delete = mp_decode_bool(&perm_buf) * ACCESS_CAN_DELETE;
-			perm_access = can_create | can_read | can_update | can_delete;
+			// printf("\t%s %d\n", perm_obj_uri, perm_access);
 		//	printf("%d\n", perm_access);
-		//	printf("\t%d %d %d %d\n", can_create, can_read, can_update, can_delete);
-
-			// printf("obj_uri=%s obj_access=%u perm_uri=%s perm_access=%u\n", perm_uri, 
-				// object_rights[i].access, perm_obj_uri, perm_access);
 			
 			idx = subject_search(subject_rights, subject_rights_count, perm_obj_uri);
 
 		//	printf("idx=%d\n", idx);
 			if (idx >= 0) {
-				// printf("\t%s\n", perm_obj_uri);
+				// printf("\t+%s\n", perm_obj_uri);
 				// printf("\t%d\n", perm_access);
-				// printf("\t%d %d %d %d\n", can_create, can_read, can_update, can_delete);
-				// printf("obj_uri=%s obj_access=%u perm_uri=%s perm_access=%u\n", perm_uri, 
-					// object_rights[i].access, perm_obj_uri, perm_access);
 				for (k = 0; k < ACCESS_NUMBER; k++) {
 					if ((desired_access & access_arr[k] & object_access) > 0) {
 						uint8_t set_bit;
@@ -318,11 +284,6 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 				}
 			}			
 		}
-
-		//desired_access &= object_access;
-	//	if ((desired_access & object_access) > 0)
-	//		return desired_access & object_access;
-	//	break;
 	}
 
 	return result_access;
@@ -392,7 +353,8 @@ authorize(lua_State *L)
 	printf("USER MEMBERSHIPS\n");
 	for (i = 0; i < subject_rights_count; i++)
 		printf("\t%s %d\n", subject_rights[i].id, subject_rights[i].access);
-*/
+	printf("\n\n");*/
+
 //	lua_pushnumber(L, 1);
 //	return 1;
 
