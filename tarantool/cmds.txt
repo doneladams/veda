@@ -1,0 +1,35 @@
+net_box=require('net.box')
+connection=net_box:new(3308)
+box.schema.func.drop('readtuples')
+box.schema.func.create('readtuples', {language='C'})
+box.schema.user.grant('guest', 'execute', 'function', 'readtuples')
+connection:call('readtuples')
+
+box.cfg{listen=3308, slab_alloc_arena=5.0, slab_alloc_maximal=67108864}
+net_box=require('net.box')
+connection=net_box:new(3308)
+box.schema.func.drop('authorize')
+box.schema.func.create('authorize', {language='C'})
+box.schema.user.grant('guest', 'execute', 'function', 'authorize')
+connection:call('authorize')
+    
+maximal_alloc=536870912
+
+box.cfg{listen=3308, slab_alloc_arena=5.0, slab_alloc_maximal=67108864}
+box.schema.space.create('subjects')
+box.space.subjects:create_index('primary')
+box.space.subjects.index.primary:alter({parts={1,'STR'}})
+box.schema.user.grant('guest', 'read,write', 'space', 'subjects')
+
+box.cfg{listen=3308, slab_alloc_arena=5.0, slab_alloc_maximal=67108864}
+box.schema.func.drop('easy')
+box.schema.func.create('easy', {language='C'})
+box.schema.user.grant('guest', 'execute', 'function', 'easy')   
+
+box.cfg{listen=3308, slab_alloc_arena=5.0, slab_alloc_maximal=67108864}
+box.schema.space.create('subjects', {engine='vinyl'})
+box.space.subjects:create_index('primary', {parts={1, 'string'}})
+box.schema.user.grant('guest', 'read,write', 'space', 'subjects')
+box.schema.space.create('cache')
+box.space.cache:create_index('primary', {parts={1, 'string'}, type='hash'})
+box.schema.user.grant('guest', 'read,write', 'space', 'cache')
