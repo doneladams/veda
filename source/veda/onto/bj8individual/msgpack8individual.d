@@ -8,7 +8,7 @@
 
 module veda.onto.bj8individual.msgpack8individual;
 
-private import std.outbuffer, std.stdio, std.string;
+private import std.outbuffer, std.stdio, std.string, std.conv;
 private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.onto.lang, veda.bind.msgpuck;
 import backtrace.backtrace;
 import Backtrace = backtrace.backtrace;
@@ -23,18 +23,18 @@ private long write_individual(Individual *ii, char *w)
     w = mp_encode_array(w, 2);
     w = mp_encode_str(w, cast(char *)ii.uri, cast(uint)ii.uri.length);
 
-    int count;
+//    int count;
+//    foreach (key, resources; ii.resources)
+//    {
+//        if (resources.length > 0)
+//            count++;
+//    }
+
+    w = mp_encode_map(w, cast(uint)ii.resources.length);
+
     foreach (key, resources; ii.resources)
     {
-        if (resources.length > 0)
-            count++;
-    }
-
-    w = mp_encode_map(w, count);
-
-    foreach (key, resources; ii.resources)
-    {
-        if (resources.length > 0)
+//        if (resources.length > 0)
             w = write_resources(key, resources, w);
     }
     return(w - cast(char *)buff);
@@ -98,14 +98,14 @@ private char *write_resources(string uri, ref Resources vv, char *w)
     return w;
 }
 
-public ubyte[] individual2msgpack(Individual *in_obj)
+public string individual2msgpack(Individual *in_obj)
 {
     if (buff is null)
         buff = new ubyte[ 1024 * 1024 ];
 
     long len = write_individual(in_obj, cast(char *)buff);
 
-    return buff[ 0..len ];
+    return cast(string)buff[ 0..len ];
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -138,6 +138,7 @@ public int msgpack2individual(Individual *individual, string in_str)
             foreach (i_resource; 0..resources_el_length)
             {
                 mp_type el_type = mp_typeof(*ptr);
+                 //       	writeln ("@0 el_type=", text (cast(mp_type)el_type));
 
                 if (el_type == mp_type.MP_ARRAY)
                 {
@@ -158,7 +159,10 @@ public int msgpack2individual(Individual *individual, string in_str)
                             resources ~= Resource(DataType.String, val[ 0..val_length ].dup);
                         }
                         else
+                        {
+                        	writeln ("@1");
                             return -1;
+                        }
                     }
                     else if (predicate_el_length == 3)
                     {
@@ -178,12 +182,16 @@ public int msgpack2individual(Individual *individual, string in_str)
                             resources ~= Resource(DataType.String, val[ 0..val_length ].dup, cast(LANG)lang);
                         }
                         else
+                        {
+                        	writeln ("@2");
                             return -1;
+                        }
                     }
                     else
-                    {
-                        return -1;
-                    }
+                        {
+                        	writeln ("@3");
+                            return -1;
+                        }
                 }
                 else if (el_type == mp_type.MP_STR)
                 {
@@ -192,7 +200,7 @@ public int msgpack2individual(Individual *individual, string in_str)
                     char *val = mp_decode_str(&ptr, &val_length);
                     resources ~= Resource(DataType.Uri, val[ 0..val_length ].dup);
                 }
-                else if (el_type == mp_type.MP_INT)
+                else if (el_type == mp_type.MP_INT || el_type == mp_type.MP_UINT)
                 {
                     // this int
                     long val = mp_decode_uint(&ptr);
@@ -205,12 +213,15 @@ public int msgpack2individual(Individual *individual, string in_str)
                     resources ~= Resource(DataType.Boolean, val);
                 }
                 else
-                    return -1;
+                        {
+                        	writeln ("@4 el_type=", text (cast(mp_type)el_type));
+                            return -1;
+                        }
             }
             individual.resources[ predicate ] = resources;
         }
 
-        return -1; //read_element(individual, cast(ubyte[])in_str, dummy);
+        return cast(int)(ptr - cast(char *)in_str.ptr); //read_element(individual, cast(ubyte[])in_str, dummy);
     }
     catch (Throwable ex)
     {
