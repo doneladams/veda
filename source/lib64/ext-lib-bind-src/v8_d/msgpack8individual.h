@@ -66,14 +66,12 @@ struct Element
     Element () : pos (0), str ("") {};
 };
 
-Element read_element(Individual *individual, std::vector<char> &src, int b_pos, int e_pos, string subject_uri, string predicate_uri,
-                     Isolate *isolate);
+uint32_t write_individual(Individual *individual, const char *in_buff);
 
-void write_individual(Individual *individual, std::vector<char> &src);
+char* write_resources(string uri, vector <Resource> vv, const char *in_buff);
 
-void write_resources(string uri, vector <Resource>, std::vector<char> &ou);
+int msgpack2individual(Individual *individual, string in_str);
 
-void msgpack2individual(Individual *individual, string in_str);
+uint32_t individual2msgpack(Individual *individual, const char* in_buff);
 
-void individual2msgpack(Individual *individual, std::vector<char> &ou);
 #endif
