@@ -7,10 +7,14 @@
 #include <string.h>
 #include <math.h>
 #include "cbor.h"
-#include "cbor2individual.h"
+//#include "cbor2individual.h"
+#include "msgpack8individual.h"
 
 using namespace std;
 using namespace v8;
+
+#define MAX_BUF_SIZE    1024*1024
+char sr_buff[MAX_BUF_SIZE];
 
 //////////////////////////////////////////////////////////////////
 
@@ -558,7 +562,7 @@ GetIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         std::string data(doc_as_cbor->data, doc_as_cbor->length);
 
         Individual  individual;
-        cbor2individual(&individual, data);
+        msgpack2individual(&individual, data);
 
         Handle<Value> oo = individual2jsobject(&individual, isolate);
 
@@ -621,12 +625,8 @@ PutIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-        std::vector<char>     buff;
-        individual2cbor(&individual, buff);
-        char                  *ptr = buff.data();
-        res = put_individual(ticket, str_ticket.length(), ptr, buff.size(), event_id, str_event_id.length());
-
-        buff.clear();
+        int len = individual2msgpack(&individual, sr_buff);
+        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -656,12 +656,8 @@ AddToIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-        std::vector<char>     buff;
-        individual2cbor(&individual, buff);
-        char                  *ptr = buff.data();
-        res = add_to_individual(ticket, str_ticket.length(), ptr, buff.size(), event_id, str_event_id.length());
-
-        buff.clear();
+        int len = individual2msgpack(&individual, sr_buff);
+        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -691,12 +687,8 @@ SetInIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-        std::vector<char>     buff;
-        individual2cbor(&individual, buff);
-        char                  *ptr = buff.data();
-        res = set_in_individual(ticket, str_ticket.length(), ptr, buff.size(), event_id, str_event_id.length());
-
-        buff.clear();
+        int len = individual2msgpack(&individual, sr_buff);
+        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -726,12 +718,8 @@ RemoveFromIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-        std::vector<char>     buff;
-        individual2cbor(&individual, buff);
-        char                  *ptr = buff.data();
-        res = remove_from_individual(ticket, str_ticket.length(), ptr, buff.size(), event_id, str_event_id.length());
-
-        buff.clear();
+        int len = individual2msgpack(&individual, sr_buff);
+        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);

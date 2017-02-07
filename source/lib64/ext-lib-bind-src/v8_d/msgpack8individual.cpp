@@ -1,4 +1,4 @@
-#define _GLIBCXX_USE_CXX11_ABI 0
+#define _GLIBCXX_USE_CXX11_ABI    0
 #include "cbor.h"
 
 #include <string.h>
@@ -7,319 +7,238 @@
 #include "msgpuck.h"
 #include "msgpack8individual.h"
 
-Element read_element(Individual *individual, const char *src, int b_pos, int e_pos, string subject_uri, string predicate_uri)
-{
-//	hexdump(src + b_pos, 100);
-//	std::cout << "@c #read_element1 b_pos=" << b_pos << ", e_pos=" << e_pos << ", subject=" << subject_uri << ", predicate=" << predicate_uri << std::endl;
-    ElementHeader header;
-    Element       element;
-
-    int           size = e_pos;
-
-    element.pos = read_type_value(src, 0 + b_pos, size, &header);
-    //writeln ("read_element:[", (uint)src[0], " ", (uint)src[1], "]");
-    //writeln ("#^read_element, header=", header);
-    //writeln ("read_element:[", (string)src[0..pos+header.len], "],[", src[0..pos+header.len], "]");
-
-//	std::cout << "@c #read_element2 header.type=" << header.type  << std::endl;
-
-    if (header.type == MAP)
-    {
-        //writeln("IS MAP, length=", header.len, ", pos=", pos);
-        string  new_subject_uri;
-        Element el_key = read_element(individual, src, b_pos + element.pos, size, "", "");
-        element.pos += el_key.pos;
-
-        Element el_val = read_element(individual, src, b_pos + element.pos, size, "", "");
-        element.pos += el_val.pos;
-
-        if (el_key.str == "@")
-        {
-            if (subject_uri.empty() == false)
-            {
-                // здесь новый индивидуал
-            }
-            else
-            {
-            }
-
-//            Handle<Value> key = String::NewFromUtf8(isolate, el_key.str.c_str());
-//            Handle<Value> value = String::NewFromUtf8(isolate, el_val.str.c_str());
-            individual->uri = el_val.str;
-
-            new_subject_uri = el_val.str;
-
-            //writeln ("@ id:", val);
-        }
-
-        for (int i = 1; i < header.v_long; i++)
-        {
-            Element el_key_i = read_element(individual, src, b_pos + element.pos, size, "", "");
-            element.pos += el_key_i.pos;
-
-            string  new_predicate_uri = el_key_i.str;
-            Element el_val_i          =
-                read_element(individual, src, b_pos + element.pos, size, new_subject_uri, new_predicate_uri);
-            element.pos += el_val_i.pos;
-        }
-    }
-    else if (header.type == TEXT_STRING)
-    {
-        //writeln ("IS STRING, length=", header.len, ", pos=", pos);
-        uint32_t    ep = (uint32_t)(element.pos + header.v_long);
-
-        std::string str(src + b_pos + element.pos, header.v_long);
-
-        element.str = str;
-
-        //std::cout << "@c #read_element3 str=" << str << std::endl;
-        //writeln ("[", str, "]");
-
-        if (subject_uri.empty() == false && predicate_uri.empty() == false)
-        {
-            //writeln ("*1");
-            vector <Resource> resources = individual->resources[ predicate_uri ];
-
-            Resource          rr;
-
-            if (header.tag == TEXT_RU)
-            {
-                rr.type     = _String;
-                rr.str_data = str;
-                rr.lang     = LANG_RU;
-                resources.push_back(rr);
-            }
-            else if (header.tag == TEXT_EN)
-            {
-                rr.type     = _String;
-                rr.str_data = str;
-                rr.lang     = LANG_EN;
-                resources.push_back(rr);
-            }
-            else if (header.tag == URI)
-            {
-                if (str.find("/") > 0)
-                {
-                    rr.type     = _Uri;
-                    rr.str_data = str;
-                    rr.origin   = _external;
-                    resources.push_back(rr);
-                }
-                else
-                {
-                    rr.type     = _Uri;
-                    rr.str_data = str;
-                    rr.origin   = _local;
-                    resources.push_back(rr);
-                }
-            }
-            else
-            {
-                rr.type     = _String;
-                rr.str_data = str;
-                rr.lang     = LANG_NONE;
-                resources.push_back(rr);
-            }
-
-            individual->resources[ predicate_uri ] = resources;
-        }
-
-        element.pos = ep;
-    }
-    else if (header.type == NEGATIVE_INTEGER)
-    {
-        vector <Resource> resources = individual->resources[ predicate_uri ];
-        int64_t           value     = header.v_long;
-
-        if (header.tag == EPOCH_DATE_TIME)
-        {
-            Resource rr;
-            rr.type      = _Datetime;
-            rr.long_data = value;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-        else
-        {
-            Resource rr;
-            rr.type      = _Integer;
-            rr.long_data = value;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-    }
-    else if (header.type == UNSIGNED_INTEGER)
-    {
-        vector <Resource> resources = individual->resources[ predicate_uri ];
-
-        int64_t           value = header.v_long;
-
-        if (header.tag == EPOCH_DATE_TIME)
-        {
-            Resource rr;
-            rr.type      = _Datetime;
-            rr.long_data = value;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-        else
-        {
-            Resource rr;
-            rr.type      = _Integer;
-            rr.long_data = value;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-    }
-    else if (header.type == FLOAT_SIMPLE)
-    {
-        vector <Resource> resources = individual->resources[ predicate_uri ];
-
-        if (header.v_long == _TRUE)
-        {
-            Resource rr;
-            rr.type      = _Boolean;
-            rr.bool_data = true;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-        else if (header.v_long == _FALSE)
-        {
-            Resource rr;
-            rr.type      = _Boolean;
-            rr.bool_data = false;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-        else
-        {
-        }
-    }
-    else if (header.type == ARRAY)
-    {
-        if (header.tag == DECIMAL_FRACTION)
-        {
-            vector <Resource> resources = individual->resources[ predicate_uri ];
-
-            ElementHeader     exponent;
-            element.pos += read_type_value(src, b_pos + element.pos, size, &exponent);
-
-            ElementHeader mantissa;
-            element.pos += read_type_value(src, b_pos + element.pos, size, &mantissa);
-
-            Resource rr;
-            rr.type                  = _Decimal;
-            rr.decimal_mantissa_data = mantissa.v_long;
-            rr.decimal_expanent_data = exponent.v_long;
-            resources.push_back(rr);
-            individual->resources[ predicate_uri ] = resources;
-        }
-        else
-        {
-            //writeln ("IS ARRAY, length=", header.len, ", pos=", pos);
-            for (int i = 0; i < header.v_long; i++)
-            {
-                Element el_val_i = read_element(individual, src, b_pos + element.pos, size, subject_uri, predicate_uri);
-                element.pos += el_val_i.pos;
-            }
-        }
-    }
-    else if (header.type == TAG)
-    {
-//      std::cout << "@c #read_element IS TAG" << std::endl;
-    }
-    return element;
-}
-
-
 uint32_t write_individual(Individual *individual, const char *in_buff)
 {
-	char *pos;
+    char     *pos;
     uint64_t map_len = individual->resources.size() + 1;
 
     pos = mp_encode_array(pos, 2);
-    pos = mp_encode_str(pos, individual->uri.c_str(), (uint32_t)individual->uri.length());
+    pos = mp_encode_str(pos, individual->uri.c_str(), individual->uri.length());
 
-    pos = mp_encode_map(pos, (uint32_t)individual->resources.size ());
+    pos = mp_encode_map(pos, individual->resources.size());
 
     map < string, vector <Resource> >::iterator p;
     for (p = individual->resources.begin(); p != individual->resources.end(); ++p)
     {
         std::string strKey = p->first;
-//        if (p->second.size() > 0)
-//        	w = write_resources(p->first, p->second, ou);
+        if (p->second.size() > 0)
+            pos = write_resources(p->first, p->second, pos);
     }
     return(pos - in_buff);
 }
 
-void write_resources(string uri, vector <Resource> vv, std::vector<char> &ou)
+char *write_resources(string uri, vector <Resource> vv, char *w)
 {
-    //std::cout << "@c #write_resources1 uri=" << uri << ", vv.size=" << vv.size() << std::endl;
+    w = mp_encode_str(w, uri.c_str(), uri.length());
 
-    write_string(uri, ou);
-    if (vv.size() > 1)
-        write_type_value(ARRAY, vv.size(), ou);
+    w = mp_encode_array(w, vv.size());
 
     for (int i = 0; i < vv.size(); i++)
     {
         Resource value = vv[ i ];
+
         if (value.type == _Uri)
         {
-	    //if (value.str_data.length () > 0)
-	    {
-        	write_type_value(TAG, URI, ou);
-        	write_string(value.str_data, ou);
-        	  //  std::cout << "@c #write uri data=" << value.str_data << std::endl;
-	    }
+            string svalue = value.str_data;
+            w = mp_encode_str(w, svalue.c_str(), svalue.length());
         }
         else if (value.type == _Integer)
         {
-            write_integer(value.long_data, ou);
+            w = mp_encode_uint(w, value.long_data);
         }
         else if (value.type == _Datetime)
         {
-            write_type_value(TAG, EPOCH_DATE_TIME, ou);
-            write_integer(value.long_data, ou);
+            w = mp_encode_array(w, 2);
+            w = mp_encode_uint(w, _Datetime);
+            w = mp_encode_uint(w, value.long_data);
         }
         else if (value.type == _Decimal)
         {
-            write_type_value(TAG, DECIMAL_FRACTION, ou);
-            write_type_value(ARRAY, 2, ou);
-            write_integer(value.decimal_mantissa_data, ou);
-            write_integer(value.decimal_expanent_data, ou);
+            w = mp_encode_array(w, 3);
+            w = mp_encode_uint(w, _Decimal);
+            w = mp_encode_uint(w, value.decimal_mantissa_data);
+            w = mp_encode_uint(w, value.decimal_expanent_data);
         }
         else if (value.type == _Boolean)
         {
-            write_bool(value.bool_data, ou);
-
-            //std::cout << "@c #write_resources2 data=" << value.bool_data << std::endl;
+            w = mp_encode_bool(w, value.bool_data);
         }
         else
         {
-	    //if (value.str_data.length () > 0)
-	    {
-//std::cout << "@c#1 " << " value.lang= " <<  (uint64_t)value.lang << std::endl;
+            string svalue = value.str_data;
 
-        	if (value.lang != LANG_NONE)
-            	    write_type_value(TAG, value.lang + 41, ou);
-        	write_string(value.str_data, ou);	
-
-        	   // std::cout << "@c #write string data=" << value.str_data << std::endl;
-	    }
+            if (value.lang != LANG_NONE)
+            {
+                w = mp_encode_array(w, 3);
+                w = mp_encode_uint(w, _String);
+                w = mp_encode_str(w, svalue.c_str(), svalue.length());
+                w = mp_encode_uint(w, value.lang);
+            }
+            else
+            {
+                w = mp_encode_array(w, 2);
+                w = mp_encode_uint(w, _String);
+                w = mp_encode_str(w, svalue.c_str(), svalue.length());
+            }
         }
     }
+    return w;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-void msgpack2individual(Individual *individual, string in_str)
+int msgpack2individual(Individual *individual, string in_str)
 {
-    const char *data_ptr = in_str.c_str();
-    read_element(individual, data_ptr, 0, in_str.size(), "", "");
+    const char *ptr    = (char *)in_str.c_str();
+    const char *in_ptr = ptr;
+
+    int        root_el_size = mp_decode_array(&ptr);
+
+    if (root_el_size != 2)
+        return -1;
+
+    uint        uri_lenght;
+    const char  *uri = mp_decode_str(&ptr, &uri_lenght);
+
+    std::string str(ptr, uri_lenght);
+
+    individual->uri = str;
+
+    int predicates_length = mp_decode_map(&ptr);
+
+    for (int idx = 0; idx < predicates_length; idx++)
+    {
+        uint              key_lenght;
+        const char        *key = mp_decode_str(&ptr, &key_lenght);
+
+        std::string       predicate(ptr, key_lenght);
+
+        vector <Resource> resources;
+
+        int               resources_el_length = mp_decode_array(&ptr);
+        for (int i_resource; i_resource < resources_el_length; i_resource++)
+        {
+            mp_type el_type = mp_typeof(*ptr);
+            //          writeln ("@0 el_type=", text (cast(mp_type)el_type));
+
+            if (el_type == MP_ARRAY)
+            {
+                int predicate_el_length = mp_decode_array(&ptr);
+                if (predicate_el_length == 2)
+                {
+                    long type = mp_decode_uint(&ptr);
+
+                    if (type == _Datetime)
+                    {
+                        long     value = mp_decode_uint(&ptr);
+
+                        Resource rr;
+                        rr.type      = _Datetime;
+                        rr.long_data = value;
+                        resources.push_back(rr);
+                    }
+                    else if (type == _String)
+                    {
+                        uint        val_length;
+                        const char  *val = mp_decode_str(&ptr, &val_length);
+
+                        Resource    rr;
+                        rr.type = _String;
+                        std::string value(ptr, val_length);
+                        rr.str_data = value;
+                        rr.lang     = LANG_NONE;
+                        resources.push_back(rr);
+                    }
+                    else
+                    {
+                        //writeln ("@1");
+                        return -1;
+                    }
+                }
+                else if (predicate_el_length == 3)
+                {
+                    long type = mp_decode_uint(&ptr);
+
+                    if (type == _Decimal)
+                    {
+                        long     mantissa = mp_decode_uint(&ptr);
+                        long     exponent = mp_decode_uint(&ptr);
+
+                        Resource rr;
+                        rr.type                  = _Decimal;
+                        rr.decimal_mantissa_data = mantissa;
+                        rr.decimal_expanent_data = exponent;
+                        resources.push_back(rr);
+                    }
+                    else if (type == _String)
+                    {
+                        uint        val_length;
+                        const char  *val = mp_decode_str(&ptr, &val_length);
+                        long        lang = mp_decode_uint(&ptr);
+
+                        Resource    rr;
+                        rr.type = _String;
+                        std::string value(ptr, val_length);
+                        rr.str_data = value;
+                        rr.lang     = lang;
+                        resources.push_back(rr);
+                    }
+                    else
+                    {
+                        //writeln ("@2");
+                        return -1;
+                    }
+                }
+                else
+                {
+                    //writeln ("@3");
+                    return -1;
+                }
+            }
+            else if (el_type == MP_STR)
+            {
+                // this uri
+                uint        val_length;
+                const char  *val = mp_decode_str(&ptr, &val_length);
+
+                Resource    rr;
+                rr.type = _Uri;
+                std::string value(ptr, val_length);
+                rr.str_data = value;
+                resources.push_back(rr);
+            }
+            else if (el_type == MP_INT || el_type == MP_UINT)
+            {
+                // this int
+                long     value = mp_decode_uint(&ptr);
+                Resource rr;
+                rr.type      = _Integer;
+                rr.long_data = value;
+                resources.push_back(rr);
+            }
+            else if (el_type == MP_BOOL)
+            {
+                // this bool
+                long     value = mp_decode_bool(&ptr);
+                Resource rr;
+                rr.type      = _Boolean;
+                rr.long_data = value;
+                resources.push_back(rr);
+            }
+            else
+            {
+                //writeln ("@4 el_type=", text (cast(mp_type)el_type));
+                return -1;
+            }
+        }
+        individual->resources[ predicate ] = resources;
+    }
+
+    return (int)(ptr - in_ptr);
 }
 
-uint32_t individual2msgpack(Individual *individual, const char* in_buff)
+uint32_t individual2msgpack(Individual *individual, const char *in_buff)
 {
     return write_individual(individual, in_buff);
 }
