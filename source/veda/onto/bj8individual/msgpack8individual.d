@@ -124,13 +124,19 @@ public int msgpack2individual(Individual *individual, string in_str)
         char *uri = mp_decode_str(&ptr, &uri_lenght);
         individual.uri = uri[ 0..uri_lenght ].dup;
 
+		writeln ("@d msgpack2individual uri=", individual.uri);	
+
         int predicates_length = mp_decode_map(&ptr);
+
+		writeln ("@d msgpack2individual predicates_length=", predicates_length);	
 
         foreach (idx; 0..predicates_length)
         {
             uint      key_lenght;
             char      *key      = mp_decode_str(&ptr, &key_lenght);
             string    predicate = key[ 0..key_lenght ].dup;
+
+			writeln ("@d msgpack2individual predicate=", predicate);	
 
             Resources resources = Resources.init;
 
@@ -231,3 +237,4 @@ public int msgpack2individual(Individual *individual, string in_str)
         return -1;
     }
 }
+

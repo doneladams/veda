@@ -62,12 +62,12 @@ struct Element
     Element () : pos (0), str ("") {};
 };
 
-uint32_t write_individual(Individual *individual, const char *in_buff);
+uint32_t write_individual(Individual *individual, char *in_buff);
 
-char* write_resources(string uri, vector <Resource> vv, const char *in_buff);
+char *write_resources(string uri, vector <Resource> vv, char *w);
 
 int msgpack2individual(Individual *individual, string in_str);
 
-uint32_t individual2msgpack(Individual *individual, const char* in_buff);
+uint32_t individual2msgpack(Individual *individual, char* in_buff);
 
 #endif

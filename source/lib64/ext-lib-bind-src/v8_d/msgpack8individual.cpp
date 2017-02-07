@@ -7,10 +7,10 @@
 #include "msgpuck.h"
 #include "msgpack8individual.h"
 
-uint32_t write_individual(Individual *individual, const char *in_buff)
+uint32_t write_individual(Individual *individual, char *in_buff)
 {
-    char     *pos;
-    uint64_t map_len = individual->resources.size() + 1;
+    char     *pos = in_buff;
+    uint32_t map_len = individual->resources.size() + 1;
 
     pos = mp_encode_array(pos, 2);
     pos = mp_encode_str(pos, individual->uri.c_str(), individual->uri.length());
@@ -93,19 +93,26 @@ int msgpack2individual(Individual *individual, string in_str)
     const char *ptr    = (char *)in_str.c_str();
     const char *in_ptr = ptr;
 
+	std::cout << "@c msgpack2individual #1 [" << in_str << "]" << std::endl;
+
+//int r = mp_check(&ptr, ptr + in_str.length ());
+//  assert(!r);
+
     int        root_el_size = mp_decode_array(&ptr);
 
     if (root_el_size != 2)
         return -1;
 
-    uint        uri_lenght;
+    uint32_t       uri_lenght;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
     std::string str(ptr, uri_lenght);
+	std::cout << "@c msgpack2individual uri= [" << str << "]" << std::endl;
 
     individual->uri = str;
 
     int predicates_length = mp_decode_map(&ptr);
+	std::cout << "@c msgpack2individual predicates_length= [" << predicates_length << "]" << std::endl;
 
     for (int idx = 0; idx < predicates_length; idx++)
     {
@@ -113,6 +120,7 @@ int msgpack2individual(Individual *individual, string in_str)
         const char        *key = mp_decode_str(&ptr, &key_lenght);
 
         std::string       predicate(ptr, key_lenght);
+	std::cout << "@c msgpack2individual predicate= [" << predicate << "]" << std::endl;
 
         vector <Resource> resources;
 
@@ -238,7 +246,7 @@ int msgpack2individual(Individual *individual, string in_str)
     return (int)(ptr - in_ptr);
 }
 
-uint32_t individual2msgpack(Individual *individual, const char *in_buff)
+uint32_t individual2msgpack(Individual *individual, char *in_buff)
 {
     return write_individual(individual, in_buff);
 }

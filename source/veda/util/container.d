@@ -201,7 +201,7 @@ class Cache(T, K)
 
 unittest
 {
-    auto   cache = new Cache!(string, string)(3);
+    auto   cache = new Cache!(string, string)(3, "id1");
     string dx;
 
     writeln("!1");

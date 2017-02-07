@@ -42,14 +42,14 @@ public struct Individual
 
 	int deserialize (string bin)
 	{
-		return cbor2individual (&this, bin);
-		//return msgpack2individual (&this, bin);
+		//return cbor2individual (&this, bin);
+		return msgpack2individual (&this, bin);
 	}
 
 	string serialize ()
 	{
-		return individual2cbor (&this);
-		//return individual2msgpack (&this);
+		//return individual2cbor (&this);
+		return individual2msgpack (&this);
 	}
 
     Individual dup()
@@ -321,3 +321,34 @@ public struct Individual
         return this;
     }
 }
+
+unittest
+    {
+		import std.datetime;
+		import veda.onto.lang;
+		
+		Individual new_indv_A; 
+		
+		new_indv_A.uri = "test-individual";
+		
+        new_indv_A.addResource("v-s:isSuccess", Resource(true));
+        new_indv_A.addResource("v-s:infoOfExecuting", Resource("text(res))"));
+        new_indv_A.addResource("v-s:info1", Resource(DataType.Uri, "text(res))"));
+        new_indv_A.addResource("v-s:info2", Resource("русский текст", LANG.RU));
+        new_indv_A.addResource("v-s:info2", Resource("english text", LANG.EN));
+        new_indv_A.addResource("v-s:info2", Resource("none lang text", LANG.NONE));
+        new_indv_A.addResource("v-s:created", Resource(DataType.Datetime, Clock.currTime().toUnixTime()));
+        new_indv_A.addResource("rdfs:label", Resource(1234));
+        new_indv_A.addResource("rdfs:label", Resource(decimal (cast(long)1234, cast(byte)25)));
+        new_indv_A.addResource("rdfs:label", Resource(true));
+        
+        string bin = new_indv_A.serialize ();
+        
+		Individual new_indv_B; 
+        
+        new_indv_B.deserialize (bin);
+        
+		assert (new_indv_B.compare(new_indv_A));
+        new_indv_B.setResources("rdfs:label", [Resource(decimal (cast(long)122234, cast(byte)25))]);
+		assert (!new_indv_B.compare(new_indv_A));
+	}

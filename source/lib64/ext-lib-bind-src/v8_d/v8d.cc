@@ -657,7 +657,7 @@ AddToIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         const char            *event_id = ToCString(str_event_id);
 
         int len = individual2msgpack(&individual, sr_buff);
-        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
+        res = add_to_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -688,7 +688,7 @@ SetInIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         const char            *event_id = ToCString(str_event_id);
 
         int len = individual2msgpack(&individual, sr_buff);
-        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
+        res = set_in_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -719,7 +719,7 @@ RemoveFromIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         const char            *event_id = ToCString(str_event_id);
 
         int len = individual2msgpack(&individual, sr_buff);
-        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
+        res = remove_from_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
