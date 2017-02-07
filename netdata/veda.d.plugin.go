@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 /*	uri := "	"
@@ -31,16 +32,23 @@ import (
 	}
 */
 func main() {
-	fmt.Println("CHART netdata.plugin_vedad_count_requests '' 'Veda count_requests' 'count' veda.d")
-	fmt.Println("DIMENSION count_requests 'count requests' absolute 1 1")
+	fmt.Println("CHART netdata.plugin_vedad_count_requests '' 'Veda count_requests' 'count' veda.d " +
+		" '' area 1000 5")
+	fmt.Println("DIMENSION count_requests 'count requests' absolute 1 1" +
+		" '' area 1000 5")
 
-	fmt.Println("CHART netdata.plugin_vedad_count_updates '' 'Veda count_updates' 'count' veda.d")
-	fmt.Println("DIMENSION count_updates 'count updates' absolute 1 1")
+	fmt.Println("CHART netdata.plugin_vedad_count_updates '' 'Veda count_updates' 'count' veda.d " +
+		" '' area 1000 5")
+	fmt.Println("DIMENSION count_updates 'count updates' absolute 1 1" +
+		" '' area 1000 5")
 
-	fmt.Println("CHART netdata.plugin_vedad_count_ws_sessions '' 'Veda count_ws_sessions' 'count' veda.d")
-	fmt.Println("DIMENSION count_ws_sessions 'count ws sessions' absolute 1 1")
+	fmt.Println("CHART netdata.plugin_vedad_count_ws_sessions '' 'Veda count_ws_sessions' 'count' " +
+		"veda.d '' area 1000 5")
+	fmt.Println("DIMENSION count_ws_sessions 'count ws sessions' absolute 1 1" +
+		" '' area 1000 5")
 
-	fmt.Println("CHART netdata.plugin_vedad_dt_count_updates '' 'Veda dt_count_updates' 'count' veda.d")
+	fmt.Println("CHART netdata.plugin_vedad_dt_count_updates '' 'Veda dt_count_updates' 'count' " +
+		"veda.d '' area 1000 5")
 	fmt.Println("DIMENSION dt_count_updates 'dt count updates' absolute 1 1")
 
 	httpClient := &http.Client{}
@@ -81,6 +89,8 @@ func main() {
 		fmt.Println("BEGIN netdata.plugin_vedad_dt_count_updates")
 		fmt.Printf("SET dt_count_updates=%v\n", vedaData["dt_count_updates"])
 		fmt.Println("END")
+
+		time.Sleep(5000 * time.Millisecond)
 	}
 
 	/*	                    sys.stdout.write(
