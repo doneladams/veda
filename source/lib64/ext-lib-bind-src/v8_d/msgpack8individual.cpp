@@ -231,23 +231,25 @@ Element read_element(Individual *individual, const char *src, int b_pos, int e_p
     return element;
 }
 
-void write_individual(Individual *individual, std::vector<char> &ou)
-{
-    uint64_t  map_len = individual->resources.size() + 1;
-    MajorType type    = MAP;
 
-    write_type_value(type, map_len, ou);
-    write_string("@", ou);
-    write_string(individual->uri, ou);
+uint32_t write_individual(Individual *individual, const char *in_buff)
+{
+	char *pos;
+    uint64_t map_len = individual->resources.size() + 1;
+
+    pos = mp_encode_array(pos, 2);
+    pos = mp_encode_str(pos, individual->uri.c_str(), (uint32_t)individual->uri.length());
+
+    pos = mp_encode_map(pos, (uint32_t)individual->resources.size ());
 
     map < string, vector <Resource> >::iterator p;
-
     for (p = individual->resources.begin(); p != individual->resources.end(); ++p)
     {
         std::string strKey = p->first;
-        if (p->second.size() > 0)
-        	write_resources(p->first, p->second, ou);
+//        if (p->second.size() > 0)
+//        	w = write_resources(p->first, p->second, ou);
     }
+    return(pos - in_buff);
 }
 
 void write_resources(string uri, vector <Resource> vv, std::vector<char> &ou)
@@ -317,8 +319,8 @@ void msgpack2individual(Individual *individual, string in_str)
     read_element(individual, data_ptr, 0, in_str.size(), "", "");
 }
 
-void individual2msgpack(Individual *individual, std::vector<char> &ou)
+uint32_t individual2msgpack(Individual *individual, const char* in_buff)
 {
-    write_individual(individual, ou);
+    return write_individual(individual, in_buff);
 }
 

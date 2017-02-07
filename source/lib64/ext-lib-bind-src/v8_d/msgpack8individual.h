@@ -10,6 +10,9 @@
 using namespace v8;
 using namespace std;
 
+#define MAX_BUF_SIZE    1024*1024
+
+char buf[MAX_BUF_SIZE];
 
 typedef enum
 {
