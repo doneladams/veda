@@ -1,5 +1,9 @@
+#include <arpa/inet.h>
 #include <errno.h>
 #include <strings.h>
+#include <signal.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/pair.h>
 #include <tarantool/module.h>
 #include <unistd.h>
 
@@ -7,7 +11,7 @@
 
 #include "msgpuck.h"
 
-#define MAX_URI_LEN 		1024
+#define MAX_URI_LEN 		256
 
 #define MEMBERSHIP_PREFIX 	'M'
 #define PERMISSION_PREFIX 	'P'
@@ -19,9 +23,12 @@
 #define DEFAULT_ACCESS		15U
 #define ACCESS_NUMBER		4
 
-#define MAX_RIGHTS 	50
-#define MAX_BUF_SIZE	1024
-#define MAX_BUF_SIZE2	(8388608*2)
+#define MAX_RIGHTS		50
+#define MAX_BUF_SIZE	4096
+
+#define LISTEN_MAX		10000
+#define IDS_DELIM		'\n'
+#define MAX_IDS			2048
 
 struct Right {
 	char id[MAX_URI_LEN];
@@ -32,8 +39,8 @@ struct Right {
 	uint8_t access;
 };
 
+int socket_fd, client_socket_fd;
 uint32_t main_space_id, main_index_id, cache_space_id, cache_index_id;
-
 uint32_t access_arr[] = { ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	ACCESS_CAN_DELETE };
 
@@ -199,7 +206,7 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 {
 	int i, j, nperms;
 	uint8_t result_access = 0;
-	char perm_buf_start[MAX_BUF_SIZE2];
+	char perm_buf_start[MAX_BUF_SIZE];
 	char key_start[MAX_URI_LEN], *key_end;
 
 	for (i = 0; i < object_rights_count; i++) {	
@@ -264,25 +271,37 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 	return result_access;
 }
 
+void
+handle_signal(int signum)
+{
+	printf("handle signal\n");
+	close(socket_fd);
+	close(client_socket_fd);
+	exit(0);
+}
+
 
 int
 authorize(lua_State *L)
 {
-	/*const char *subject, *object;
-    subject = lua_tostring(L, -2);
-    object = lua_tostring(L, -1);
-	printf("%s %s\n", subject, object);*/
-
-	int i;
-	struct Right object_rights[MAX_RIGHTS], subject_rights[MAX_RIGHTS];
+	int i, count;
+	struct Right object_rights[MAX_RIGHTS], subject_rights[MAX_RIGHTS], extra_membership;
 	int32_t object_rights_count, subject_rights_count;
-	int result;
+	uint8_t result[MAX_IDS];
 	const char *subject, *object;
+	char *socket_buffer;
+	// char *args_ptrs[MAX_ARGS];	
 
-    subject = lua_tostring(L, -2);
-    object = lua_tostring(L, -1);
+//	printf("%s %s\n", subject, object);	
 
-//	printf("%s %s\n", subject, object);
+	if (signal(SIGTERM, handle_signal) == SIG_ERR) {
+		fprintf(stderr, "Error on setting SIGTERM handler: %s\n", strerror(errno));
+		return 1;
+	}
+	if (signal(SIGABRT, handle_signal) == SIG_ERR) {
+		fprintf(stderr, "Error on setting SIGKABRT handler: %s\n", strerror(errno));
+		return 1;
+	}
 
 	if ((main_space_id = box_space_id_by_name("subjects", strlen("subjects"))) == BOX_ID_NIL) {
 		fprintf(stderr, "No such space");
@@ -297,12 +316,72 @@ authorize(lua_State *L)
 	}
 
 	cache_index_id = box_index_id_by_name(cache_space_id, "primary", strlen("primary"));
-
 	
-//	printf("index id %u\n", index_id);
+	if ((socket_fd = nn_socket(AF_SP, NN_PAIR)) < 0) {
+		fprintf(stderr, "Error on creating socket: %s\n", nn_strerror(errno));
+		return 1;
+	}
 
-	subject_rights_count = get_groups(subject, DEFAULT_ACCESS, subject_rights);
+	if ((nn_bind (socket_fd, "tcp://127.0.0.1:9000")) < 0) {
+		fprintf(stderr, "Error on binding socket: %s\n", nn_strerror(errno));
+		return 1;
+	}
+
+	memcpy(extra_membership.id, "Mv-s:AllResourcesGroup", 22);
+	extra_membership.id[22] = '\0';
+	extra_membership.id_len = 22;
+	extra_membership.access = DEFAULT_ACCESS;
+	
+
+
+	for (;;) {
+		// uint8_t result;
+		// int i;
+	//	printf("waiting\n");
+		ssize_t package_size;
+		char *tmp;
+		
+		socket_buffer = NULL;
+		package_size = nn_recv(socket_fd, &socket_buffer, NN_MSG, 0);
+		tmp = socket_buffer;
+
+		// printf("%s\n", socket_buffer);
+
+		count = 0;
+		while (tmp - socket_buffer < package_size) {
+			subject = tmp;
+			tmp = strchr(tmp, IDS_DELIM);
+			*tmp = '\0';
+			tmp++;
+			object = tmp;
+			tmp = strchr(tmp, IDS_DELIM);
+			*tmp = '\0';
+			tmp++;
+			subject_rights_count = get_groups(subject, DEFAULT_ACCESS, subject_rights);
+			object_rights_count = get_groups(object, DEFAULT_ACCESS, object_rights);
+			object_rights[object_rights_count++] = extra_membership;
+
+			result[count++] = get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
+				DEFAULT_ACCESS);
+
+			//printf("%ld %ld\n", tmp - subject, package_size);
+		}
+		nn_send(socket_fd, &result, count, 0);
+		
+		// subject = strtok(socket_buffer, IDS_DELIM);
+		// object = strtok(NULL, IDS_DELIM);
+		//printf("%s %s\n", subject, object);
+
+		
+
+		nn_freemsg(socket_buffer);
+		//printf("%s\n", socket_buffer);
+}
+
+
+/*	subject_rights_count = get_groups(subject, DEFAULT_ACCESS, subject_rights);
 	object_rights_count = get_groups(object, DEFAULT_ACCESS, object_rights);
+	
 
 	memcpy(object_rights[object_rights_count].id, "Mv-s:AllResourcesGroup", 22);
 	object_rights[object_rights_count].id[22] = '\0';
@@ -322,7 +401,7 @@ authorize(lua_State *L)
 	//	printf("No such object\n");
 		lua_pushnumber(L, 0);
 		return 1;
-	}
+	}*/
 
 /*		printf("\n\n\nURI MEMBERSHIPS\n");
 		for (i = 0; i < object_rights_count; i++)
@@ -337,12 +416,12 @@ authorize(lua_State *L)
 
 	
 
-	result = get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
-		DEFAULT_ACCESS);
+	/*result = get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
+		DEFAULT_ACCESS);*/
 //	printf("result=%d\n", result);
 
-	lua_pushnumber(L, result);	
-
+	// lua_pushnumber(L, result);	
+	nn_close(socket_fd);
 	return 1;
 }
 
