@@ -27,8 +27,10 @@
 #define MAX_BUF_SIZE	4096
 
 #define LISTEN_MAX		10000
-#define IDS_DELIM		'\n'
+#define IDS_DELIM		';'
 #define MAX_IDS			2048
+
+#define MAX_CACHE_SIZE 128
 
 struct Right {
 	char id[MAX_URI_LEN];
@@ -39,10 +41,30 @@ struct Right {
 	uint8_t access;
 };
 
+struct CacheUnit {
+	char key[MAX_URI_LEN];
+	char buf[MAX_BUF_SIZE];
+	ssize_t buf_size;
+	uint64_t updates;
+};
+
+int cache_size = 0;
+struct CacheUnit cache[MAX_CACHE_SIZE];
+
 int socket_fd, client_socket_fd;
 uint32_t main_space_id, main_index_id, cache_space_id, cache_index_id;
 uint32_t access_arr[] = { ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	ACCESS_CAN_DELETE };
+
+int find_in_cache(char *key) {
+	int i;
+
+	for (i = 0; i < cache_size; i++)
+		if (strcmp(key, cache[i].key) == 0)
+			return i;
+
+	return -1;
+}
 
 int
 get_tuple(char *key_start, char *key_end, char *outbuf)
@@ -64,24 +86,6 @@ get_tuple(char *key_start, char *key_end, char *outbuf)
 		return 1;
 	}
 	return 0;
-}
-
-int
-rights_comparator(const void *ptr1, const void *ptr2)
-{
-	struct Right *r1, *r2;
-
-	r1 = (struct Right *)ptr1;
-	r2 = (struct Right *)ptr2;
-
-	// printf("%s %s %d\n", r1->id, r2->id, strcmp(r1->id, r2->id));
-
-	if (strcmp(r1->id, r2->id) > 0)
-		return 1;
-	else if (strcmp(r1->id, r2->id) < 0)
-		return -1;
-	else 
-		return 0;
 }
 
 //think about return value
@@ -322,7 +326,12 @@ authorize(lua_State *L)
 		return 1;
 	}
 
-	if ((nn_bind (socket_fd, "tcp://127.0.0.1:9000")) < 0) {
+	/*if ((nn_bind (socket_fd, "tcp://127.0.0.1:9000")) < 0) {
+		fprintf(stderr, "Error on binding socket: %s\n", nn_strerror(errno));
+		return 1;
+	}*/
+
+	if ((nn_bind (socket_fd, "ipc:///tmp/test.ipc")) < 0) {
 		fprintf(stderr, "Error on binding socket: %s\n", nn_strerror(errno));
 		return 1;
 	}
