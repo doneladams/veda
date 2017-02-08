@@ -35,6 +35,9 @@ private long write_individual(Individual *ii, char *w)
     foreach (key, resources; ii.resources)
     {
 //        if (resources.length > 0)
+        if (resources.length == 0)
+			writeln ("@d RESOURCE LEN==0");
+
             w = write_resources(key, resources, w);
     }
     return(w - cast(char *)buff);
@@ -100,20 +103,24 @@ private char *write_resources(string uri, ref Resources vv, char *w)
 
 public string individual2msgpack(Individual *in_obj)
 {
-    if (buff is null)
+    if (buff is null || buff.length == 0)
         buff = new ubyte[ 1024 * 1024 ];
 
     long len = write_individual(in_obj, cast(char *)buff);
 
-    return cast(string)buff[ 0..len ];
+    return cast(string)buff[ 0..len ].dup;
 }
 
 /////////////////////////////////////////////////////////////////////
 
 public int msgpack2individual(Individual *individual, string in_str)
 {
+	try
+	{
     try
     {
+		//writefln ("@d msgpack2individual in_str=[%s]", in_str);	
+		
         char *ptr         = cast(char *)in_str.ptr;
         int  root_el_size = mp_decode_array(&ptr);
 
@@ -124,27 +131,28 @@ public int msgpack2individual(Individual *individual, string in_str)
         char *uri = mp_decode_str(&ptr, &uri_lenght);
         individual.uri = uri[ 0..uri_lenght ].dup;
 
-		writeln ("@d msgpack2individual uri=", individual.uri);	
+		//writeln ("@d msgpack2individual uri=", individual.uri);	
 
         int predicates_length = mp_decode_map(&ptr);
 
-		writeln ("@d msgpack2individual predicates_length=", predicates_length);	
+		//writeln ("@d msgpack2individual predicates_length=", predicates_length);	
 
-        foreach (idx; 0..predicates_length)
+        for (int idx = 0; idx < predicates_length; idx++)
         {
+			//writeln ("@d msgpack2individual idx=", idx);	
             uint      key_lenght;
             char      *key      = mp_decode_str(&ptr, &key_lenght);
             string    predicate = key[ 0..key_lenght ].dup;
 
-			writeln ("@d msgpack2individual predicate=", predicate);	
+			//writeln ("@d msgpack2individual predicate=", predicate);	
 
             Resources resources = Resources.init;
 
             int       resources_el_length = mp_decode_array(&ptr);
-            foreach (i_resource; 0..resources_el_length)
+            for (int i_resource = 0; i_resource < resources_el_length; i_resource++)
             {
                 mp_type el_type = mp_typeof(*ptr);
-                 //       	writeln ("@0 el_type=", text (cast(mp_type)el_type));
+                //writeln ("@0 msgpack2individual el_type=", text (cast(mp_type)el_type));
 
                 if (el_type == mp_type.MP_ARRAY)
                 {
@@ -226,7 +234,6 @@ public int msgpack2individual(Individual *individual, string in_str)
             }
             individual.resources[ predicate ] = resources;
         }
-
         return cast(int)(ptr - cast(char *)in_str.ptr); //read_element(individual, cast(ubyte[])in_str, dummy);
     }
     catch (Throwable ex)
@@ -236,5 +243,9 @@ public int msgpack2individual(Individual *individual, string in_str)
         //throw new Exception("invalid cbor");
         return -1;
     }
-}
+} finally
+{
+		//writeln ("@d msgpack2individual @E");		
 
+}
+}

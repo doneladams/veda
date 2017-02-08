@@ -21,7 +21,10 @@ uint32_t write_individual(Individual *individual, char *in_buff)
     for (p = individual->resources.begin(); p != individual->resources.end(); ++p)
     {
         std::string strKey = p->first;
-        if (p->second.size() > 0)
+        //if (p->second.size() > 0)
+        //if (p->second.size() == 0)
+	//std::cout << "@c write_individual resources.length==0" << std::endl;        
+        
             pos = write_resources(p->first, p->second, pos);
     }
     return(pos - in_buff);
@@ -33,7 +36,7 @@ char *write_resources(string uri, vector <Resource> vv, char *w)
 
     w = mp_encode_array(w, vv.size());
 
-    for (int i = 0; i < vv.size(); i++)
+    for (uint32_t i = 0; i < vv.size(); i++)
     {
         Resource value = vv[ i ];
 
@@ -88,17 +91,17 @@ char *write_resources(string uri, vector <Resource> vv, char *w)
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-int msgpack2individual(Individual *individual, string in_str)
+int32_t msgpack2individual(Individual *individual, string in_str)
 {
     const char *ptr    = (char *)in_str.c_str();
     const char *in_ptr = ptr;
 
-	std::cout << "@c msgpack2individual #1 [" << in_str << "]" << std::endl;
+	//std::cout << "@c msgpack2individual #1 [" << in_str << "]" << std::endl;
 
-//int r = mp_check(&ptr, ptr + in_str.length ());
+//uint32_t r = mp_check(&ptr, ptr + in_str.length ());
 //  assert(!r);
 
-    int        root_el_size = mp_decode_array(&ptr);
+    uint32_t        root_el_size = mp_decode_array(&ptr);
 
     if (root_el_size != 2)
         return -1;
@@ -106,33 +109,36 @@ int msgpack2individual(Individual *individual, string in_str)
     uint32_t       uri_lenght;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
-    std::string str(ptr, uri_lenght);
-	std::cout << "@c msgpack2individual uri= [" << str << "]" << std::endl;
+    std::string str(uri, uri_lenght);
+	//std::cout << "@c msgpack2individual uri= [" << str << "]" << std::endl;
 
     individual->uri = str;
 
-    int predicates_length = mp_decode_map(&ptr);
-	std::cout << "@c msgpack2individual predicates_length= [" << predicates_length << "]" << std::endl;
+    uint32_t predicates_length = mp_decode_map(&ptr);
+	//std::cout << "@c msgpack2individual predicates_length= [" << predicates_length << "]" << std::endl;
 
-    for (int idx = 0; idx < predicates_length; idx++)
+    for (uint32_t idx = 0; idx < predicates_length; idx++)
     {
-        uint              key_lenght;
+	//std::cout << "@c msgpack2individual idx= [" << idx << "]" << std::endl;
+        uint32_t              key_lenght;
         const char        *key = mp_decode_str(&ptr, &key_lenght);
+	//std::cout << "@c msgpack2individual key_lenght= [" << key_lenght << "]" << std::endl;
 
-        std::string       predicate(ptr, key_lenght);
-	std::cout << "@c msgpack2individual predicate= [" << predicate << "]" << std::endl;
+        std::string       predicate(key, key_lenght);
+	//std::cout << "@c msgpack2individual predicate= [" << predicate << "]" << std::endl;
 
         vector <Resource> resources;
 
-        int               resources_el_length = mp_decode_array(&ptr);
-        for (int i_resource; i_resource < resources_el_length; i_resource++)
+        uint32_t               resources_el_length = mp_decode_array(&ptr);
+	//std::cout << "@c msgpack2individual resources_el_length= [" << resources_el_length << "]" << std::endl;
+        for (uint32_t i_resource = 0; i_resource < resources_el_length; i_resource++)
         {
             mp_type el_type = mp_typeof(*ptr);
-            //          writeln ("@0 el_type=", text (cast(mp_type)el_type));
+	//std::cout << "@c msgpack2individual el_type= [" << el_type << "]" << std::endl;
 
             if (el_type == MP_ARRAY)
             {
-                int predicate_el_length = mp_decode_array(&ptr);
+                uint32_t predicate_el_length = mp_decode_array(&ptr);
                 if (predicate_el_length == 2)
                 {
                     long type = mp_decode_uint(&ptr);
@@ -153,7 +159,7 @@ int msgpack2individual(Individual *individual, string in_str)
 
                         Resource    rr;
                         rr.type = _String;
-                        std::string value(ptr, val_length);
+                        std::string value(val, val_length);
                         rr.str_data = value;
                         rr.lang     = LANG_NONE;
                         resources.push_back(rr);
@@ -187,7 +193,7 @@ int msgpack2individual(Individual *individual, string in_str)
 
                         Resource    rr;
                         rr.type = _String;
-                        std::string value(ptr, val_length);
+                        std::string value(val, val_length);
                         rr.str_data = value;
                         rr.lang     = lang;
                         resources.push_back(rr);
@@ -212,13 +218,13 @@ int msgpack2individual(Individual *individual, string in_str)
 
                 Resource    rr;
                 rr.type = _Uri;
-                std::string value(ptr, val_length);
+                std::string value(val, val_length);
                 rr.str_data = value;
                 resources.push_back(rr);
             }
             else if (el_type == MP_INT || el_type == MP_UINT)
             {
-                // this int
+                // this uint32_t
                 long     value = mp_decode_uint(&ptr);
                 Resource rr;
                 rr.type      = _Integer;
@@ -240,13 +246,13 @@ int msgpack2individual(Individual *individual, string in_str)
                 return -1;
             }
         }
-        individual->resources[ predicate ] = resources;
+       // individual->resources[ predicate ] = resources;
     }
 
-    return (int)(ptr - in_ptr);
+    return (int32_t)(ptr - in_ptr);
 }
 
-uint32_t individual2msgpack(Individual *individual, char *in_buff)
+int32_t individual2msgpack(Individual *individual, char *in_buff)
 {
     return write_individual(individual, in_buff);
 }

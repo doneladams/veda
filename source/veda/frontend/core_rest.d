@@ -6,7 +6,7 @@ import vibe.d, vibe.core.core, vibe.core.log, vibe.core.task, vibe.inet.mimetype
 import properd, TrailDB;
 import veda.common.type, veda.core.common.context, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.log_msg;
 import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.onto.lang, veda.frontend.individual8vjson;
-import veda.frontend.cbor8vjson, veda.frontend.msgpack8vjson;
+import veda.frontend.msgpack8vjson;
 
 // ////// Logger ///////////////////////////////////////////
 import veda.common.logger;
@@ -765,7 +765,7 @@ class VedaStorageRest : VedaStorageRest_API
                     if (rc == ResultCode.OK)
                     {
                         res = Json.emptyObject;
-                        cbor2json(&res, cb);
+                        msgpack2vjson(&res, cb);
                     }
                 }
             }

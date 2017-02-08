@@ -66,8 +66,8 @@ uint32_t write_individual(Individual *individual, char *in_buff);
 
 char *write_resources(string uri, vector <Resource> vv, char *w);
 
-int msgpack2individual(Individual *individual, string in_str);
+int32_t msgpack2individual(Individual *individual, string in_str);
 
-uint32_t individual2msgpack(Individual *individual, char* in_buff);
+int32_t individual2msgpack(Individual *individual, char* in_buff);
 
 #endif

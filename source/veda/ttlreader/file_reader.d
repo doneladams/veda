@@ -403,12 +403,6 @@ void processed(string[] changes, Context context)
                                               text(indv_in_storage));
 
 								string bin = indv.serialize ();
-								
-								Individual AAA;
-								
-								AAA.deserialize (bin);
-								
-								assert (indv.compare (AAA));
 
                                 ResultCode res = context.put_individual(&sticket, indv.uri, indv, true, null, false, false).result;
                                 if (trace_msg[ 33 ] == 1)
