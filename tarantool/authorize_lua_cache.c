@@ -7,6 +7,8 @@
 #include <tarantool/module.h>
 #include <unistd.h>
 
+#include "uthash.h"
+
 #define MP_SOURCE 1
 
 #include "msgpuck.h"
@@ -30,7 +32,7 @@
 #define IDS_DELIM		';'
 #define MAX_IDS			2048
 
-#define MAX_CACHE_SIZE 128
+#define MAX_CACHE_SIZE	10000
 
 struct Right {
 	char id[MAX_URI_LEN];
@@ -41,47 +43,86 @@ struct Right {
 	uint8_t access;
 };
 
-struct CacheUnit {
+struct CacheEntry {
+	int idx;
 	char key[MAX_URI_LEN];
 	char buf[MAX_BUF_SIZE];
 	ssize_t buf_size;
-	uint64_t updates;
+	uint64_t requests;
+	UT_hash_handle hh;
 };
 
 int cache_size = 0;
-struct CacheUnit cache[MAX_CACHE_SIZE];
+struct CacheEntry *cache = NULL;
+struct CacheEntry cache_elems[MAX_CACHE_SIZE];
 
 int socket_fd, client_socket_fd;
 uint32_t main_space_id, main_index_id, cache_space_id, cache_index_id;
 uint32_t access_arr[] = { ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	ACCESS_CAN_DELETE };
 
-int find_in_cache(char *key) {
-	int i;
-
-	for (i = 0; i < cache_size; i++)
-		if (strcmp(key, cache[i].key) == 0)
-			return i;
-
-	return -1;
+void 
+insert_into_cache(const char *key, int32_t key_len, const char *buf, ssize_t buf_size)
+{
+	if (cache_size < MAX_CACHE_SIZE) {
+		memcpy(cache_elems[cache_size].key, key, key_len);
+		cache_elems[cache_size].key[key_len] = '\0';
+		memcpy(cache_elems[cache_size].buf, buf, buf_size);
+		cache_elems[cache_size].buf_size = buf_size;
+		cache_elems[cache_size].requests = 1;
+		HASH_ADD_KEYPTR(hh, cache, key, key_len, cache_elems + cache_size);
+		cache_size++;
+	} else {
+	/*	int i;
+		uint64_t min, idx;
+		
+		min = cache[0].requests;
+		idx = 0;
+		for (i = 1; i < cache_size; i++)
+			if (cache[i].requests == 1) {
+				idx = i;
+				break;
+			} else if (cache[i].requests < min) {
+				min = cache[i].requests;
+				idx = i;
+			}
+		
+		memcpy(cache[idx].key, key, key_len);
+		cache[idx].key[key_len] = '\0';
+		memcpy(cache[idx].buf, buf, buf_size);
+		cache[idx].buf_size = buf_size;
+		cache[idx].requests = 1;*/
+	}
 }
 
 int
-get_tuple(char *key_start, char *key_end, char *outbuf)
+get_tuple(const char *key, int32_t key_len, char *outbuf)
 {
+	int idx;
+	char key_start[MAX_URI_LEN], *key_end;
 	size_t tuple_size;
 	box_tuple_t *result;
+	struct CacheEntry *entry;	
 
-	if (box_index_count(cache_space_id, cache_index_id, ITER_EQ, key_start, key_end) > 0) {
+	key_end = key_start;
+	key_end = mp_encode_array(key_end, 1);
+	key_end = mp_encode_str(key_end, key, key_len);
+
+	
+	HASH_FIND_STR(cache, key, entry);
+	if (entry) {
+		memcpy(outbuf, entry->buf, entry->buf_size);
+		return 1;
+	} else if (box_index_count(cache_space_id, cache_index_id, ITER_EQ, key_start, key_end) > 0) {
 		box_index_get(cache_space_id, cache_index_id, key_start, key_end, &result);
 		tuple_size = box_tuple_bsize(result);	
 		box_tuple_to_buf(result, outbuf, tuple_size);
+		insert_into_cache(key, key_len, outbuf, tuple_size);
 		return 1;
 	} else if (box_index_count(main_space_id, main_index_id, ITER_EQ, key_start, key_end) > 0) {
 		box_index_get(main_space_id, main_index_id, key_start, key_end, &result);
 		tuple_size = box_tuple_bsize(result);	
 		box_tuple_to_buf(result, outbuf, tuple_size);
-	//	printf("here");
 		box_insert(cache_space_id, outbuf, outbuf + tuple_size, NULL);
 		return 1;
 	}
@@ -92,7 +133,7 @@ get_tuple(char *key_start, char *key_end, char *outbuf)
 int
 get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 {
-	char key_start[MAX_URI_LEN], *key_end;
+	// char key_start[MAX_URI_LEN], *key_end;
 	int32_t rights_count = 0, curr = 0;
 	int gone_previous = 0;
 
@@ -103,10 +144,10 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 	rights[curr].nchildren = 0;
 	rights[curr].id_len =  strlen(uri);
 	
-	key_end = key_start;
+	/*key_end = key_start;
 	key_end = mp_encode_array(key_end, 1);
-	key_end = mp_encode_str(key_end, uri, rights[curr].id_len);
-	if (get_tuple(key_start, key_end, (char *)rights[curr].buf) == 0) {
+	key_end = mp_encode_str(key_end, uri, rights[curr].id_len);*/
+	if (get_tuple(uri, rights[curr].id_len, (char *)rights[curr].buf) == 0) {
 		memcpy(rights[curr].id, uri, rights[curr].id_len);
 		rights[curr].id[rights[curr].id_len]  = '\0';
 		return 1;
@@ -166,11 +207,11 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 			rights[next].parent = curr;
 		
 			// printf("\tnew uri %s\n", rights[next].id);
-			key_end = key_start;
+			/*key_end = key_start;
 			key_end = mp_encode_array(key_end, 1);
-			key_end = mp_encode_str(key_end, rights[next].id, rights[next].id_len);
+			key_end = mp_encode_str(key_end, rights[next].id, rights[next].id_len);*/
 			rights[next].buf = rights[next].buf_start;
-			if (get_tuple(key_start, key_end, (char *)rights[next].buf) == 0)
+			if (get_tuple(rights[next].id, rights[next].id_len, (char *)rights[next].buf) == 0)
 				continue;
 		
 			rights[curr].i++;
@@ -211,7 +252,7 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 	int i, j, nperms;
 	uint8_t result_access = 0;
 	char perm_buf_start[MAX_BUF_SIZE];
-	char key_start[MAX_URI_LEN], *key_end;
+	// char key_start[MAX_URI_LEN], *key_end;
 
 	for (i = 0; i < object_rights_count; i++) {	
 		const char *perm_buf;
@@ -220,13 +261,13 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 
 		object_access = object_rights[i].access;
 		object_rights[i].id[0] = PERMISSION_PREFIX;
-		key_end = key_start;
+		/*key_end = key_start;
 		key_end = mp_encode_array(key_end, 1);
-		key_end = mp_encode_str(key_end, object_rights[i].id, object_rights[i].id_len);
+		key_end = mp_encode_str(key_end, object_rights[i].id, object_rights[i].id_len);*/
 		// printf("%s %d\n", object_rights[i].id, object_rights[i].access);	
 		// printf("key %s\n", key_start);
 		perm_buf = perm_buf_start;
-		if (get_tuple(key_start, key_end, (char *)perm_buf) == 0) {
+		if (get_tuple(object_rights[i].id, object_rights[i].id_len, (char *)perm_buf) == 0) {
 			continue;
 		}
 
@@ -388,30 +429,6 @@ authorize(lua_State *L)
 }
 
 
-/*	subject_rights_count = get_groups(subject, DEFAULT_ACCESS, subject_rights);
-	object_rights_count = get_groups(object, DEFAULT_ACCESS, object_rights);
-	
-
-	memcpy(object_rights[object_rights_count].id, "Mv-s:AllResourcesGroup", 22);
-	object_rights[object_rights_count].id[22] = '\0';
-	object_rights[object_rights_count].id_len = 22;
-	object_rights[object_rights_count++].access = DEFAULT_ACCESS;
-
-	//printf("subject_rights_count=%d\n", subject_rights_count);
-	//printf("object_rights_count=%d\n\n", object_rights_count);
-
-	if (subject_rights_count == 0) {
-	//	printf("No such user %s\n", subject);
-		lua_pushnumber(L, 0);
-		return 1;
-	}
-
-	if (object_rights_count == 0) {
-	//	printf("No such object\n");
-		lua_pushnumber(L, 0);
-		return 1;
-	}*/
-
 /*		printf("\n\n\nURI MEMBERSHIPS\n");
 		for (i = 0; i < object_rights_count; i++)
 			printf("\t%s %d\n", object_rights[i].id, object_rights[i].access);
@@ -419,17 +436,7 @@ authorize(lua_State *L)
 		for (i = 0; i < subject_rights_count; i++)
 			printf("\t%s %d\n", subject_rights[i].id, subject_rights[i].access);
 		printf("\n\n");*/
-
-//	lua_pushnumber(L, 1);
-//	return 1;
-
-	
-
-	/*result = get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
-		DEFAULT_ACCESS);*/
-//	printf("result=%d\n", result);
-
-	// lua_pushnumber(L, result);	
+		
 	nn_close(socket_fd);
 	return 1;
 }
