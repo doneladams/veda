@@ -95,11 +95,6 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     const char *ptr    = (char *)in_str.c_str();
     const char *in_ptr = ptr;
 
-	//std::cout << "@c msgpack2individual #1 [" << in_str << "]" << std::endl;
-
-//uint32_t r = mp_check(&ptr, ptr + in_str.length ());
-//  assert(!r);
-
     uint32_t        root_el_size = mp_decode_array(&ptr);
 
     if (root_el_size != 2)
@@ -109,31 +104,24 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
     std::string str(uri, uri_lenght);
-	//std::cout << "@c msgpack2individual uri= [" << str << "]" << std::endl;
 
     individual->uri = str;
 
     uint32_t predicates_length = mp_decode_map(&ptr);
-	//std::cout << "@c msgpack2individual predicates_length= [" << predicates_length << "]" << std::endl;
 
     for (uint32_t idx = 0; idx < predicates_length; idx++)
     {
-	//std::cout << "@c msgpack2individual idx= [" << idx << "]" << std::endl;
         uint32_t              key_lenght;
         const char        *key = mp_decode_str(&ptr, &key_lenght);
-	//std::cout << "@c msgpack2individual key_lenght= [" << key_lenght << "]" << std::endl;
 
         std::string       predicate(key, key_lenght);
-	//std::cout << "@c msgpack2individual predicate= [" << predicate << "]" << std::endl;
 
         vector <Resource> resources;
 
         uint32_t               resources_el_length = mp_decode_array(&ptr);
-	//std::cout << "@c msgpack2individual resources_el_length= [" << resources_el_length << "]" << std::endl;
         for (uint32_t i_resource = 0; i_resource < resources_el_length; i_resource++)
         {
             mp_type el_type = mp_typeof(*ptr);
-	//std::cout << "@c msgpack2individual el_type= [" << el_type << "]" << std::endl;
 
             if (el_type == MP_ARRAY)
             {
@@ -165,7 +153,6 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                     }
                     else
                     {
-                        //writeln ("@1");
                         return -1;
                     }
                 }
@@ -199,13 +186,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                     }
                     else
                     {
-                        //writeln ("@2");
                         return -1;
                     }
                 }
                 else
                 {
-                    //writeln ("@3");
                     return -1;
                 }
             }
@@ -234,18 +219,18 @@ int32_t msgpack2individual(Individual *individual, string in_str)
             {
                 // this bool
                 long     value = mp_decode_bool(&ptr);
+
                 Resource rr;
                 rr.type      = _Boolean;
-                rr.long_data = value;
+                rr.bool_data = value;
                 resources.push_back(rr);
             }
             else
             {
-                //writeln ("@4 el_type=", text (cast(mp_type)el_type));
                 return -1;
             }
         }
-       // individual->resources[ predicate ] = resources;
+        individual->resources[ predicate ] = resources;
     }
 
     return (int32_t)(ptr - in_ptr);
