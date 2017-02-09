@@ -649,4 +649,5 @@ unittest
     log.trace("read from queue:  %d, time: %d, cps=%s", count, t, text(count / (t / 1000.0)));
 
     queue.close();
+        
 }
