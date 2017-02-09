@@ -362,7 +362,7 @@ interface Context
                  uri
 
        Returns:
-                авторизованный индивид в виде строки CBOR
+                авторизованный индивид в виде строки BINOBJ
      */
     public string get_individual_as_binobj(Ticket *ticket, string uri, out ResultCode rs);
 

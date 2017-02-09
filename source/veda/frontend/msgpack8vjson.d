@@ -138,7 +138,7 @@ public int msgpack2vjson(Json *individual, string in_str)
     {
         writeln("ERR! msgpack2individual ex=", ex.msg, ", in_str=", in_str);
         //printPrettyTrace(stderr);
-        //throw new Exception("invalid cbor");
+        //throw new Exception("invalid binobj");
         return -1;
     }
 }

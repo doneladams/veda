@@ -6,8 +6,6 @@
 #include <string>
 #include <string.h>
 #include <math.h>
-#include "cbor.h"
-//#include "cbor2individual.h"
 #include "msgpack8individual.h"
 
 using namespace std;
@@ -98,11 +96,11 @@ individual2jsobject(Individual *individual, Isolate *isolate)
 bool
 jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, string predicate)
 {
-    //std::cout << "@json->cbor #0 predicate=" << predicate << std::endl;
+    //std::cout << "@json->binobj #0 predicate=" << predicate << std::endl;
 
     if (value->IsArray())
     {
-        //std::cout << "@json->cbor # is array" << std::endl;
+        //std::cout << "@json->binobj # is array" << std::endl;
         Local<v8::Array> js_arr = Local<v8::Array>::Cast(value);
 
         if (js_arr->Length() == 1)
@@ -124,7 +122,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
         if (resource == NULL)
             return false;
 
-        //std::cout << "@json->cbor #is sring" << std::endl;
+        //std::cout << "@json->binobj #is sring" << std::endl;
         v8::String::Utf8Value s1(value);
         std::string           vv = std::string(*s1);
 
@@ -138,7 +136,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
         if (resource == NULL)
             return false;
 
-        //std::cout << "@json->cbor #is boolean" << std::endl;
+        //std::cout << "@json->binobj #is boolean" << std::endl;
 
         resource->type      = _Boolean;
         resource->bool_data = value->ToBoolean()->Value();
@@ -150,7 +148,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
         if (resource == NULL)
             return false;
 
-//        std::cout << "@json->cbor #10" << std::endl;
+//        std::cout << "@json->binobj #10" << std::endl;
         resource->type      = _Datetime;
         resource->long_data = value->ToInteger()->Value();
 
@@ -161,7 +159,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
         if (resource == NULL)
             return false;
 
-//        std::cout << "@json->cbor #10" << std::endl;
+//        std::cout << "@json->binobj #10" << std::endl;
         resource->type      = _Integer;
         resource->long_data = value->ToInteger()->Value();
 
@@ -169,11 +167,11 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
     }
     else if (value->IsNumber())
     {
-        std::cout << "ERR! @v8:json->cbor (value->IsNumber() not implemented" << std::endl;
+        std::cout << "ERR! @v8:json->binobj (value->IsNumber() not implemented" << std::endl;
     }
     else if (value->IsObject())
     {
-        //std::cout << "@json->cbor #is object" << std::endl;
+        //std::cout << "@json->binobj #is object" << std::endl;
         Local<Object>         obj = Local<Object>::Cast(value);
 
         v8::Handle<v8::Array> propertyNames = obj->GetPropertyNames();
@@ -245,7 +243,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
 
         if (is_individual_value == true)
         {
-            //std::cout << "@json->cbor #4" << std::endl;
+            //std::cout << "@json->binobj #4" << std::endl;
             int type = v_type->ToInt32()->Value();
 
             //Resource rc;
@@ -267,7 +265,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
 //                std::string           std_s1_1 = std::string(*s1_1);
 
                 int64_t          value = (int64_t)(v_data->ToInteger()->Value() / 1000);
-//                std::cout << "@json->cbor #5, " << std_s1_1 << ", " << v_data->ToInteger()->Value() << ", " << value << std::endl;
+//                std::cout << "@json->binobj #5, " << std_s1_1 << ", " << v_data->ToInteger()->Value() << ", " << value << std::endl;
                 vector<Resource> values = indv->resources[ predicate ];
                 Resource         rc;
                 rc.type      = type;
@@ -304,7 +302,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
                 v8::String::Utf8Value s1_1(v_data);
                 std::string           std_s1_1 = std::string(*s1_1);
 
-                //std::cout << "@json->cbor #4.1" << std_s1_1 << std::endl;
+                //std::cout << "@json->binobj #4.1" << std_s1_1 << std::endl;
 
                 vector<Resource> values = indv->resources[ predicate ];
 
@@ -317,13 +315,9 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
                 return true;
             }
         }
-//        else
-//        {
-//            return CborValue (map);
-//        }
     }
 
-    //std::cout << "@json->cbor #12" << std::endl;
+    //std::cout << "@json->binobj #12" << std::endl;
     return true;
 }
 
@@ -349,19 +343,19 @@ query(const char *_ticket, int _ticket_length, const char *_query, int _query_le
 _Buff *
 read_individual(const char *_ticket, int _ticket_length, const char *_uri, int _uri_length);
 int
-put_individual(const char *_ticket, int _ticket_length, const char *_cbor, int _cbor_length, const char *_event_id,
+put_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
                int _event_id_length);
 int
 remove_individual(const char *_ticket, int _ticket_length, const char *_uri, int _uri_length, const char *_event_id,
                   int _event_id_length);
 int
-add_to_individual(const char *_ticket, int _ticket_length, const char *_cbor, int _cbor_length, const char *_event_id,
+add_to_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
                   int _event_id_length);
 int
-set_in_individual(const char *_ticket, int _ticket_length, const char *_cbor, int _cbor_length, const char *_event_id,
+set_in_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length, const char *_event_id,
                   int _event_id_length);
 int
-remove_from_individual(const char *_ticket, int _ticket_length, const char *_cbor, int _cbor_length,
+remove_from_individual(const char *_ticket, int _ticket_length, const char *_binobj, int _binobj_length,
                        const char *_event_id, int _event_id_length);
 
 void log_trace(const char *_str, int _str_length);
@@ -555,11 +549,11 @@ GetIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
 
     const char *cstr = ToCString(str1);
 
-    _Buff      *doc_as_cbor = read_individual(ticket, str.length(), cstr, str1.length());
+    _Buff      *doc_as_binobj = read_individual(ticket, str.length(), cstr, str1.length());
 
-    if (doc_as_cbor != NULL)
+    if (doc_as_binobj != NULL)
     {
-        std::string data(doc_as_cbor->data, doc_as_cbor->length);
+        std::string data(doc_as_binobj->data, doc_as_binobj->length);
 
         Individual  individual;
         msgpack2individual(&individual, data);
