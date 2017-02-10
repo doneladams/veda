@@ -28,7 +28,7 @@ public int msgpack2vjson(Json *individual, string in_str)
 
         int predicates_length = mp_decode_map(&ptr);
 
-        foreach (idx; 0..predicates_length)
+        for (int idx = 0; idx < predicates_length; idx++)
         {
             uint   key_lenght;
             char   *key          = mp_decode_str(&ptr, &key_lenght);
@@ -37,7 +37,7 @@ public int msgpack2vjson(Json *individual, string in_str)
             Json   resources = Json.emptyArray;
 
             int    resources_el_length = mp_decode_array(&ptr);
-            foreach (i_resource; 0..resources_el_length)
+            for (int i_resource = 0; i_resource < resources_el_length; i_resource++)
             {
                 Json    resource_json = Json.emptyObject;
                 mp_type el_type       = mp_typeof(*ptr);
@@ -110,7 +110,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                     resource_json[ "type" ] = text(DataType.Uri);
                     resource_json[ "data" ] = val[ 0..val_length ].dup;
                 }
-                else if (el_type == mp_type.MP_INT)
+                else if (el_type == mp_type.MP_INT || el_type == mp_type.MP_UINT)
                 {
                     // this int
                     long val = mp_decode_uint(&ptr);
@@ -120,7 +120,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                 else if (el_type == mp_type.MP_BOOL)
                 {
                     // this bool
-                    long val = mp_decode_bool(&ptr);
+                    bool val = mp_decode_bool(&ptr);
                     resource_json[ "type" ] = text(DataType.Boolean);
                     resource_json[ "data" ] = val;
                 }
