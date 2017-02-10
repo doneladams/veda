@@ -10,8 +10,8 @@ module veda.onto.bj8individual.msgpack8individual;
 
 private import std.outbuffer, std.stdio, std.string, std.conv;
 private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.onto.lang, veda.bind.msgpuck;
-import backtrace.backtrace;
-import Backtrace = backtrace.backtrace;
+//import backtrace.backtrace;
+//import Backtrace = backtrace.backtrace;
 
 string  dummy;
 ubyte[] buff;
