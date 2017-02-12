@@ -107,7 +107,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
     std::string str(uri, uri_lenght);
-    std::cout << "@c #2 uri=" << str << std::endl;
+//    std::cout << "@c #2 uri=" << str << std::endl;
 
     individual->uri = str;
 
@@ -245,7 +245,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
         individual->resources[ predicate ] = resources;
     }
 
-    std::cout << "@c #e" << std::endl;
+//    std::cout << "@c #e" << std::endl;
 
     return (int32_t)(ptr - in_ptr);
 }
