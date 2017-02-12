@@ -131,7 +131,7 @@ public int msgpack2individual(Individual *individual, string in_str)
             char *uri = mp_decode_str(&ptr, &uri_lenght);
             individual.uri = uri[ 0..uri_lenght ].dup;
 
-            writeln ("@d: msgpack2individual uri=", individual.uri);
+            //writeln ("@d: msgpack2individual uri=", individual.uri);
 
             int predicates_length = mp_decode_map(&ptr);
 
@@ -234,7 +234,7 @@ public int msgpack2individual(Individual *individual, string in_str)
                 }
                 individual.resources[ predicate ] = resources;
             }
-            writeln("@d: msgpack2individual @e");
+            //writeln("@d: msgpack2individual @e");
             return cast(int)(ptr - cast(char *)in_str.ptr); //read_element(individual, cast(ubyte[])in_str, dummy);
         }
         catch (Throwable ex)
