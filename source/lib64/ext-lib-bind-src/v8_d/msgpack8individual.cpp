@@ -92,6 +92,7 @@ char *write_resources(string uri, vector <Resource> vv, char *w)
 
 int32_t msgpack2individual(Individual *individual, string in_str)
 {
+    std::cout << "@c #0" << std::endl;
     const char *ptr    = (char *)in_str.c_str();
     const char *in_ptr = ptr;
 
@@ -104,9 +105,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     
     std::cout << "@c #1" << std::endl;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
-    std::cout << "@c #2" << std::endl;
 
     std::string str(uri, uri_lenght);
+    std::cout << "@c #2 uri=" << str << std::endl;
 
     individual->uri = str;
 
@@ -243,6 +244,8 @@ int32_t msgpack2individual(Individual *individual, string in_str)
         }
         individual->resources[ predicate ] = resources;
     }
+
+    std::cout << "@c #e" << std::endl;
 
     return (int32_t)(ptr - in_ptr);
 }
