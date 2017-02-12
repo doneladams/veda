@@ -1646,7 +1646,7 @@ mp_decode_strl(const char **data)
 	default:
 		if (mp_unlikely(c < 0xa0 || c > 0xbf))
 		{
-			printf ("@c mp_decode_strl [%s]", *data);
+			printf ("@c  mp_decode_strl [%s]", *data);
 			mp_unreachable();
 		}
 		return c & 0x1f;
