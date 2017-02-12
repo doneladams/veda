@@ -1647,7 +1647,8 @@ mp_decode_strl(const char **data)
 		if (mp_unlikely(c < 0xa0 || c > 0xbf))
 		{
 			printf ("@c  mp_decode_strl [%s]", *data);
-			mp_unreachable();
+			//mp_unreachable();
+			return -1;
 		}
 		return c & 0x1f;
 	}
@@ -1658,7 +1659,11 @@ mp_decode_str(const char **data, uint32_t *len)
 {
 	assert(len != NULL);
 
-	*len = mp_decode_strl(data);
+	uint32_t qq = mp_decode_strl(data);
+	if (qq < 0)
+	    return NULL;
+
+	*len = qq;
 	const char *str = *data;
 	*data += *len;
 	return str;
