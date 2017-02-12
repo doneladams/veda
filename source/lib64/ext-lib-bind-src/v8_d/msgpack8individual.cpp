@@ -101,7 +101,10 @@ int32_t msgpack2individual(Individual *individual, string in_str)
         return -1;
 
     uint32_t       uri_lenght;
+    
+    std::cout << "@c #1" << std::endl;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
+    std::cout << "@c #2" << std::endl;
 
     std::string str(uri, uri_lenght);
 
@@ -112,7 +115,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     for (uint32_t idx = 0; idx < predicates_length; idx++)
     {
         uint32_t              key_lenght;
+    std::cout << "@c #2" << std::endl;
         const char        *key = mp_decode_str(&ptr, &key_lenght);
+    std::cout << "@c #3" << std::endl;
 
         std::string       predicate(key, key_lenght);
 
@@ -142,7 +147,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                     else if (type == _String)
                     {
                         uint        val_length;
+    std::cout << "@c #4" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
+    std::cout << "@c #5" << std::endl;
 
                         Resource    rr;
                         rr.type = _String;
@@ -174,7 +181,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                     else if (type == _String)
                     {
                         uint        val_length;
+    std::cout << "@c #6" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
+    std::cout << "@c #7" << std::endl;
                         long        lang = mp_decode_uint(&ptr);
 
                         Resource    rr;
@@ -198,7 +207,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
             {
                 // this uri
                 uint        val_length;
+    std::cout << "@c #8" << std::endl;
                 const char  *val = mp_decode_str(&ptr, &val_length);
+    std::cout << "@c #9" << std::endl;
 
                 Resource    rr;
                 rr.type = _Uri;
