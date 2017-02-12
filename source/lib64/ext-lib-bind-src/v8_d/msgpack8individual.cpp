@@ -106,7 +106,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 //    std::cout << "@c #1" << std::endl;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
-	if (uri == NULL)
+	if (uri_lenght == 0)
 		std::cout << "@c ERR #1 in_str=" << in_str << std::endl;
 
     std::string str(uri, uri_lenght);
@@ -121,8 +121,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
         uint32_t              key_lenght;
 //    std::cout << "@c #2" << std::endl;
         const char        *key = mp_decode_str(&ptr, &key_lenght);
-        	if (key == NULL)
+        	if (key_lenght == 0)
+{
 		std::cout << "@c ERR #2 in_str=" << in_str << std::endl;
+                return -1;
+}
 
 //    std::cout << "@c #3" << std::endl;
 
@@ -156,8 +159,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                         uint        val_length;
 //    std::cout << "@c #4" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
-                        	if (val == NULL)
+                        	if (val_length == 0)
+{
 		std::cout << "@c ERR #3 in_str=" << in_str << std::endl;
+                return -1;
+}
 
 //    std::cout << "@c #5" << std::endl;
 
@@ -193,8 +199,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                         uint        val_length;
 //    std::cout << "@c #6" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
-                        	if (val == NULL)
+                        	if (val_length == 0)
+{
 		std::cout << "@c ERR #4 in_str=" << in_str << std::endl;
+                return -1;
+}
 
 //    std::cout << "@c #7" << std::endl;
                         long        lang = mp_decode_uint(&ptr);
@@ -222,9 +231,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                 uint        val_length;
 //    std::cout << "@c #8" << std::endl;
                 const char  *val = mp_decode_str(&ptr, &val_length);
-                	if (val == NULL)
+                	if (val_length == 0)
+{
 		std::cout << "@c ERR #5 in_str=" << in_str << std::endl;
-
+                return -1;
+}
 //    std::cout << "@c #9" << std::endl;
 
                 Resource    rr;

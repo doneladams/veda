@@ -1660,10 +1660,12 @@ mp_decode_str(const char **data, uint32_t *len)
 	assert(len != NULL);
 
 	uint32_t qq = mp_decode_strl(data);
+
+	*len = qq;
+
 	if (qq == 0)
 	    return NULL;
 
-	*len = qq;
 	const char *str = *data;
 	*data += *len;
 	return str;
