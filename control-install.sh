@@ -250,5 +250,4 @@ fi
     cd ..
     cd ..
 
-
     cp tmp/msgpuck-2.0/build/libmsgpuck.a source/lib64 
