@@ -29,6 +29,7 @@
         "../../lib64/liblmdb.a",
         "../../lib64/libv8d.a", 
 	"../../lib64/libxapiand.a",
+        "../../lib64/libmsgpuck.a",
 	"../../veda/core/util/utils.d",
         "../../veda/util/tools.d",
         "../../veda/util/queue.d",
@@ -36,7 +37,7 @@
         "../../veda/util/tests_tools.d",
         "../../veda/util/module_info.d"
 	],
-	"libs":["nanomsg", "tarantool"],
+	"libs":["nanomsg"],
 	"configurations": [
 	{
 	    "name": "app",

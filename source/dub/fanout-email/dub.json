@@ -22,7 +22,8 @@
 	],
         "sourceFiles":[
         "../../lib64/liblmdb.a",
-	"../../lib64/libxapiand.a", 
+	"../../lib64/libxapiand.a",
+        "../../lib64/libmsgpuck.a", 
         "../../veda/bind/lmdb_header.d",
 	"../../veda/bind/xapian_d_header.d",
         "../../veda/bind/nano.d",
@@ -34,7 +35,7 @@
     	"../../veda/util/tests_tools.d",
         "../../veda/fanout/fanout_email.d"
 	],
-        "libs":["nanomsg", "tarantool"],
+        "libs":["nanomsg"],
 	"configurations": [
 	{
 	    "name": "app",
