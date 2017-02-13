@@ -1645,6 +1645,7 @@ mp_decode_strl(const char **data)
 		return mp_load_u32(data);
 	default:
 		if (mp_unlikely(c < 0xa0 || c > 0xbf))
+				std::cout << "@c ERR in mp_decode_strl" << std::endl;
 			mp_unreachable();
 		return c & 0x1f;
 	}
