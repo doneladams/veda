@@ -106,26 +106,19 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 //    std::cout << "@c #1" << std::endl;
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
-	if (uri_lenght == 0)
-		std::cout << "@c ERR #1 in_str=" << in_str << std::endl;
-
     std::string str(uri, uri_lenght);
 //    std::cout << "@c #2 uri=" << str << std::endl;
 
     individual->uri = str;
 
     uint32_t predicates_length = mp_decode_map(&ptr);
+    //std::cout << "@c #2 decode_map, len=" << predicates_length << ", ptr-ptr0=" << (ptr - in_ptr) << std::endl;
 
     for (uint32_t idx = 0; idx < predicates_length; idx++)
     {
         uint32_t              key_lenght;
 //    std::cout << "@c #2" << std::endl;
         const char        *key = mp_decode_str(&ptr, &key_lenght);
-        	if (key_lenght == 0)
-{
-		std::cout << "@c ERR #2 in_str=" << in_str << std::endl;
-                return -1;
-}
 
 //    std::cout << "@c #3" << std::endl;
 
@@ -159,13 +152,6 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                         uint        val_length;
 //    std::cout << "@c #4" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
-                        	if (val_length == 0)
-{
-            mp_type el_type = mp_typeof(*ptr);
-
-		std::cout << "@c ERR #3 uri = [" << individual->uri << "], predicate= [" << predicate << "], el_type=" << el_type << ", in_str=" << in_str << std::endl;
-                return -1;
-}
 
 //    std::cout << "@c #5" << std::endl;
 
@@ -201,11 +187,6 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                         uint        val_length;
 //    std::cout << "@c #6" << std::endl;
                         const char  *val = mp_decode_str(&ptr, &val_length);
-                        	if (val_length == 0)
-{
-		std::cout << "@c ERR #4 in_str=" << in_str << std::endl;
-                return -1;
-}
 
 //    std::cout << "@c #7" << std::endl;
                         long        lang = mp_decode_uint(&ptr);
@@ -233,11 +214,6 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                 uint        val_length;
 //    std::cout << "@c #8" << std::endl;
                 const char  *val = mp_decode_str(&ptr, &val_length);
-                	if (val_length == 0)
-{
-		std::cout << "@c ERR #5 in_str=" << in_str << std::endl;
-                return -1;
-}
 //    std::cout << "@c #9" << std::endl;
 
                 Resource    rr;

@@ -633,7 +633,7 @@ unittest
 
     Logger   log = new Logger("test", "log", "V8");
 
-    Context  ctx = new PThreadContext("", "test", log, "");
+    Context  ctx = new PThreadContext("", "test", individuals_db_path, log, "");
 
     ScriptVM script_vm;
     script_vm = get_ScriptVM(ctx);
