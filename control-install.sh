@@ -5,6 +5,7 @@
 DMD_VER=2.073.0
 DUB_VER=1.2.0
 TARANTOOL_VER=1.7.3
+MSGPUCK_VER=2.0
 GO_VER=go1.7.5
 
 # Get right version of DMD
@@ -231,3 +232,23 @@ if ! ldconfig -p | grep libtarantool; then
     cd ..    
 
 fi
+
+    mkdir tmp
+    cd tmp
+
+    wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
+    tar -xvzf 2.0.tar.gz
+
+    cd msgpuck-2.0    
+
+    mkdir build
+    cd build
+    cmake ..
+    make
+
+    cd ..
+    cd ..
+    cd ..
+
+
+    cp tmp/msgpuck-2.0/build/libmsgpuck.a source/lib64 
