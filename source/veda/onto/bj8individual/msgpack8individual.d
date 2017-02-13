@@ -103,7 +103,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
 
 public string individual2msgpack(Individual *in_obj)
 {
-    //if (buff is null || buff.length == 0)
+    if (buff is null || buff.length == 0)
         buff = new ubyte[ 1024 * 1024 ];
 
     long len = write_individual(in_obj, cast(char *)buff);
@@ -131,7 +131,7 @@ public int msgpack2individual(Individual *individual, string in_str)
             char *uri = mp_decode_str(&ptr, &uri_lenght);
             individual.uri = uri[ 0..uri_lenght ].dup;
 
-            //writeln ("@d: msgpack2individual uri=", individual.uri);
+            //writeln ("@d msgpack2individual uri=", individual.uri);
 
             int predicates_length = mp_decode_map(&ptr);
 
@@ -232,9 +232,12 @@ public int msgpack2individual(Individual *individual, string in_str)
                         return -1;
                     }
                 }
+                
+                if (resources.length == 0)
+	                writeln ("ERR! msgpack2individual resources.length==0");
+                
                 individual.resources[ predicate ] = resources;
             }
-            //writeln("@d: msgpack2individual @e");
             return cast(int)(ptr - cast(char *)in_str.ptr); //read_element(individual, cast(ubyte[])in_str, dummy);
         }
         catch (Throwable ex)

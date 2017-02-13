@@ -161,7 +161,9 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                         const char  *val = mp_decode_str(&ptr, &val_length);
                         	if (val_length == 0)
 {
-		std::cout << "@c ERR #3 in_str=" << in_str << std::endl;
+            mp_type el_type = mp_typeof(*ptr);
+
+		std::cout << "@c ERR #3 uri = " << uri << ", predicate= " << predicate << ", el_type=" << el_type << ", in_str=" << in_str << std::endl;
                 return -1;
 }
 
