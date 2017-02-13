@@ -21,7 +21,7 @@ private long write_individual(Individual *ii, char *w)
     ulong map_len = ii.resources.length + 1;
 
     w = mp_encode_array(w, 2);
-    w = mp_encode_str(w, cast(char *)ii.uri, cast(uint)ii.uri.length);
+    w = mp_encode_str(w, cast(char *)ii.uri.dup, cast(uint)ii.uri.length);
 
 //    int count;
 //    foreach (key, resources; ii.resources)
@@ -45,7 +45,7 @@ private long write_individual(Individual *ii, char *w)
 
 private char *write_resources(string uri, ref Resources vv, char *w)
 {
-    w = mp_encode_str(w, cast(char *)uri, cast(uint)uri.length);
+    w = mp_encode_str(w, cast(char *)uri.dup, cast(uint)uri.length);
 
     w = mp_encode_array(w, cast(uint)vv.length);
 
@@ -53,7 +53,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
     {
         if (value.type == DataType.Uri)
         {
-            string svalue = value.get!string;
+            string svalue = value.get!string.dup;
             w = mp_encode_str(w, cast(char *)svalue, cast(uint)svalue.length);
         }
         else if (value.type == DataType.Integer)
@@ -81,7 +81,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
         }
         else
         {
-            string svalue = value.get!string;
+            string svalue = value.get!string.dup;
 
             if (value.lang != LANG.NONE)
             {
