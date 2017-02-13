@@ -42,12 +42,12 @@ public struct Individual
 
 	int deserialize (string bin)
 	{
-		return msgpack2individual (&this, bin);
+		return msgpack2individual (this, bin);
 	}
 
 	string serialize ()
 	{
-		return individual2msgpack (&this);
+		return individual2msgpack (this);
 	}
 
     Individual dup()

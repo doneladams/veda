@@ -16,7 +16,7 @@ private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.
 string  dummy;
 ubyte[] buff;
 
-private long write_individual(Individual *ii, char *w)
+private long write_individual(ref Individual ii, char *w)
 {
     ulong map_len = ii.resources.length + 1;
 
@@ -101,7 +101,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
     return w;
 }
 
-public string individual2msgpack(Individual *in_obj)
+public string individual2msgpack(ref Individual in_obj)
 {
     if (buff is null || buff.length == 0)
         buff = new ubyte[ 1024 * 1024 ];
@@ -113,7 +113,7 @@ public string individual2msgpack(Individual *in_obj)
 
 /////////////////////////////////////////////////////////////////////
 
-public int msgpack2individual(Individual *individual, string in_str)
+public int msgpack2individual(ref Individual individual, string in_str)
 {
     try
     {
