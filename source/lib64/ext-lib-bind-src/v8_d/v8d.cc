@@ -12,7 +12,8 @@ using namespace std;
 using namespace v8;
 
 #define MAX_BUF_SIZE    1024*1024
-char sr_buff[MAX_BUF_SIZE];
+//char sr_buff[MAX_BUF_SIZE];
+char* sr_buff = NULL;
 
 //////////////////////////////////////////////////////////////////
 
@@ -619,6 +620,8 @@ PutIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
+	sr_buff = new char[1024*1024];
+
         int len = individual2msgpack(&individual, sr_buff);
         
         char *bb = new char[len];
@@ -653,6 +656,8 @@ AddToIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
 
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
+
+	sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
         
@@ -689,6 +694,8 @@ SetInIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
+	sr_buff = new char[1024*1024];
+
         int len = individual2msgpack(&individual, sr_buff);
         
         char *bb = new char[len];
@@ -723,6 +730,8 @@ RemoveFromIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
 
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
+
+	sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
 
