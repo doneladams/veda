@@ -103,7 +103,7 @@ private char *write_resources(string uri, ref Resources vv, char *w)
 
 public string individual2msgpack(Individual *in_obj)
 {
-    if (buff is null || buff.length == 0)
+    //if (buff is null || buff.length == 0)
         buff = new ubyte[ 1024 * 1024 ];
 
     long len = write_individual(in_obj, cast(char *)buff);
