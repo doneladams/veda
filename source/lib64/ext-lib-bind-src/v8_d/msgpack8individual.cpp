@@ -163,7 +163,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 {
             mp_type el_type = mp_typeof(*ptr);
 
-		std::cout << "@c ERR #3 uri = " << uri << ", predicate= " << predicate << ", el_type=" << el_type << ", in_str=" << in_str << std::endl;
+		std::cout << "@c ERR #3 uri = [" << individual->uri << "], predicate= [" << predicate << "], el_type=" << el_type << ", in_str=" << in_str << std::endl;
                 return -1;
 }
 
