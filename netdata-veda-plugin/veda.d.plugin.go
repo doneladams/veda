@@ -8,29 +8,6 @@ import (
 	"time"
 )
 
-/*	uri := "	"
-	httpClient := &http.Client{}
-	req, err := http.NewRequest("GET", uri, nil)
-
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("Accept", "application/json")
-	respStream, err := httpClient.Do(req)
-	if err != nil {
-		log.Fatalf("Failed to do request: %s", err.Error())
-	}
-
-	jsonResponse := make(map[string]interface{})
-	decoder := json.NewDecoder(respStream.Body)
-	err = decoder.Decode(&jsonResponse)
-	if err != nil {
-		log.Fatal("Error on decoding json: ", err)
-	}
-	for key, val := range jsonResponse {
-		fmt.Printf("%v->%v\n", key, val)
-	}
-*/
 func main() {
 	fmt.Println("CHART netdata.plugin_vedad_count_requests '' 'Veda count_requests' 'count' veda.d " +
 		" '' area 1000 5")
@@ -57,16 +34,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	vedaData := make(map[string]interface{})
 	for {
-
 		respStream, err := httpClient.Do(req)
 		if err != nil {
 			log.Println("Failed to do request: ", err)
 			continue
 		}
 
-		vedaData := make(map[string]interface{})
 		decoder := json.NewDecoder(respStream.Body)
 		err = decoder.Decode(&vedaData)
 		if err != nil {
@@ -90,6 +65,7 @@ func main() {
 		fmt.Printf("SET dt_count_updates=%v\n", vedaData["dt_count_updates"])
 		fmt.Println("END")
 
+		respStream.Body.Close()
 		time.Sleep(5000 * time.Millisecond)
 	}
 
