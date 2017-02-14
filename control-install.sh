@@ -231,21 +231,21 @@ if ! ldconfig -p | grep libtarantool; then
     cd ..
 
 fi
-    cd $SMD
 
-    mkdir tmp
-    cd tmp
+#    cd $SMD
+#    mkdir tmp
+#    cd tmp
 
-    wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
-    tar -xvzf 2.0.tar.gz
+#    wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
+#    tar -xvzf 2.0.tar.gz
 
-    cd msgpuck-2.0    
+#    cd msgpuck-2.0    
 
-    mkdir build
-    cd build
-    cmake ..
-    make
+#    mkdir build
+#    cd build
+#    cmake ..
+#    make
 
-    ls $SMD
+#    ls $SMD
 
-    cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
+#    cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
