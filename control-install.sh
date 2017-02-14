@@ -229,9 +229,9 @@ if ! ldconfig -p | grep libtarantool; then
 
     cd ..
     cd ..
-    cd ..    
 
 fi
+    cd $PWD
 
     mkdir tmp
     cd tmp
@@ -246,8 +246,7 @@ fi
     cmake ..
     make
 
-    cd ..
-    cd ..
+    cd $PWD
 
     ls    
 
