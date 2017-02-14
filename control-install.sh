@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # устанавливает среду для последующей компиляции, берет новые исходники зависимостей из github, но не собирает
-
+SMD=$PWD
 DMD_VER=2.073.0
 DUB_VER=1.2.0
 TARANTOOL_VER=1.7.3
@@ -229,9 +229,9 @@ if ! ldconfig -p | grep libtarantool; then
 
     cd ..
     cd ..
-    cd ..    
 
 fi
+    cd $SMD
 
     mkdir tmp
     cd tmp
@@ -246,11 +246,6 @@ fi
     cmake ..
     make
 
-    cd ..
-    cd ..
-    cd ..
-    cd ..
+    ls $SMD
 
-    ls    
-
-    cp tmp/msgpuck-2.0/build/libmsgpuck.a source/lib64 
+    cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
