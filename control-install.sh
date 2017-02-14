@@ -246,4 +246,6 @@ fi
     cmake ..
     make
 
+    ls $SMD
+
     cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
