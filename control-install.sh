@@ -172,9 +172,9 @@ if ! ldconfig -p | grep libraptor2; then
     tar -xvzf raptor2_2_0_15.tar.gz
 
     cd raptor-raptor2_2_0_15
-    autoreconf -i
+    #autoreconf -i
     ./autogen.sh
-    ./make
+    make
     sudo make install
     sudo ldconfig
     cd ..
