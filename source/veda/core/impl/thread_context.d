@@ -1324,7 +1324,6 @@ class PThreadContext : Context
                 update_counter++;
                 indv.setResources("v-s:updateCounter", [ Resource(update_counter) ]);
 
-                indv.test();
                 string new_state = indv.serialize();
 
                 if (new_state.length > max_size_of_individual)

@@ -18,7 +18,7 @@ uint32_t write_individual(Individual *individual, char *in_buff)
     pos = mp_encode_array(pos, 2);
     // std::cerr << "TRY TO WRITE ";
     pos = mp_encode_str(pos, individual->uri.c_str(), individual->uri.length());
-    std::cerr << individual->uri << endl;
+    // std::cerr << individual->uri << endl;
 
     pos = mp_encode_map(pos, individual->resources.size());
     // std::cerr << "TRY TO WRITE res size " << individual->resources.size() << endl;
@@ -39,11 +39,11 @@ char *write_resources(string uri, vector <Resource> vv, char *w)
 {
     // std::cerr << "\tWRITE RES FOR ";
     w = mp_encode_str(w, uri.c_str(), uri.length());
-    std:cerr << uri << endl;
+    // std:cerr << uri << endl;
 
     // std::cerr << "\tWRITE ERR size ";
     w = mp_encode_array(w, vv.size());
-    std::cerr << vv.size() << endl;
+    // std::cerr << vv.size() << endl;
 
     for (uint32_t i = 0; i < vv.size(); i++)
     {
@@ -56,7 +56,7 @@ char *write_resources(string uri, vector <Resource> vv, char *w)
 
             // std::cerr << "\t\tWRITE URI ";
             w = mp_encode_str(w, svalue.c_str(), svalue.length());
-            std::cerr << svalue << endl;
+            // std::cerr << svalue << endl;
         }
         else if (value.type == _Integer)
         {
@@ -146,7 +146,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
 
     std::string str(uri, uri_lenght);
-    std::cerr << str << endl;
+    // std::cerr << str << endl;
     
 //    std::cout << "@c #2 uri=" << str << std::endl;
 
@@ -154,7 +154,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 
     // std::cerr << "TRY TO DECODE map len ";
     uint32_t predicates_length = mp_decode_map(&ptr);
-    std::cerr << predicates_length << endl;
+    // std::cerr << predicates_length << endl;
     //std::cout << "@c #2 decode_map, len=" << predicates_length << ", ptr-ptr0=" << (ptr - in_ptr) << std::endl;
 
     for (uint32_t idx = 0; idx < predicates_length; idx++)
@@ -167,7 +167,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 //    std::cout << "@c #3" << std::endl;
 
         std::string       predicate(key, key_lenght);
-        std:cerr << predicate << endl;
+        //std:cerr << predicate << endl;
 
         vector <Resource> resources;
 
@@ -186,7 +186,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                 if (predicate_el_length == 2)
                 {
                     long type;
-                    std::cerr << predicate_el_length << endl;
+                    // std::cerr << predicate_el_length << endl;
 
                     // std::cerr << "\t\t\tDECODE UINT type is ";
                     if (mp_typeof(*ptr) == MP_UINT)
@@ -254,7 +254,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                 else if (predicate_el_length == 3)
                 {
                     long type;
-                    std::cerr << predicate_el_length << endl;
+                    // std::cerr << predicate_el_length << endl;
 
                     // std::cerr << "\t\t\tDECODE UINT type is ";
                     if (mp_typeof(*ptr) == MP_UINT)
@@ -275,7 +275,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                             exponent = mp_decode_uint(&ptr);
                         else
                             exponent = mp_decode_int(&ptr);
-                        std::cerr << exponent << endl;
+                        // std::cerr << exponent << endl;
 
                         Resource rr;
                         rr.type                  = _Decimal;
