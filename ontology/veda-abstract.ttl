@@ -538,7 +538,7 @@ v-s:hasDeliveryConditions
 v-s:hasContractScope
   rdf:type owl:ObjectProperty ;
   rdfs:label "Contract scope"@en ;
-  rdfs:label "Характер условий"@ru ;
+  rdfs:label "Рамки контракта"@ru ;
   rdfs:range v-s:ContractScope ;
   rdfs:domain v-s:Contractual ;
 .
@@ -620,6 +620,13 @@ v-s:checkedRequirement
   rdfs:label "Checked requirement"@en ;
   rdfs:label "Проверяемое требование"@ru ;
   rdfs:range v-s:NormativeDocumentRequirement ;
+  rdfs:domain v-s:Controlled ;
+.
+v-s:responsibleDescription
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "Responsible. Description"@en ;
+  rdfs:label "Ответственный. Описание"@ru ;
+  rdfs:range xsd:string ;
   rdfs:domain v-s:Controlled ;
 .
 v-s:responsible

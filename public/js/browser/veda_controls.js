@@ -17,7 +17,7 @@
       individual = opts.individual,
       timeout;
 
-    control.isSingle = opts.isSingle || (spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true);
+    control.isSingle = typeof opts.isSingle !== "undefined" ? opts.isSingle : (spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true);
 
     input.attr("placeholder", placeholder)
       .on("change focusout", changeHandler)
@@ -56,6 +56,7 @@
         individual[property_uri] = [value];
       } else {
         individual[property_uri] = individual[property_uri].concat(value);
+        this.value = "";
       }
     }
     function keyupHandler (e) {
@@ -113,9 +114,10 @@
   };
   $.fn.veda_generic.defaults = {
     template: $("#string-control-template").html(),
+    isSingle: false,
     parser: function (input) {
-      if ( moment(input, ["DD.MM.YYYY HH:mm", "DD.MM.YYYY", "YYYY-MM-DD"], true).isValid() ) {
-        return moment(input, "DD.MM.YYYY HH:mm").toDate();
+      if ( moment(input, ["DD.MM.YYYY HH:mm", "DD.MM.YYYY", "YYYY-MM-DD", "HH:mm"], true).isValid() ) {
+        return moment(input, ["DD.MM.YYYY HH:mm", "DD.MM.YYYY", "YYYY-MM-DD", "HH:mm"], true).toDate();
       } else if ( !isNaN( parseFloat( input.split(" ").join("").split(",").join(".") ) ) ) {
         return parseFloat( input.split(" ").join("").split(",").join(".") );
       } else if ( !isNaN( parseInt( input.split(" ").join("").split(",").join("."), 10 ) ) ) {
@@ -126,9 +128,9 @@
         return false;
       } else {
         var individ = new veda.IndividualModel(input);
-        if ( individ.isSync() && !individ.isNew() ) { return ind; }
+        if ( individ.isSync() && !individ.isNew() ) { return individ; }
       }
-      return (input ? new String(input) : null);
+      return input || null;
     }
   };
 
@@ -651,15 +653,19 @@
     populate();
 
     select.change(function () {
+      var value = $("option:selected", select).data("value");
       if (isSingle) {
-        individual[property_uri] = [ $("option:selected", select).data("value") ];
+        individual[property_uri] = [ value ];
       } else {
-        individual[property_uri] = individual[property_uri].concat( $("option:selected", select).data("value") );
+        if ( !individual.hasValue(property_uri, value) ) {
+          individual[property_uri] = individual[property_uri].concat( value );
+        }
+        $(this).children(":first").prop("selected", true);
       }
     });
 
     individual.on("individual:propertyModified", handler);
-    this.one("remove", function () {
+    control.one("remove", function () {
       individual.off("individual:propertyModified", handler);
     });
 
@@ -702,14 +708,18 @@
         var opt = first_opt.clone().appendTo(select);
         opt.text( renderValue(value) ).data("value", value);
         if ( isSingle && individual.hasValue(property_uri, value) ) {
-          opt.attr("selected", "true");
+          opt.prop("selected", true);
         }
       });
     }
 
     function handler(doc_property_uri) {
-      if (doc_property_uri === property_uri) {
-        populate();
+      if (doc_property_uri === property_uri && isSingle) {
+        $("option", control).each(function () {
+          var value = $(this).data("value");
+          var hasValue = individual.hasValue(property_uri, value);
+          $(this).prop("selected", hasValue);
+        });
       }
     }
 
@@ -792,9 +802,8 @@
         var hld = holder.clone().appendTo(control);
         var lbl = $("label", hld).append( renderValue(value) );
         var chk = $("input", lbl).data("value", value);
-        if ( individual.hasValue(property_uri, value) ) {
-          chk.attr("checked", "true");
-        }
+        var hasValue = individual.hasValue(property_uri, value);
+        chk.prop("checked", hasValue);
         chk.change(function () {
           if ( chk.is(":checked") ) {
             individual[property_uri] = individual[property_uri].concat( chk.data("value") );
@@ -809,7 +818,11 @@
 
     function handler(doc_property_uri) {
       if (doc_property_uri === property_uri) {
-        populate();
+        $("input", control).each(function () {
+          var value = $(this).data("value");
+          var hasValue = individual.hasValue(property_uri, value);
+          $(this).prop("checked", hasValue);
+        });
       }
     }
 
@@ -901,9 +914,8 @@
         var hld = holder.clone().appendTo(control);
         var lbl = $("label", hld).append( renderValue(value) );
         var rad = $("input", lbl).data("value", value);
-        if ( individual.hasValue(property_uri, value) ) {
-          rad.attr("checked", "true");
-        }
+        var hasValue = individual.hasValue(property_uri, value);
+        rad.prop("checked", hasValue);
         rad.change(function () {
           if ( rad.is(":checked") ) {
             individual[property_uri] = [ rad.data("value") ];
@@ -918,7 +930,11 @@
 
     function handler(doc_property_uri) {
       if (doc_property_uri === property_uri) {
-        populate();
+        $("input", control).each(function () {
+          var value = $(this).data("value");
+          var hasValue = individual.hasValue(property_uri, value);
+          $(this).prop("checked", hasValue);
+        });
       }
     }
 
@@ -1331,27 +1347,40 @@
     // Create feature
     if ( this.hasClass("create") || this.hasClass("full") ) {
       var inModal = this.hasClass("create-modal");
-      create.click( function () {
+      create.click( function (e) {
+        e.stopPropagation();
         var newVal = createValue();
         if ( inModal ) {
           var modal = $("#individual-modal-template").html();
-          var $modal = $(modal);
-          var ok = $("#ok", $modal).click(function () {
-            select(newVal);
+          modal = $(modal).modal({"show": false});
+          $("body").append(modal);
+          modal.modal("show");
+          create.one("remove", function () {
+            modal.modal("hide").remove();
           });
-          $modal.modal({"show": false});
-          $("body").append($modal);
-          $modal.modal("show");
-          var cntr = $(".modal-body", $modal);
+          var ok = $("#ok", modal).click(function (e) {
+            select(newVal);
+            $(document).off("keyup", escHandler);
+          });
+          var close = $(".close", modal).click(function (e) {
+            newVal.delete();
+            $(document).off("keyup", escHandler);
+          });
+          var escHandler = function (e) {
+            if (e.keyCode === 27) {
+              close.click();
+            }
+          };
+          $(document).on("keyup", escHandler);
+          var cntr = $(".modal-body", modal);
           newVal.one("individual:beforeReset", function () {
-            $modal.modal("hide").remove();
+            modal.modal("hide").remove();
           });
           newVal.one("individual:afterSave", function () {
             select(newVal);
-            $modal.modal("hide").remove();
+            modal.modal("hide").remove();
           });
           var tmpl = newVal["rdf:type"][0].template ? $( newVal["rdf:type"][0].template["v-ui:template"][0].toString() ) : undefined;
-          tmpl.removeClass("container").addClass("container-fluid");
           $(".action", tmpl).remove();
           newVal.present(cntr, tmpl, "edit");
           var template = cntr.children("[resource]");
@@ -1390,8 +1419,9 @@
       (this.hasClass("tree") || this.hasClass("full"))
       && (root && (inProperty || outProperty))
     ) {
-      individual.treeConfig = {
+      var treeConfig = {
         root: root,
+        targetRel_uri: rel_uri,
         inProperty: inProperty,
         outProperty: outProperty,
         allowedClass: allowedClass,
@@ -1400,23 +1430,18 @@
         displayedProperty: displayedProperty
       };
       var treeTmpl = new veda.IndividualModel("v-ui:TreeTemplate");
-      var modal = $("#search-modal-template").html();
+      var modal = $("#individual-modal-template").html();
       tree.click(function () {
+        individual.treeConfig = treeConfig;
         var $modal = $(modal);
         var cntr = $(".modal-body", $modal);
         $modal.on('hidden.bs.modal', function (e) {
           $modal.remove();
+          delete individual.treeConfig;
         });
         $modal.modal();
         $("body").append($modal);
         individual.present(cntr, treeTmpl);
-
-        $("#ok", $modal).click( function (e) {
-          var selected = cntr.data("selected");
-          select( selected.map(function (uri) {
-            return new veda.IndividualModel(uri);
-          }) );
-        });
       });
     } else {
       tree.remove();
