@@ -402,6 +402,8 @@ public bool acl_check_for_reload(void delegate() load)
 
 unittest
 {
+writeln ("ACL UNITTEST");
+
     import veda.core.az.right_set;
     import veda.util.tests_tools;
 

@@ -47,11 +47,21 @@ public int msgpack2vjson(Json *individual, string in_str)
                     int predicate_el_length = mp_decode_array(&ptr);
                     if (predicate_el_length == 2)
                     {
-                        long type = mp_decode_uint(&ptr);
+                        long type;
+
+                        if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                            type = mp_decode_uint(&ptr);
+                        else
+                            type = mp_decode_int(&ptr);
 
                         if (type == DataType.Datetime)
                         {
-                            long value = mp_decode_uint(&ptr);
+                            long value;
+                            
+                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                                value = mp_decode_uint(&ptr);
+                            else
+                                value = mp_decode_int(&ptr);
 
                             resource_json[ "type" ] = text(DataType.Datetime);
                             SysTime st = SysTime(unixTimeToStdTime(value), UTC());
@@ -60,23 +70,44 @@ public int msgpack2vjson(Json *individual, string in_str)
                         else if (type == DataType.String)
                         {
                             uint val_length;
-                            char *val = mp_decode_str(&ptr, &val_length);
-                            resource_json[ "type" ] = text(DataType.String);
-
-                            resource_json[ "data" ] = val[ 0..val_length ].dup;
+                            if (mp_typeof(*ptr) != mp_type.MP_NIL) {
+                                char *val = mp_decode_str(&ptr, &val_length);
+                                resource_json[ "data" ] = val[ 0..val_length ].dup;
+                            } else {
+                                mp_decode_nil(&ptr);
+                                resource_json[ "data" ] = "";
+                            }
                             resource_json[ "lang" ] = text(LANG.NONE);
+                            resource_json[ "type" ] = text(DataType.String);
+                            
                         }
                         else
                             return -1;
                     }
                     else if (predicate_el_length == 3)
                     {
-                        long type = mp_decode_uint(&ptr);
+                        long type;
+
+                        if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                            type = mp_decode_uint(&ptr);
+                        else
+                            type = mp_decode_int(&ptr);
 
                         if (type == DataType.Decimal)
                         {
-                            long mantissa = mp_decode_uint(&ptr);
-                            long exponent = mp_decode_uint(&ptr);
+                            long mantissa, exponent;
+
+
+                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                                mantissa = mp_decode_uint(&ptr);
+                            else
+                                mantissa = mp_decode_int(&ptr);
+
+                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                                exponent = mp_decode_uint(&ptr);
+                            else
+                                exponent = mp_decode_int(&ptr);
+                            
 
                             resource_json[ "type" ] = text(DataType.Decimal);
 
@@ -86,12 +117,22 @@ public int msgpack2vjson(Json *individual, string in_str)
                         else if (type == DataType.String)
                         {
                             uint val_length;
-                            char *val = mp_decode_str(&ptr, &val_length);
-                            long lang = mp_decode_uint(&ptr);
+
+                            if (mp_typeof(*ptr) != mp_type.MP_NIL) {
+                                char *val = mp_decode_str(&ptr, &val_length);
+                                resource_json[ "data" ] = val[ 0..val_length ].dup;
+                            } else {
+                                mp_decode_nil(&ptr);
+                                resource_json[ "data" ] = "";
+                            }
+
+                            long lang;
+                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                                lang = mp_decode_uint(&ptr);
+                            else
+                                lang = mp_decode_int(&ptr);
 
                             resource_json[ "type" ] = text(DataType.String);
-
-                            resource_json[ "data" ] = val[ 0..val_length ].dup;
                             resource_json[ "lang" ] = text(cast(LANG)lang);
                         }
                         else
@@ -106,14 +147,23 @@ public int msgpack2vjson(Json *individual, string in_str)
                 {
                     // this uri
                     uint val_length;
-                    char *val = mp_decode_str(&ptr, &val_length);
+                    if (mp_typeof(*ptr) != mp_type.MP_NIL) {
+                        char *val = mp_decode_str(&ptr, &val_length);
+                        resource_json[ "data" ] = val[ 0..val_length ].dup;
+                    } else {
+                        mp_decode_nil(&ptr);
+                        resource_json[ "data" ] = "";
+                    }
                     resource_json[ "type" ] = text(DataType.Uri);
-                    resource_json[ "data" ] = val[ 0..val_length ].dup;
                 }
                 else if (el_type == mp_type.MP_INT || el_type == mp_type.MP_UINT)
                 {
                     // this int
-                    long val = mp_decode_uint(&ptr);
+                    long val;
+                    if (mp_typeof(*ptr) == mp_type.MP_UINT) 
+                        val = mp_decode_uint(&ptr);
+                    else
+                        val = mp_decode_int(&ptr);
                     resource_json[ "type" ] = text(DataType.Integer);
                     resource_json[ "data" ] = val;
                 }

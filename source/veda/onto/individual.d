@@ -8,6 +8,7 @@ private
     import std.stdio, std.typecons, std.conv, std.algorithm, std.exception : assumeUnique;
     import veda.onto.resource, veda.core.common.context, veda.core.common.know_predicates, veda.core.util.utils;
     import veda.util.container, veda.common.type, veda.onto.bj8individual.msgpack8individual;
+    import veda.util.tests_tools;
 }
 /// Массив индивидуалов
 alias Individual[] Individuals;
@@ -317,6 +318,21 @@ public struct Individual
             return res;
         }
         return this;
+    }
+    void test()
+    {
+        writeln("TRY TO PASS TEST");
+        Individual new_indv_A = generate_new_test_individual ();        
+        string bin = new_indv_A.serialize ();
+        
+		Individual new_indv_B;         
+        new_indv_B.deserialize (bin);
+        
+		assert (new_indv_B.compare(new_indv_A));
+        new_indv_B.setResources("rdfs:label", [Resource(decimal (cast(long)122234, cast(byte)25))]);
+		assert (!new_indv_B.compare(new_indv_A));
+		
+		writeln("unittest [Individual serialize, deserialize] Ok");
     }
 }
 
