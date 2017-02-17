@@ -1,8 +1,0 @@
-preset: psr2
-
-finder:
-  exclude:
-    - "tests/fixtures"
-    - "tests/fixtures-boilerplate"
-    - "generated"
-    - "bin"
