@@ -6,10 +6,6 @@ import core.stdc.stdarg;
 
 extern (C) :
 
-alias c_ulong size_t;
-alias uint   wchar_t;
-alias c_long ptrdiff_t;
-
 /*
  * Copyright (c) 2013 MsgPuck Authors
  * All rights reserved.
@@ -140,23 +136,6 @@ alias c_long ptrdiff_t;
 
 //enum __FLOAT_WORD_ORDER__ = __BYTE_ORDER__;
 /* defined(__FLOAT_WORD_ORDER__) */
-
-float mp_bswap_float(float f);
-
-double mp_bswap_double(double d);
-
-ubyte mp_load_u8(const(char *) *data);
-char *mp_store_u8(char *data, ubyte val);
-ushort mp_load_u16(const(char *) *data);
-char *mp_store_u16(char *data, ushort val);
-uint mp_load_u32(const(char *) *data);
-char *mp_store_u32(char *data, uint val);
-ulong mp_load_u64(const(char *) *data);
-char *mp_store_u64(char *data, ulong val);
-float mp_load_float(const(char *) *data);
-char *mp_store_float(char *data, float val);
-double mp_load_double(const(char *) *data);
-char *mp_store_double(char *data, double val);
 
 /** \endcond */
 
