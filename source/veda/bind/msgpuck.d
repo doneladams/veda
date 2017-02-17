@@ -129,28 +129,6 @@ alias c_long ptrdiff_t;
 
 /* GNU inline or C99 inline */
 
-extern (D) auto MP_GCC_VERSION(T0, T1) (auto ref T0 major, auto ref T1 minor)
-{
-    return __GNUC__ > major || (__GNUC__ == major && __GNUC_MINOR__ >= minor);
-}
-
-/* clang */
-
-extern (D) auto mp_likely(T) (auto ref T x)
-{
-    return __builtin_expect(x, 1);
-}
-
-extern (D) auto mp_unlikely(T) (auto ref T x)
-{
-    return __builtin_expect(x, 0);
-}
-
-extern (D) auto mp_bswap_u8(T) (auto ref T x)
-{
-    return x;
-} /* just to simplify mp_load/mp_store macroses */
-
 //alias mp_bswap_u16 = __builtin_bswap16;
 /* !MP_GCC_VERSION(4, 8) */
 
