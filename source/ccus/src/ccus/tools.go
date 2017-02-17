@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"reflect"
 	"unsafe"
@@ -13,11 +14,11 @@ import (
 import "C"
 
 type CustomDecimal struct {
-	Mantissa int64
-	Exponent int64
+	Mantissa int
+	Exponent int
 }
 
-func NewCustomDecimal(mantissa int64, exponent int64) CustomDecimal {
+func NewCustomDecimal(mantissa int, exponent int) CustomDecimal {
 	var res CustomDecimal
 
 	res.Mantissa = mantissa
@@ -93,91 +94,120 @@ func msgpack2individual(individual *Individual, msgpack string) {
 
 	curi := C.mp_decode_str(&ptr, &curiLen)
 	individual.uri = C.GoStringN(curi, C.int(curiLen))
+	// fmt.Println("DECODED MAIN URI")
 
-	cmpLen := C.mp_decode_map(&ptr)
+	cmpLen := int(C.mp_decode_map(&ptr))
 
-	for i := 0; i < int(cmpLen); i++ {
+	for i := 0; i < cmpLen; i++ {
 		var resType DataType
 		var resource Resource
 		var curiResLen C.uint32_t
 		curiRes := C.mp_decode_str(&ptr, &curiResLen)
 		predicate := C.GoStringN(curiRes, C.int(curiResLen))
+		log.Printf("DECODED predicate %v", predicate)
 
-		individual.resources[predicate] = make(Resources, int(cmpLen))
+		resArrLen := int(C.mp_decode_array(&ptr))
+		individual.resources[predicate] = make(Resources, int(resArrLen))
+		for j := 0; j < resArrLen; j++ {
+			switch C.mp_typeof(*ptr) {
+			case C.MP_ARRAY:
+				cresLen := C.mp_decode_array(&ptr)
+				log.Printf("DECODED ARRAY")
+				// fmt.Println(cresLen)
+				if cresLen == 2 {
+					fmt.Println("DECODED ARR 2")
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						resType = DataType(C.mp_decode_uint(&ptr))
+					} else {
+						resType = DataType(C.mp_decode_int(&ptr))
+					}
 
-		switch C.mp_typeof(*ptr) {
-		case C.MP_ARRAY:
-			cresLen := C.mp_decode_array(&ptr)
+					if resType == Datetime {
+						log.Printf("Decoded Datetime")
+						if C.mp_typeof(*ptr) == C.MP_UINT {
+							resource.data = int(C.mp_decode_uint(&ptr))
+						} else {
+							resource.data = int(C.mp_decode_int(&ptr))
+						}
+						resource._type = Datetime
+					} else if resType == String {
+						// fmt.Println("TRY TO DECODE STR")
+						if C.mp_typeof(*ptr) != C.MP_NIL {
+							var valLen C.uint32_t
+							val := C.mp_decode_str(&ptr, &valLen)
+							resource.data = C.GoStringN(val, C.int(valLen))
+						} else {
+							C.mp_decode_nil(&ptr)
+							resource.data = ""
+						}
+						// fmt.Println("DECODED STR")
+					}
+				} else if cresLen == 3 {
+					// fmt.Println("DECODED ARR 3")
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						resType = DataType(C.mp_decode_uint(&ptr))
+					} else {
+						resType = DataType(C.mp_decode_int(&ptr))
+					}
 
-			if cresLen == 2 {
-				if C.mp_typeof(*ptr) == C.MP_UINT {
-					resType = DataType(C.mp_decode_uint(&ptr))
+					if resType == Decimal {
+						var mantissa, exponent int
+
+						if C.mp_typeof(*ptr) == C.MP_UINT {
+							mantissa = int(C.mp_decode_uint(&ptr))
+						} else {
+							mantissa = int(C.mp_decode_int(&ptr))
+						}
+
+						if C.mp_typeof(*ptr) == C.MP_UINT {
+							exponent = int(C.mp_decode_uint(&ptr))
+						} else {
+							exponent = int(C.mp_decode_int(&ptr))
+						}
+
+						resource.data = NewCustomDecimal(mantissa, exponent)
+					} else if resType == String {
+						// fmt.Println("TRY TO DECODE STR")
+						if C.mp_typeof(*ptr) != C.MP_NIL {
+							var valLen C.uint32_t
+							val := C.mp_decode_str(&ptr, &valLen)
+							resource.data = C.GoStringN(val, C.int(valLen))
+						} else {
+							C.mp_decode_nil(&ptr)
+							resource.data = ""
+						}
+						// fmt.Println("DECODED STR")
+
+						if C.mp_typeof(*ptr) == C.MP_UINT {
+							resource.lang = LANG(C.mp_decode_uint(&ptr))
+						} else {
+							resource.lang = LANG(C.mp_decode_int(&ptr))
+						}
+					}
+				}
+			case C.MP_STR:
+				if C.mp_typeof(*ptr) != C.MP_NIL {
+					var valLen C.uint32_t
+					val := C.mp_decode_str(&ptr, &valLen)
+					resource.data = C.GoStringN(val, C.int(valLen))
 				} else {
-					resType = DataType(C.mp_decode_int(&ptr))
+					C.mp_decode_nil(&ptr)
+					resource.data = ""
 				}
-
-				if resType == Datetime {
-					var value int64
-
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						value = int64(C.mp_decode_uint(&ptr))
-					} else {
-						value = int64(C.mp_decode_int(&ptr))
-					}
-					resource._type = Datetime
-					resource.data = value
-				} else if resType == String {
-					if C.mp_typeof(*ptr) != C.MP_NIL {
-						var valLen C.uint32_t
-						val := C.mp_decode_str(&ptr, &valLen)
-						resource.data = C.GoStringN(val, C.int(valLen))
-					} else {
-						C.mp_decode_nil(&ptr)
-						resource.data = ""
-					}
-				}
-			} else if cresLen == 3 {
+			case C.MP_INT:
+				fallthrough
+			case C.MP_UINT:
 				if C.mp_typeof(*ptr) == C.MP_UINT {
-					resType = DataType(C.mp_decode_uint(&ptr))
+					resource.data = int(C.mp_decode_uint(&ptr))
 				} else {
-					resType = DataType(C.mp_decode_int(&ptr))
+					resource.data = int(C.mp_decode_int(&ptr))
 				}
-
-				if resType == Decimal {
-					var mantissa, exponent int64
-
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						mantissa = int64(C.mp_decode_uint(&ptr))
-					} else {
-						mantissa = int64(C.mp_decode_int(&ptr))
-					}
-
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						exponent = int64(C.mp_decode_uint(&ptr))
-					} else {
-						exponent = int64(C.mp_decode_int(&ptr))
-					}
-
-					resource.data = NewCustomDecimal(mantissa, exponent)
-				} else if resType == String {
-					if C.mp_typeof(*ptr) != C.MP_NIL {
-						var valLen C.uint32_t
-						val := C.mp_decode_str(&ptr, &valLen)
-						resource.data = C.GoStringN(val, C.int(valLen))
-					} else {
-						C.mp_decode_nil(&ptr)
-						resource.data = ""
-					}
-
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						resource.lang = LANG(C.mp_decode_uint(&ptr))
-					} else {
-						resource.lang = LANG(C.mp_decode_int(&ptr))
-					}
-				}
+			case C.MP_BOOL:
+				resource.data = bool(C.mp_decode_bool(&ptr))
 			}
-		}
 
-		individual.resources[predicate] = append(individual.resources[predicate], resource)
+			// log.Printf("RESULT RESOURCE ", resource)
+			individual.resources[predicate][j] = resource
+		}
 	}
 }

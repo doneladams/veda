@@ -154,18 +154,33 @@ func queue_reader(ch_collector_update chan updateInfo) {
 			var individual *Individual = NewIndividual()
 
 			msgpack2individual(individual, data)
-
-			//log.Printf("@2 individual=[%v]", individual)
+			uri := individual.resources["uri"][0].data.(string)
+			log.Printf("URI: %s", uri)
+			u_count := individual.resources["u_count"][0].data.(int)
+			log.Printf("UCOUNT=%v", u_count)
+			op_id := individual.resources["op_id"][0].data.(int)
+			log.Printf("OP_ID=%v", op_id)
+			if uri != "" {
+				new_info := updateInfo{uri, op_id, u_count, nil}
+				ch_collector_update <- new_info
+			} else {
+				log.Printf("BROKEN INDIVID %v", individual)
+			}
+			/*fmt.Println(data)
+			log.Printf("INDIVIDUAL=[%v]", individual)
 			uri := individual.getFirstResource("uri")
+			log.Printf("URI: %s", uri)
 			u_count, ok1 := individual.getFirstInt("u_count")
+			log.Printf("UCOUNT=%v ok1=%v", u_count, ok1)
 			op_id, ok2 := individual.getFirstInt("op_id")
+			log.Printf("OP_ID=%v ok2=%v", op_id, ok2)*/
 
-			if ok1 == true && ok2 == true {
+			/*if ok1 == true && ok2 == true {
 				//log.Printf("@3 uri=[%s], u_count=[%d], op_id=[%d]", uri.data.(string), u_count, op_id)
 
 				new_info := updateInfo{uri.data.(string), op_id, u_count, nil}
 				ch_collector_update <- new_info
-			}
+			}*/
 
 			main_cs.commit_and_next(false)
 			count++
