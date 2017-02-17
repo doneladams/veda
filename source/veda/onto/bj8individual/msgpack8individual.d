@@ -116,6 +116,12 @@ public int msgpack2individual(ref Individual individual, string in_str)
                 return -1;
 
             uint uri_lenght;
+
+               if (mp_typeof(*ptr) != mp_type.MP_NIL) {
+                   	writefln ("@d#1 ERR! MP_NIL in_str=%s", in_str);
+                   	return -1;
+               }
+
             char *uri = mp_decode_str(&ptr, &uri_lenght);
 
             individual.uri = cast(string)uri[ 0..uri_lenght ].dup;
@@ -124,6 +130,12 @@ public int msgpack2individual(ref Individual individual, string in_str)
             for (int idx = 0; idx < predicates_length; idx++)
             {
                 uint   key_lenght;
+                
+               if (mp_typeof(*ptr) != mp_type.MP_NIL) {
+                   	writefln ("@d#2 ERR! MP_NIL in_str=%s", in_str);
+                   	return -1;
+               }
+                
                 char   *key      = mp_decode_str(&ptr, &key_lenght);
                 string predicate = cast(string)key[ 0..key_lenght ].dup;
 
