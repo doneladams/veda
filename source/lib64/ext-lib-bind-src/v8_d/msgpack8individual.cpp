@@ -145,6 +145,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
     
      if (mp_typeof(*ptr) == MP_NIL) {
 		std::cerr << "ERR! #1 mp_type.MP_NIL " << in_str << endl;
+		return -1;
      }
     
     const char  *uri = mp_decode_str(&ptr, &uri_lenght);
@@ -168,6 +169,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
         // std::cerr << "\tTRY TO DECODE KEY ";
      if (mp_typeof(*ptr) == MP_NIL) {
 		std::cerr << "ERR! #2 mp_type.MP_NIL " << in_str << endl;
+		return -1;
      }
         const char        *key = mp_decode_str(&ptr, &key_lenght);
 
