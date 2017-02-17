@@ -22,6 +22,11 @@ private long write_individual(ref Individual ii, char *w)
     ulong map_len = ii.resources.length + 1;
     char *w0 = w;
     w = mp_encode_array(w, 2);
+    
+    if (ii.uri.length == 0)
+       	writefln ("@d#write_individual ERR! invalid indidvdual=%s", ii);
+
+    
     w = mp_encode_str(w, cast(char *)ii.uri.dup, cast(uint)ii.uri.length);
     w = mp_encode_map(w, cast(uint)ii.resources.length);
 

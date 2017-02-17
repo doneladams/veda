@@ -13,10 +13,13 @@ uint32_t write_individual(Individual *individual, char *in_buff)
 {
     char     *pos = in_buff;
     uint32_t map_len = individual->resources.size() + 1;
-
     
     pos = mp_encode_array(pos, 2);
     // std::cerr << "TRY TO WRITE ";
+    
+    if (individual->uri.length() == 0)
+		std::cerr << "@c ERR! uri.length() == 0";
+    
     pos = mp_encode_str(pos, individual->uri.c_str(), individual->uri.length());
     // std::cerr << individual->uri << endl;
 
