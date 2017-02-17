@@ -2,12 +2,29 @@ package main
 
 import (
 	"bufio"
-	"cbor"
 	"encoding/binary"
 	"log"
 	"reflect"
 	"unsafe"
 )
+
+// #define MP_SOURCE 1
+// #include "msgpuck.h"
+import "C"
+
+type CustomDecimal struct {
+	Mantissa int64
+	Exponent int64
+}
+
+func NewCustomDecimal(mantissa int64, exponent int64) CustomDecimal {
+	var res CustomDecimal
+
+	res.Mantissa = mantissa
+	res.Exponent = exponent
+
+	return res
+}
 
 func ulong_to_buff(_buff []uint8, pos int, data uint64) {
 	_buff[pos+0] = uint8((data & 0x00000000000000FF))
@@ -63,117 +80,104 @@ func CopyString(s string) string {
 	return string(b)
 }
 
-func cbor2individual(individual *Individual, cborv interface{}) bool {
-	//log.Print("cbor2individual #1")
-	res, _ := read_element(individual, cborv, "", "")
-	//log.Print("cbor2individual #E")
-	return res
-}
+func msgpack2individual(individual *Individual, msgpack string) {
+	var curiLen C.uint32_t
 
-func read_element(individual *Individual, cborv interface{}, subject_uri string, predicate_uri string) (bool, string) {
-	var new_subject_uri string
+	startPtr := C.CString(msgpack)
+	ptr := startPtr
+	arrLen := C.mp_decode_array(&ptr)
 
-	switch i := cborv.(type) {
-	case uint64:
-		var resources Resources = individual.resources[predicate_uri]
-		resources = append(resources, *NewResource_uint64(i))
-		individual.resources[predicate_uri] = resources
-		return true, ""
-		//	case big.Int:
-		//		log.Printf("%s", i)
-		//		return true
-	case int64:
-		var resources Resources = individual.resources[predicate_uri]
-		resources = append(resources, *NewResource_int64(i))
-		individual.resources[predicate_uri] = resources
-		return true, ""
-	case float32:
-		log.Printf("float32 %f", float64(i))
-		return true, ""
-	case float64:
-		log.Printf("float64 %f", i)
-		return true, ""
-	case bool:
-		log.Printf("bool %b", i)
-		return true, ""
-	case string:
-		//log.Printf("string %s", i)
-		return true, i
-
-	case []interface{}:
-		log.Print("array")
-		for idx, cav := range i {
-			log.Printf("array: idx=%d", idx)
-
-			res, _ := read_element(individual, cav, subject_uri, predicate_uri)
-			if !res {
-				return false, ""
-			}
-		}
-		return true, ""
-
-	case nil:
-		log.Printf("nil")
-
-		return true, ""
-	case map[interface{}]interface{}:
-
-		for _key, cav := range i {
-			var key string = _key.(string)
-			if key == "@" {
-				res, val := read_element(individual, cav, new_subject_uri, key)
-				if !res {
-					log.Print("map: false")
-					return false, ""
-				}
-				individual.uri = val
-				new_subject_uri = val
-			}
-		}
-
-		for _key, cav := range i {
-			//log.Printf("map: key=%s", _key)
-
-			var key string = _key.(string)
-
-			res, _ := read_element(individual, cav, new_subject_uri, key)
-			if !res {
-				log.Print("map: false")
-				return false, ""
-			}
-		}
-		return true, ""
-	case []byte:
-		log.Printf("byte %s", string(i))
-		return true, ""
-	case cbor.CBORTag:
-		//log.Printf("tag: %s, type=%s tag=%s", cborv, i, i.Tag)
-		res, val := read_element(individual, i.WrappedObject, "", "")
-		tag := TAG(i.Tag)
-		//		log.Printf("tag #1 subject_uri=%s, predicate_uri=%s", subject_uri, predicate_uri)
-		if subject_uri != "" && predicate_uri != "" {
-
-			var resources Resources = individual.resources[predicate_uri]
-
-			if tag == TAG_TEXT_RU {
-				resources = append(resources, *NewResource_value_lang(val, LANG_RU))
-			} else if tag == TAG_TEXT_RU {
-				resources = append(resources, *NewResource_value_lang(val, LANG_EN))
-			} else if tag == TAG_URI {
-				resources = append(resources, *NewResource_type_value(Uri, val))
-			} else {
-				resources = append(resources, *NewResource_type_value(String, val))
-			}
-			individual.resources[predicate_uri] = resources
-		}
-
-		return res, ""
-	case interface{}:
-		//		var tt cbor.CBORTag = cbor.CBORTag (cborv)
-		log.Printf("interface: %s, type=%s", cborv, i)
-		return true, ""
-	default:
-		log.Printf("default: %s, type=%s", cborv, i)
+	if arrLen != 2 {
+		log.Fatal("INCORRECT MSGPACK ARR LEN IS NOT 2: ", msgpack)
 	}
-	return false, ""
+
+	curi := C.mp_decode_str(&ptr, &curiLen)
+	individual.uri = C.GoStringN(curi, C.int(curiLen))
+
+	cmpLen := C.mp_decode_map(&ptr)
+
+	for i := 0; i < int(cmpLen); i++ {
+		var resType DataType
+		var resource Resource
+		var curiResLen C.uint32_t
+		curiRes := C.mp_decode_str(&ptr, &curiResLen)
+		predicate := C.GoStringN(curiRes, C.int(curiResLen))
+
+		individual.resources[predicate] = make(Resources, int(cmpLen))
+
+		switch C.mp_typeof(*ptr) {
+		case C.MP_ARRAY:
+			cresLen := C.mp_decode_array(&ptr)
+
+			if cresLen == 2 {
+				if C.mp_typeof(*ptr) == C.MP_UINT {
+					resType = DataType(C.mp_decode_uint(&ptr))
+				} else {
+					resType = DataType(C.mp_decode_int(&ptr))
+				}
+
+				if resType == Datetime {
+					var value int64
+
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						value = int64(C.mp_decode_uint(&ptr))
+					} else {
+						value = int64(C.mp_decode_int(&ptr))
+					}
+					resource._type = Datetime
+					resource.data = value
+				} else if resType == String {
+					if C.mp_typeof(*ptr) != C.MP_NIL {
+						var valLen C.uint32_t
+						val := C.mp_decode_str(&ptr, &valLen)
+						resource.data = C.GoStringN(val, C.int(valLen))
+					} else {
+						C.mp_decode_nil(&ptr)
+						resource.data = ""
+					}
+				}
+			} else if cresLen == 3 {
+				if C.mp_typeof(*ptr) == C.MP_UINT {
+					resType = DataType(C.mp_decode_uint(&ptr))
+				} else {
+					resType = DataType(C.mp_decode_int(&ptr))
+				}
+
+				if resType == Decimal {
+					var mantissa, exponent int64
+
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						mantissa = int64(C.mp_decode_uint(&ptr))
+					} else {
+						mantissa = int64(C.mp_decode_int(&ptr))
+					}
+
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						exponent = int64(C.mp_decode_uint(&ptr))
+					} else {
+						exponent = int64(C.mp_decode_int(&ptr))
+					}
+
+					resource.data = NewCustomDecimal(mantissa, exponent)
+				} else if resType == String {
+					if C.mp_typeof(*ptr) != C.MP_NIL {
+						var valLen C.uint32_t
+						val := C.mp_decode_str(&ptr, &valLen)
+						resource.data = C.GoStringN(val, C.int(valLen))
+					} else {
+						C.mp_decode_nil(&ptr)
+						resource.data = ""
+					}
+
+					if C.mp_typeof(*ptr) == C.MP_UINT {
+						resource.lang = LANG(C.mp_decode_uint(&ptr))
+					} else {
+						resource.lang = LANG(C.mp_decode_int(&ptr))
+					}
+				}
+			}
+		}
+
+		individual.resources[predicate] = append(individual.resources[predicate], resource)
+	}
 }

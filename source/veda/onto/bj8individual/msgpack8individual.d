@@ -129,7 +129,7 @@ public int msgpack2individual(ref Individual individual, string in_str)
 
                 Resources resources = Resources.init;
 
-                int       resources_el_length = mp_decode_array(&ptr);
+                int resources_el_length = mp_decode_array(&ptr);
                 for (int i_resource = 0; i_resource < resources_el_length; i_resource++)
                 {
                     mp_type el_type = mp_typeof(*ptr);

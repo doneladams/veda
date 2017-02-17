@@ -1,13 +1,12 @@
 package main
 
 import (
-	"cbor"
-	"github.com/gorilla/websocket"
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
 	//"strconv"
 	"expvar"
 	"runtime"
@@ -151,18 +150,10 @@ func queue_reader(ch_collector_update chan updateInfo) {
 			if data == "" {
 				break
 			}
-			//			log.Printf("@1 data=[%s].length=%d", data, len (data))
-			ring := cbor.NewDecoder(strings.NewReader(data))
-			var cborObject interface{}
-			err := ring.Decode(&cborObject)
-			if err != nil {
-				log.Fatalf("error decoding cbor: %v", err)
-				continue
-			}
 
 			var individual *Individual = NewIndividual()
 
-			cbor2individual(individual, cborObject)
+			msgpack2individual(individual, data)
 
 			//log.Printf("@2 individual=[%v]", individual)
 			uri := individual.getFirstResource("uri")
