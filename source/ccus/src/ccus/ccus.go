@@ -155,11 +155,8 @@ func queue_reader(ch_collector_update chan updateInfo) {
 
 			msgpack2individual(individual, data)
 			uri := individual.resources["uri"][0].data.(string)
-			log.Printf("URI: %s", uri)
 			u_count := individual.resources["u_count"][0].data.(int)
-			log.Printf("UCOUNT=%v", u_count)
 			op_id := individual.resources["op_id"][0].data.(int)
-			log.Printf("OP_ID=%v", op_id)
 			if uri != "" {
 				new_info := updateInfo{uri, op_id, u_count, nil}
 				ch_collector_update <- new_info

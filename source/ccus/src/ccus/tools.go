@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"reflect"
 	"unsafe"
@@ -104,7 +103,6 @@ func msgpack2individual(individual *Individual, msgpack string) {
 		var curiResLen C.uint32_t
 		curiRes := C.mp_decode_str(&ptr, &curiResLen)
 		predicate := C.GoStringN(curiRes, C.int(curiResLen))
-		log.Printf("DECODED predicate %v", predicate)
 
 		resArrLen := int(C.mp_decode_array(&ptr))
 		individual.resources[predicate] = make(Resources, int(resArrLen))
@@ -112,10 +110,8 @@ func msgpack2individual(individual *Individual, msgpack string) {
 			switch C.mp_typeof(*ptr) {
 			case C.MP_ARRAY:
 				cresLen := C.mp_decode_array(&ptr)
-				log.Printf("DECODED ARRAY")
 				// fmt.Println(cresLen)
 				if cresLen == 2 {
-					fmt.Println("DECODED ARR 2")
 					if C.mp_typeof(*ptr) == C.MP_UINT {
 						resType = DataType(C.mp_decode_uint(&ptr))
 					} else {
@@ -123,7 +119,6 @@ func msgpack2individual(individual *Individual, msgpack string) {
 					}
 
 					if resType == Datetime {
-						log.Printf("Decoded Datetime")
 						if C.mp_typeof(*ptr) == C.MP_UINT {
 							resource.data = int(C.mp_decode_uint(&ptr))
 						} else {
@@ -140,10 +135,8 @@ func msgpack2individual(individual *Individual, msgpack string) {
 							C.mp_decode_nil(&ptr)
 							resource.data = ""
 						}
-						// fmt.Println("DECODED STR")
 					}
 				} else if cresLen == 3 {
-					// fmt.Println("DECODED ARR 3")
 					if C.mp_typeof(*ptr) == C.MP_UINT {
 						resType = DataType(C.mp_decode_uint(&ptr))
 					} else {
@@ -167,7 +160,6 @@ func msgpack2individual(individual *Individual, msgpack string) {
 
 						resource.data = NewCustomDecimal(mantissa, exponent)
 					} else if resType == String {
-						// fmt.Println("TRY TO DECODE STR")
 						if C.mp_typeof(*ptr) != C.MP_NIL {
 							var valLen C.uint32_t
 							val := C.mp_decode_str(&ptr, &valLen)
@@ -176,7 +168,6 @@ func msgpack2individual(individual *Individual, msgpack string) {
 							C.mp_decode_nil(&ptr)
 							resource.data = ""
 						}
-						// fmt.Println("DECODED STR")
 
 						if C.mp_typeof(*ptr) == C.MP_UINT {
 							resource.lang = LANG(C.mp_decode_uint(&ptr))
@@ -206,7 +197,6 @@ func msgpack2individual(individual *Individual, msgpack string) {
 				resource.data = bool(C.mp_decode_bool(&ptr))
 			}
 
-			// log.Printf("RESULT RESOURCE ", resource)
 			individual.resources[predicate][j] = resource
 		}
 	}

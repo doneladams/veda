@@ -241,7 +241,6 @@ func (pc *ccusConn) preparer(cc_control chan int, cc_prepare_in chan string, cc_
 							//log.Printf("ws[%s]:receive uid=%s uid_counter=%d", pc.ws.RemoteAddr(), uid, uid_counter)
 							pc.count_2_uid[uid] = uid_counter
 							g_count := pc.get_counter_4_uid(uid)
-							log.Printf("g_count=%v uid_counter=%v", g_count, uid_counter)
 							if uid_counter < g_count {
 								res = pc.get_list_of_changes()
 								//log.Printf("start send changes %s", res);
@@ -269,7 +268,6 @@ func (pc *ccusConn) preparer(cc_control chan int, cc_prepare_in chan string, cc_
 		last_opid := pc.get_last_opid()
 
 		//log.Printf("ws[%s]:preparer:check changes: last_opid=%d, last_check_opid=%d", pc.ws.RemoteAddr(), last_opid, last_check_opid)
-		log.Printf("last_check_opid=%v last_opid=%v", last_check_opid, last_opid)
 		if last_check_opid < last_opid {
 			res := pc.get_list_of_changes()
 			if res != "" {
