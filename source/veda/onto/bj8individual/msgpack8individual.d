@@ -18,11 +18,12 @@ string  dummy;
 ubyte[] buff;
 
 private ubyte[] write_individual(ref Individual ii)
-{
+{   
     // writeln("PACK START");
     Packer packer = Packer(false);
     packer.beginArray(2).pack(ii.uri.dup);
-    // stderr.writef("INDIVID URI=%s\n", ii.uri);
+    
+    
     // stderr.writef("D WRITE ARRAY of 2\n");
     packer.beginMap(ii.resources.length);
     // stderr.writef("D WRITE RESOURCES\n");
@@ -39,7 +40,10 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
     packer.pack(uri.dup);
     // stderr.writef("\tRESOURCE URI=%s\n", uri);
     packer.beginArray(vv.length);
-
+    if (uri == null)
+        stderr.writef("ENCODING NULL STRING D");
+    else if (uri.length == 0)
+        stderr.writef("ENCODING ZERO LEN STRING D");
     foreach (value; vv)
     {
         if (value.type == DataType.Uri)

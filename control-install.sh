@@ -249,3 +249,15 @@ fi
    ls $SMD
 
    cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
+
+   mkdir tmp
+   cd tmp
+   wget https://github.com/msgpack/msgpack-c/releases/download/cpp-2.1.1/msgpack-2.1.1.tar.gz
+   tar -xvzf msgpack-2.1.1.tar.gz
+   cd msgpack-2.1.1
+   cmake .
+   make
+   sudo make install 
+   cd ..
+   cd ..
+   rm -rf tmp

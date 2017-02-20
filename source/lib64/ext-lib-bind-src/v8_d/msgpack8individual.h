@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <msgpack.hpp>
 #include "v8.h"
 
 using namespace v8;
@@ -64,7 +65,7 @@ struct Element
 
 uint32_t write_individual(Individual *individual, char *in_buff);
 
-char *write_resources(string uri, vector <Resource> vv, char *w);
+void write_resources(string uri, vector <Resource> vv, msgpack::packer<msgpack::sbuffer> &pk);
 
 int32_t msgpack2individual(Individual *individual, string in_str);
 

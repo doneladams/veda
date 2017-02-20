@@ -4,412 +4,287 @@
 #include <iostream>
 #include <math.h>
 
-#define MP_SOURCE 1
-
-#include "msgpuck.h"
 #include "msgpack8individual.h"
 
 uint32_t write_individual(Individual *individual, char *in_buff)
 {
-    char     *pos = in_buff;
-    uint32_t map_len = individual->resources.size() + 1;
-    
-    pos = mp_encode_array(pos, 2);
-    // std::cerr << "TRY TO WRITE ";
-    
-    if (individual->uri.length() == 0)
-		std::cerr << "@c ERR! uri.length() == 0";
-    
-    pos = mp_encode_str(pos, individual->uri.c_str(), individual->uri.length());
-    // std::cerr << individual->uri << endl;
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
 
-    pos = mp_encode_map(pos, individual->resources.size());
-    // std::cerr << "TRY TO WRITE res size " << individual->resources.size() << endl;
+    pk.pack_array(2);
+    pk.pack(individual->uri);
+    pk.pack_map(individual->resources.size());
     map < string, vector <Resource> >::iterator p;
     for (p = individual->resources.begin(); p != individual->resources.end(); ++p)
     {
         std::string strKey = p->first;
-        //if (p->second.size() > 0)
-        //if (p->second.size() == 0)
-	//std::cout << "@c write_individual resources.length==0" << std::endl;        
         
-            pos = write_resources(p->first, p->second, pos);
+        write_resources(p->first, p->second, pk);
     }
-    return(pos - in_buff);
+
+    memcpy(in_buff, buffer.data(), buffer.size());
+
+        // std::cerr << "\t" << string(buffer.data(), buffer.size()) << endl;
+    return buffer.size();
 }
 
-char *write_resources(string uri, vector <Resource> vv, char *w)
+void write_resources(string uri, vector <Resource> vv, msgpack::packer<msgpack::sbuffer> &pk)
 {
-    // std::cerr << "\tWRITE RES FOR ";
-    w = mp_encode_str(w, uri.c_str(), uri.length());
-    // std:cerr << uri << endl;
-
-    // std::cerr << "\tWRITE ERR size ";
-    w = mp_encode_array(w, vv.size());
-    // std::cerr << vv.size() << endl;
+    pk.pack(uri);
+    pk.pack_array(vv.size());
 
     for (uint32_t i = 0; i < vv.size(); i++)
     {
         Resource value = vv[ i ];
-        // std::cerr << "\t\tWRITE RES type is ";
         if (value.type == _Uri)
-        {
-            // std::cerr << "uri" << endl;
-            string svalue = value.str_data;
-
-            // std::cerr << "\t\tWRITE URI ";
-            w = mp_encode_str(w, svalue.c_str(), svalue.length());
-            // std::cerr << svalue << endl;
-        }
+            pk.pack(value.str_data);
         else if (value.type == _Integer)
-        {
-            // std::cerr << "integer" << endl;
-            w = mp_encode_uint(w, value.long_data);
-            // std::cerr << "\t\tWRITE INTEGER " << value.long_data << endl;
-        }
+            pk.pack(value.long_data);
+        else if (value.type == _Boolean)
+            pk.pack(value.bool_data);
         else if (value.type == _Datetime)
         {
-            // std::cerr << "datatime" << endl;
-
-            // std::cerr << "\t\tWRITE ARRAY OF 2" << endl;
-            w = mp_encode_array(w, 2);
-            w = mp_encode_uint(w, _Datetime);
-            // std::cerr << "\t\tWRITE UINTEGER " << _Datetime << endl;
-            w = mp_encode_uint(w, value.long_data);
-            // std::cerr << "\t\tWRITE INTEGER " << value.long_data << endl;
+            pk.pack_array(2);
+            pk.pack((uint)_Datetime);
+            pk.pack(value.long_data);
         }
         else if (value.type == _Decimal)
         {
-            // std::cerr << "\t\tWRITE ARRAY OF 3" << endl;
-            w = mp_encode_array(w, 3);
-            w = mp_encode_uint(w, _Decimal);
-            // std::cerr << "\t\tWRITE UINTEGER " << _Decimal << endl;
-            w = mp_encode_uint(w, value.decimal_mantissa_data);
-            // std::cerr << "\t\tWRITE UINTEGER " << value.decimal_mantissa_data << endl;
-            w = mp_encode_uint(w, value.decimal_expanent_data);
-            // std::cerr << "\t\tWRITE UINTEGER " << value.decimal_expanent_data << endl;
-        }
-        else if (value.type == _Boolean)
-        {
-            // std::cerr << "boolean" << endl;
-            w = mp_encode_bool(w, value.bool_data);
-            // std::cerr << "\t\tWRITE BOOL " << value.bool_data << endl; 
+            pk.pack_array(3);
+            pk.pack((uint)_Decimal);
+            pk.pack(value.decimal_mantissa_data);
         }
         else
-        {
-            // std::cerr << "lang ";
-            string svalue = value.str_data;
-
             if (value.lang != LANG_NONE)
             {
-                // std::cerr << "lang Not none" << endl;
-                w = mp_encode_array(w, 3);
-                // std::cerr << "\t\tWRITE ARRAY OF 3" << endl;
-                w = mp_encode_uint(w, _String);
-                // std::cerr << "\t\tWRITE UINTEGER " << _String << endl;
-                w = mp_encode_str(w, svalue.c_str(), svalue.length());
-                // std::cerr << "\t\tWRITE STRING " << svalue << endl;
-                w = mp_encode_uint(w, value.lang);
-                // std::cerr << "\t\tWRITE UINTEGER " << value.lang << endl;
+                pk.pack_array(3);
+                pk.pack((uint)_String);
+                pk.pack(value.str_data);
+                pk.pack(value.lang);
             }
             else
             {
-                // std::cerr << "lang Is none" << endl;
-                w = mp_encode_array(w, 2);
-                // std::cerr << "\t\tWRITE ARRAY OF 2" << endl;
-                w = mp_encode_uint(w, _String);
-                // std::cerr << "\t\tWRITE UINTEGER " << _String << endl;
-                w = mp_encode_str(w, svalue.c_str(), svalue.length());
-                // std::cerr << "\t\tWRITE STRING " << svalue << endl;
+                pk.pack_array(2);
+                pk.pack((uint)_String);
+                pk.pack(value.str_data);
             }
-        }
     }
-    return w;
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
 int32_t msgpack2individual(Individual *individual, string in_str)
 {
-//    std::cout << "@c #0" << std::endl;
+    msgpack::unpacker unpk;
+    
 
-    const char *ptr    = (char *)in_str.c_str();
-    const char *in_ptr = ptr;
-    // std::cerr << "TRY TO DECODE " << in_str << endl;
-    uint32_t        root_el_size = mp_decode_array(&ptr);
-    // std::cerr << "TRY TO DECODE root_el_size=" << root_el_size << endl;
+    unpk.reserve_buffer(in_str.length());
+    memcpy(unpk.buffer(), in_str.c_str(), in_str.length());
+    unpk.buffer_consumed(in_str.length());
+    msgpack::object_handle result;
+    unpk.next(result);
+    msgpack::object glob_obj(result.get()); 
+    msgpack::object_array obj_arr = glob_obj.via.array;
 
-    if (root_el_size != 2)
+    if (obj_arr.size != 2)
         return -1;
-
-    uint32_t       uri_lenght;
     
-//    std::cout << "@c #1" << std::endl;
-    // std::cerr << "TRY TO DECODE uri ";
+    msgpack::object *obj_uri = obj_arr.ptr;
+    msgpack::object *obj_map = obj_arr.ptr + 1;
     
-     if (mp_typeof(*ptr) == MP_NIL) {
-		std::cerr << "ERR! #1 mp_type.MP_NIL " << in_str << endl;
-		return -1;
-     }
+    individual->uri = string(obj_uri->via.str.ptr, obj_uri->via.str.size);
     
-    const char  *uri = mp_decode_str(&ptr, &uri_lenght);
+    // std::cerr << glob_obj << endl;
+    // std::cerr << "URI " << uri << endl;
 
-    std::string str(uri, uri_lenght);
-    // std::cerr << str << endl;
+    msgpack::object_map map = obj_map->via.map;
+    // std::cerr << "MAP_SIZE " << map.size << endl;
     
-//    std::cout << "@c #2 uri=" << str << std::endl;
-
-    individual->uri = str;
-
-    // std::cerr << "TRY TO DECODE map len ";
-    uint32_t predicates_length = mp_decode_map(&ptr);
-    // std::cerr << predicates_length << endl;
-    //std::cout << "@c #2 decode_map, len=" << predicates_length << ", ptr-ptr0=" << (ptr - in_ptr) << std::endl;
-
-    for (uint32_t idx = 0; idx < predicates_length; idx++)
-    {
-        uint32_t              key_lenght;
-//    std::cout << "@c #2" << std::endl;
-        // std::cerr << "\tTRY TO DECODE KEY ";
-     if (mp_typeof(*ptr) == MP_NIL) {
-		std::cerr << "ERR! #2 mp_type.MP_NIL " << in_str << endl;
-		return -1;
-     }
-        const char        *key = mp_decode_str(&ptr, &key_lenght);
-
-//    std::cout << "@c #3" << std::endl;
-
-        std::string       predicate(key, key_lenght);
-        //std:cerr << predicate << endl;
-
-        vector <Resource> resources;
-
-        uint32_t               resources_el_length = mp_decode_array(&ptr);
-        for (uint32_t i_resource = 0; i_resource < resources_el_length; i_resource++)
+    for (int i = 0; i < map.size; i++ ) {
+        // std::cerr << "\tKEY "  << *obj << endl;
+        // std::cerr << "\tKEY: " << pair->key << " VALUE: " << pair->val << endl;
+        msgpack::object_kv pair = map.ptr[i];
+        msgpack::object key = pair.key;
+        msgpack::object_array res_objs = pair.val.via.array;
+        if (key.type != msgpack::type::STR) 
         {
-            // std::cerr << "\t\tFOREACH RESOURCE type ";
-            mp_type el_type = mp_typeof(*ptr);
-            // std::cerr << el_type << " ";
+            std::cerr << "@ERR! PREDICATE IS NOT STRING!" << endl;
+            return -1;
+        }
 
-            if (el_type == MP_ARRAY)
-            {
-                // std::cerr << "is array" << endl;
-                // std::cerr << "\t\t\tTRY ARR SIZE ";
-                uint32_t predicate_el_length = mp_decode_array(&ptr);
-                if (predicate_el_length == 2)
-                {
-                    long type;
-                    // std::cerr << predicate_el_length << endl;
+        std::string predicate(key.via.str.ptr, key.via.str.size);
+        vector <Resource> resources;
+        
 
-                    // std::cerr << "\t\t\tDECODE UINT type is ";
-                    if (mp_typeof(*ptr) == MP_UINT)
-                        type = mp_decode_uint(&ptr);
-                    else
-                        type = mp_decode_int(&ptr);
-                    
-
-                    if (type == _Datetime)
-                    {
-                        long value; 
-                        // std::cerr << "datetime" << endl;
-                        if (mp_typeof(*ptr) == MP_UINT)
-                            value = mp_decode_uint(&ptr);
-                        else
-                            value = mp_decode_int(&ptr);
-
-                        Resource rr;
-                        rr.type      = _Datetime;
-                        rr.long_data = value;
-                        resources.push_back(rr);
-                    }
-                    else if (type == _String)
-                    {
-                        Resource    rr;
-                        std::string value;
-
-                        // std::cerr << "string" << endl;
-                        rr.type = _String;
-                        if (mp_typeof(*ptr) != MP_NIL) {
-                            uint        val_length;                
-                            const char  *val = mp_decode_str(&ptr, &val_length);                
-                            value = string(val, val_length);
-                        } else {
-                            value = string("", 0);
-                            mp_decode_nil(&ptr);
-                        }
-
-                        rr.str_data = value;
-                        rr.lang     = LANG_NONE;
-                        resources.push_back(rr);
-
-/*                        std::cerr << "string" << endl;                        
-                        uint        val_length;
-//    std::cout << "@c #4" << std::endl;
-                        std::cerr << "\t\t\t\tTRY STR ";
-                        const char  *val = mp_decode_str(&ptr, &val_length);
-
-//    std::cout << "@c #5" << std::endl;
-
-                        Resource    rr;
-                        rr.type = _String;
-                        std::string value(val, val_length);
-                        std::cerr << value << endl;
-                        
-                        rr.str_data = value;
-                        rr.lang     = LANG_NONE;
-                        resources.push_back(rr);*/
-                    }
-                    else
-                    {
-                        return -1;
-                    }
-                }
-                else if (predicate_el_length == 3)
-                {
-                    long type;
-                    // std::cerr << predicate_el_length << endl;
-
-                    // std::cerr << "\t\t\tDECODE UINT type is ";
-                    if (mp_typeof(*ptr) == MP_UINT)
-                        type = mp_decode_uint(&ptr);
-                    else
-                        type = mp_decode_int(&ptr);
-
-                    if (type == _Decimal)
-                    {
-                        long mantissa, exponent;
-                        // std::cerr << "is decimal" << endl << "\t\t\t\tTRY MANTISSA";
-                        if (mp_typeof(*ptr) == MP_UINT)
-                            mantissa = mp_decode_uint(&ptr);
-                        else
-                            mantissa = mp_decode_int(&ptr);
-                        // std::cerr << mantissa << endl << "\t\t\t\tTRY EXP";
-                        if (mp_typeof(*ptr) == MP_UINT)
-                            exponent = mp_decode_uint(&ptr);
-                        else
-                            exponent = mp_decode_int(&ptr);
-                        // std::cerr << exponent << endl;
-
-                        Resource rr;
-                        rr.type                  = _Decimal;
-                        rr.decimal_mantissa_data = mantissa;
-                        rr.decimal_expanent_data = exponent;
-                        resources.push_back(rr);
-                    }
-                    else if (type == _String)
-                    {
-                        Resource    rr;
-                        std::string value;
-                        
-                        rr.type = _String;
-                        if (mp_typeof(*ptr) != MP_NIL) {
-                            uint        val_length;                
-                            const char  *val = mp_decode_str(&ptr, &val_length);                
-                            value = string(val, val_length);
-                        } else {
-                            value = string("", 0);
-                            mp_decode_nil(&ptr);
-                        }
+        // std::cerr << "SIZE " << res_objs.size << endl;
+        for (int j = 0; j < res_objs.size; j++)
+        {
+            msgpack::object value = res_objs.ptr[j];
             
-                        long lang = mp_decode_uint(&ptr);
-                        rr.lang     = lang;
-                        rr.str_data = value;
-                        resources.push_back(rr);
+            switch (value.type) 
+            {
+                case msgpack::type::ARRAY:
+                {
+                // std::cerr << "is array" << endl;
+                    // std::cerr << "\t\t\tTRY ARR SIZE ";
+                    msgpack::object_array res_arr = value.via.array;
+                    // std::cerr << "ARR SIZE " << res_arr.size << endl; 
+                    if (res_arr.size == 2)
+                    {
+                        long type = res_arr.ptr[0].via.u64;
 
-/*                        uint        val_length;
-//    std::cout << "@c #6" << std::endl;
-                        const char  *val = mp_decode_str(&ptr, &val_length);
+                        if (type == _Datetime)
+                        {
+                            long value; 
 
-//    std::cout << "@c #7" << std::endl;
-                        long        lang = mp_decode_uint(&ptr);
+                            Resource rr;
+                            rr.type      = _Datetime;
+                            if (res_arr.ptr[1].type == msgpack::type::POSITIVE_INTEGER)
+                                rr.long_data = res_arr.ptr[1].via.u64;
+                            else
+                                rr.long_data = res_arr.ptr[1].via.i64;
+                                
+                            resources.push_back(rr);
+                        }
+                        else if (type == _String)
+                        {
+                            Resource    rr;
 
-                        Resource    rr;
-                        rr.type = _String;
-                        std::string value(val, val_length);
-                        rr.str_data = value;
-                        rr.lang     = lang;
-                        resources.push_back(rr);*/
+                            // std::cerr << "string" << endl;
+                            rr.type = _String;
+                            
+                            if (res_arr.ptr[1].type == msgpack::type::STR)
+                                rr.str_data = string(res_arr.ptr[1].via.str.ptr, 
+                                    res_arr.ptr[1].via.str.size);
+                            else if (res_arr.ptr[1].type == msgpack::type::NIL)
+                                rr.str_data = "";
+                            else 
+                            {
+                                std::cerr << "@ERR! NOT A STRING IN RESOURCE ARRAY 2" << endl;
+                                return -1;
+                            }
+
+                            rr.lang = LANG_NONE;
+                            resources.push_back(rr);
+                        }
+                        else
+                        {
+                            std::cerr << "@1" << endl;
+                            return -1;
+                        }
+                    }
+                    else if (res_arr.size == 3)
+                    {
+                        long type = res_arr.ptr[0].via.u64;
+                        // std::cerr << "TYPE " << type << endl;
+                        if (type == _Decimal)
+                        {
+                            long mantissa, exponent;
+                            // std::cerr << "is decimal" << endl << "\t\t\t\tTRY MANTISSA";
+                            if (res_arr.ptr[1].type == msgpack::type::POSITIVE_INTEGER)
+                                mantissa = res_arr.ptr[1].via.u64;
+                            else
+                                mantissa = res_arr.ptr[1].via.i64;
+                            // std::cerr << mantissa << endl << "\t\t\t\tTRY EXP";
+                            if (res_arr.ptr[2].type == msgpack::type::POSITIVE_INTEGER)
+                                exponent = res_arr.ptr[2].via.u64;
+                            else
+                                exponent = res_arr.ptr[2].via.i64;
+
+                            
+                            // std::cerr << exponent << endl;
+
+                            Resource rr;
+                            rr.type                  = _Decimal;
+                            rr.decimal_mantissa_data = mantissa;
+                            rr.decimal_expanent_data = exponent;
+                            resources.push_back(rr);
+                        }
+                        else if (type == _String)
+                        {
+                            Resource    rr;
+                            
+                            rr.type = _String;
+                            if (res_arr.ptr[1].type == msgpack::type::STR)
+                                rr.str_data = string(res_arr.ptr[1].via.str.ptr, 
+                                    res_arr.ptr[1].via.str.size);
+                            else if (res_arr.ptr[1].type == msgpack::type::NIL)
+                                rr.str_data = "";
+                            else 
+                            {
+                                std::cerr << "@ERR! NOT A STRING IN RESOURCE ARRAY 2" << endl;
+                                return -1;
+                            }
+                
+                            long lang = res_arr.ptr[2].via.u64;
+                            rr.lang     = lang;
+                            resources.push_back(rr);
+
+                        }
+                        else
+                        {
+                            std::cerr << "@2" << endl;
+                            return -1;
+                        }
                     }
                     else
                     {
+                        std::cerr << "@3" << endl;
                         return -1;
                     }
+                    break;
                 }
-                else
+
+                case msgpack::type::STR:
                 {
-                    return -1;
+                    Resource    rr;
+                    rr.type = _Uri;
+                    rr.str_data = string(string(value.via.str.ptr, value.via.str.size));
+                    resources.push_back(rr);
+                    break;
                 }
-            }
-            else if (el_type == MP_STR)
-            {
-                Resource    rr;
-                std::string value;
 
-                // std::cerr << "is string" << endl;                
-
-                rr.type = _Uri;
-                
-                if (mp_typeof(*ptr) != MP_NIL) {
-                    uint        val_length;                
-                    const char  *val = mp_decode_str(&ptr, &val_length);                
-                    value = string(val, val_length);
-                } else {
-                    value = string("", 0);
-                    mp_decode_nil(&ptr);
+                case msgpack::type::POSITIVE_INTEGER:
+                {
+                    Resource rr;
+                    rr.type      = _Integer;
+                    rr.long_data = value.via.u64;
+                    resources.push_back(rr);
+                    break;
                 }
-    
 
-                rr.str_data = value;
-                resources.push_back(rr);
-                
-                /*std::cerr << "is string" << endl;                
-                // this uri
-                uint        val_length;
-//    std::cout << "@c #8" << std::endl;
-                const char  *val = mp_decode_str(&ptr, &val_length);
-//    std::cout << "@c #9" << std::endl;
+                case msgpack::type::NEGATIVE_INTEGER:
+                {
+                    Resource rr;
+                    rr.type      = _Integer;
+                    rr.long_data = value.via.i64;
+                    resources.push_back(rr);
+                    break;
+                }       
 
-                Resource    rr;
-                rr.type = _Uri;
-                std::string value(val, val_length);
-                rr.str_data = value;
-                resources.push_back(rr);*/
-            }
-            else if (el_type == MP_INT || el_type == MP_UINT)
-            {
-                // std::cerr << "is int or uint" << endl;
-                // this uint32_t
-                long value;
-                if (mp_typeof(*ptr) == MP_UINT)
-                    value = mp_decode_uint(&ptr);
-                else
-                    value = mp_decode_int(&ptr);
-                Resource rr;
-                rr.type      = _Integer;
-                rr.long_data = value;
-                resources.push_back(rr);
-            }
-            else if (el_type == MP_BOOL)
-            {
-                // std::cerr << "is bool" << endl;                
-                // this bool
-                long     value = mp_decode_bool(&ptr);
+                case msgpack::type::BOOLEAN:
+                {
+                    Resource rr;
+                    rr.type      = _Boolean;
+                    rr.bool_data = value.via.boolean;
+                    resources.push_back(rr);
+                    break;
+                } 
 
-                Resource rr;
-                rr.type      = _Boolean;
-                rr.bool_data = value;
-                resources.push_back(rr);
-            }
-            else
-            {
-                return -1;
+                default:
+                {
+                    std::cerr << "@ERR! UNSUPPORTED RESOURCE TYPE " << value.type << endl;
+                    return -1;  
+                }  
             }
         }
-        individual->resources[ predicate ] = resources;
+
+        // std::cerr << "RES SIZE " << resources.size() << endl;
+        individual->resources[ predicate ] = resources;        
     }
 
-//    std::cout << "@c #e" << std::endl;
-
-    return (int32_t)(ptr - in_ptr);
+    // std::cerr << individual << endl;
+    // std::cerr << "END" << endl;
+    return (int32_t)in_str.size();
 }
 
 int32_t individual2msgpack(Individual *individual, char *in_buff)
