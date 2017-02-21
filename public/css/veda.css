@@ -683,7 +683,7 @@ button.close {
 /* Notifications */
 #notification-container {
   max-width: 50%;
-  max-height: 50%;
+  /*max-height: 50%;*/
   position: fixed;
   bottom: 10px;
   right: 10px;
@@ -692,7 +692,7 @@ button.close {
 }
 .alert-notify {
   display: block;
-  white-space: nowrap;
+  /*white-space: nowrap;*/
   display: none;
 }
 
