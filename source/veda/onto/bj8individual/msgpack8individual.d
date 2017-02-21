@@ -110,7 +110,9 @@ public int msgpack2individual(ref Individual individual, string in_str)
         	
             StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
 
-            // writefln("TRY TO UNPACK %s", in_str);
+                            if (is_pupkin)
+             writefln("TRY TO UNPACK %s", in_str);
+             
             if (unpacker.execute()) 
             {      
                 size_t root_el_size = unpacker.unpacked.length;
@@ -127,11 +129,17 @@ public int msgpack2individual(ref Individual individual, string in_str)
                     {
                         case Value.Type.raw:
                         individual.uri = (cast(string)obj.via.raw).dup;
-                        // writefln("\tTRY TO UNPACK uri=%s", individual.uri);
+
+                            if (is_pupkin)
+                         writefln("\tTRY TO UNPACK uri=%s", individual.uri);
+
                         break;
 
                         case Value.Type.map:
-                        // writefln("\tTRY TO UNPACK map_len=%d", obj.via.map.length);
+                        
+                            if (is_pupkin)
+	                         writefln("\tTRY TO UNPACK map_len=%d", obj.via.map.length);
+                         
                         Value[Value] map = obj.via.map;
                         foreach (key; map.byKey) 
                         {
