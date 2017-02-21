@@ -214,8 +214,6 @@ veda.Module(function UpdateService(veda) { "use strict";
           ) continue;
 
           individual.update();
-	  var notify = new veda.Notify();
-	  notify("success", {description: JSON.stringify(individual.properties)});
           updateCounter = individual["v-s:updateCounter"][0];
           if (list[uri]) {
             list[uri].updateCounter = updateCounter;

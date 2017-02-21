@@ -15,7 +15,7 @@ veda.Module(function Notify(veda) { "use strict";
           durationFade = 200,
           durationShown = 10000,
           status = msg.status,
-          description = msg.description && msg.description.length > 7000 ? msg.description.substring(0, 7000) + "..." : msg.description,
+          description = msg.description && msg.description.length > 70 ? msg.description.substring(0, 70) + "..." : msg.description,
           iconClass = "fa fa-lg fa-" + (
             type === "danger" ? "times-circle" :
             type === "info" ? "info-circle" :
