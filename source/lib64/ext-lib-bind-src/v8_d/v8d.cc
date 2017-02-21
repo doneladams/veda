@@ -19,8 +19,8 @@ using namespace std;
 using namespace v8;
 
 #define MAX_BUF_SIZE    1024*1024
-char sr_buff[MAX_BUF_SIZE];
-//char* sr_buff = NULL;
+//char sr_buff[MAX_BUF_SIZE];
+char* sr_buff = NULL;
 
 //////////////////////////////////////////////////////////////////
 
@@ -717,15 +717,13 @@ PutIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-	//sr_buff = new char[1024*1024];
+		if (sr_buff == NULL)
+			sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
         std::cerr << "PutIndividual: len=" << len << endl;
-            
-        char *bb = new char[len];
-        strncpy(bb, sr_buff, len);
-        
-        res = put_individual(ticket, str_ticket.length(), bb, len, event_id, str_event_id.length());
+                    
+        res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -755,14 +753,12 @@ AddToIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-	//sr_buff = new char[1024*1024];
+		if (sr_buff == NULL)
+			sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
-        
-        char *bb = new char[len];
-        strncpy(bb, sr_buff, len);
-        
-        res = add_to_individual(ticket, str_ticket.length(), bb, len, event_id, str_event_id.length());
+                
+        res = add_to_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -792,14 +788,12 @@ SetInIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-	//sr_buff = new char[1024*1024];
+		if (sr_buff == NULL)
+			sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
-        
-        char *bb = new char[len];
-        strncpy(bb, sr_buff, len);
-        
-        res = set_in_individual(ticket, str_ticket.length(), bb, len, event_id, str_event_id.length());
+                
+        res = set_in_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
@@ -829,14 +823,12 @@ RemoveFromIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
         v8::String::Utf8Value str_event_id(args[ 2 ]);
         const char            *event_id = ToCString(str_event_id);
 
-	//sr_buff = new char[1024*1024];
+		if (sr_buff == NULL)
+			sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
 
-        char *bb = new char[len];
-        strncpy(bb, sr_buff, len);
-
-        res = remove_from_individual(ticket, str_ticket.length(), bb, len, event_id, str_event_id.length());
+        res = remove_from_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }
 
     args.GetReturnValue().Set(res);
