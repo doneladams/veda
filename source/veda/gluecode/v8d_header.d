@@ -3,7 +3,7 @@
  */
 module veda.gluecode.v8d_header;
 
-import std.stdio, std.conv, std.file, std.path;
+import std.stdio, std.conv, std.file, std.path, std.string;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.lang, veda.onto.onto, veda.gluecode.script;
 import veda.core.common.context, veda.core.common.define, veda.core.util.utils;
 import veda.util.container;
@@ -189,8 +189,16 @@ public ResultCode commit()
 
         Ticket *ticket = g_context.get_ticket(item.ticket_id);
 
-		if (item.indv.uri == "td:RomanKarpov")
-	        stderr.writefln ("transaction: cmd=%s, indv=%s ", item.cmd, item.indv);
+		Resources rss1 = item.indv.getResources ("rdfs:label"); 
+		
+		foreach (rs ; rss1)
+		{
+			string sss1 = rs.get!string;
+			if (sss1.indexOf ("Пупкин Вася") >= 0)
+			{
+		        stderr.writefln ("transaction: cmd=%s, indv=%s ", item.cmd, item.indv);
+			}    
+		}
 
         ResultCode rc;
         rc = g_context.put_individual(ticket, item.indv.uri, item.indv, true, item.event_id, ignore_freeze).result;
