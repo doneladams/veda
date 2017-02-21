@@ -189,7 +189,8 @@ public ResultCode commit()
 
         Ticket *ticket = g_context.get_ticket(item.ticket_id);
 
-        stderr.writefln ("transaction: cmd=%s, indv=%s ", item.cmd, item.indv);
+		if (item.indv.uri == "td:RomanKarpov")
+	        stderr.writefln ("transaction: cmd=%s, indv=%s ", item.cmd, item.indv);
 
         ResultCode rc;
         rc = g_context.put_individual(ticket, item.indv.uri, item.indv, true, item.event_id, ignore_freeze).result;
