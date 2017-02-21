@@ -101,6 +101,13 @@ public int msgpack2individual(ref Individual individual, string in_str)
     {
         try
         {
+        	bool is_pupkin = false;
+        	if (in_str.indexOf ("Пупкин") >= 0)
+        	{
+        		is_pupkin = true;
+        	}
+        	
+        	
             StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
 
             // writefln("TRY TO UNPACK %s", in_str);
@@ -129,7 +136,10 @@ public int msgpack2individual(ref Individual individual, string in_str)
                         foreach (key; map.byKey) 
                         {
                             string predicate = (cast(string)key.via.raw).dup;
-                            // writeln("\t\tTRY UNPACK KEY VAL: ", predicate);
+                            
+                            if (is_pupkin)
+                             stderr.writeln("\t\tTRY UNPACK KEY VAL: ", predicate);
+                             
                             Resources resources = Resources.init;
                             Value[] resources_vals = map[key].via.array;
                             // writeln("\t\tTRY UNPACK RESOURCES len ", resources_vals.length);
