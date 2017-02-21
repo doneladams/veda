@@ -720,7 +720,8 @@ PutIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
 	//sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
-        
+        std::cerr << "PutIndividual: len=" << len << endl;
+            
         char *bb = new char[len];
         strncpy(bb, sr_buff, len);
         
