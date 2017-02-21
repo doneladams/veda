@@ -109,7 +109,10 @@ public int msgpack2individual(ref Individual individual, string in_str)
                 size_t root_el_size = unpacker.unpacked.length;
                 // writefln("TRY TO UNPACK root_el_size=%d", root_el_size);
                 if (root_el_size != 2)
+                {
+					stderr.writeln ("@0");
                     return -1;
+                }    
                 
                 foreach (obj; unpacker.purge()) 
                 {
@@ -161,7 +164,7 @@ public int msgpack2individual(ref Individual individual, string in_str)
                                         }
                                         else
                                         {
-                                            writeln("@1");
+                                            stderr.writeln("@1");
                                             return -1;
                                         }
                                     }
@@ -194,7 +197,7 @@ public int msgpack2individual(ref Individual individual, string in_str)
                                         }
                                         else
                                         {
-                                            writeln("@2");
+                                            stderr.writeln("@2");
                                             return -1;
                                         }
                                     }
