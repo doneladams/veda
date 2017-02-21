@@ -38,6 +38,9 @@ public int msgpack2vjson(Json *individual, string in_str)
                     foreach (key; map.byKey) 
                     {
                         string predicate = (cast(string)key.via.raw).dup;
+                        
+                        stderr.writeln ("predicate=", predicate);
+                        
                         Value[] resources_vals = map[key].via.array;
                         Json   resources = Json.emptyArray;
                         
@@ -78,7 +81,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                                     }
                                     else
                                     {
-                                        writeln("@1");
+                                        stderr.writeln("@1");
                                         return -1;
                                     }
                                 }
@@ -118,7 +121,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                                     }
                                     else
                                     {
-                                        writeln("@2");
+                                        stderr.writeln("@2");
                                         return -1;
                                     }
                                 }
@@ -170,7 +173,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                 return -1;
         }
 
-        stderr.writeln("JSON: ", *individual);
+        stderr.writeln("msgpack2vjson: JSON: ", *individual);
 
         return 1; //read_element(individual, cast(ubyte[])in_str, dummy);
     }
