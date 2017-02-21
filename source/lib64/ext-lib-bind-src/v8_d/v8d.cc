@@ -721,7 +721,6 @@ PutIndividual(const v8::FunctionCallbackInfo<v8::Value>& args)
 			sr_buff = new char[1024*1024];
 
         int len = individual2msgpack(&individual, sr_buff);
-        std::cerr << "PutIndividual: len=" << len << endl;
                     
         res = put_individual(ticket, str_ticket.length(), sr_buff, len, event_id, str_event_id.length());
     }

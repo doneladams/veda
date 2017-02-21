@@ -191,15 +191,6 @@ public ResultCode commit()
 
 		Resources rss1 = item.indv.getResources ("rdfs:label"); 
 		
-		foreach (rs ; rss1)
-		{
-			string sss1 = rs.get!string;
-			if (sss1.indexOf ("Пупкин Вася") >= 0)
-			{
-		        stderr.writefln ("transaction: cmd=%s, indv=%s ", item.cmd, item.indv);
-			}    
-		}
-
         ResultCode rc;
         rc = g_context.put_individual(ticket, item.indv.uri, item.indv, true, item.event_id, ignore_freeze).result;
 

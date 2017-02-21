@@ -39,7 +39,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                     {
                         string predicate = (cast(string)key.via.raw).dup;
                         
-                        stderr.writeln ("predicate=", predicate);
+                        //stderr.writeln ("predicate=", predicate);
                         
                         Value[] resources_vals = map[key].via.array;
                         Json   resources = Json.emptyArray;
@@ -173,7 +173,7 @@ public int msgpack2vjson(Json *individual, string in_str)
                 return -1;
         }
 
-        stderr.writeln("msgpack2vjson: JSON: ", *individual);
+        //stderr.writeln("msgpack2vjson: JSON: ", *individual);
 
         return 1; //read_element(individual, cast(ubyte[])in_str, dummy);
     }
