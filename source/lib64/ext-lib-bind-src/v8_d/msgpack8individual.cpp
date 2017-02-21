@@ -23,8 +23,8 @@ uint32_t write_individual(Individual *individual, char *in_buff)
     }
 
     memcpy(in_buff, buffer.data(), buffer.size());
-
-        // std::cerr << "\t" << string(buffer.data(), buffer.size()) << endl;
+    if (individual->uri == "td:RomanKarpov")
+        std::cerr << "MSGPACK: " << string(buffer.data(), buffer.size()) << endl;
     return buffer.size();
 }
 
@@ -284,6 +284,11 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 
     // std::cerr << individual << endl;
     // std::cerr << "END" << endl;
+    if (individual->uri == "td:RomanKarpov") {
+        std::cerr << "INDIVIDUAL BEGIN" << endl;
+        individual->print_to_stderr();
+        std::cerr << "INDIVIDUAL END" << endl;
+    }
     return (int32_t)in_str.size();
 }
 

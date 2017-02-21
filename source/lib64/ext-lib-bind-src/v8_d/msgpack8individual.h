@@ -51,8 +51,31 @@ struct Resource
 
 struct Individual
 {
-    string                            uri;
+    string uri;
     map < string, vector <Resource> > resources;
+
+public:
+    void print_to_stderr()
+    {
+        std::cerr << "URI: " << uri << endl;
+        for (map< string, vector<Resource> >::iterator it = resources.begin(); it != resources.end(); ++it)
+        {
+            std::cerr << "\tPREDIACATE: " << it->first << endl;
+            vector<Resource> vec = it->second;
+            for (int i = 0; i < vec.size(); i++) {
+                std::cerr << "\t\tttype " << vec[i].type << endl;
+                std::cerr << "\t\torigin " << vec[i].origin << endl;
+                std::cerr << "\t\tlang " << vec[i].lang << endl;
+                std::cerr << "\t\tstr_data " << vec[i].str_data << endl;
+                std::cerr << "\t\tbool_data " << vec[i].bool_data << endl;
+                std::cerr << "\t\tlong_data " << vec[i].long_data << endl;
+                std::cerr << "\t\tdecimal_mantissa " << vec[i].decimal_mantissa_data << endl;
+                std::cerr << "\t\tdecimal_exponent " << vec[i].decimal_expanent_data << endl;
+            }
+            // std::cerr << "\t" << it->first << " : " << it->second << endl; 
+        }
+
+    }
 };
 
 struct Element
