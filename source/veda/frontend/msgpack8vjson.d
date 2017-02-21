@@ -8,6 +8,7 @@
 
 module veda.frontend.msgpack8vjson;
 
+private import msgpack;
 private import std.outbuffer, std.stdio, std.string, std.conv, std.datetime;
 private import vibe.data.json;
 private import veda.common.type, veda.onto.resource, veda.onto.individual, veda.onto.lang, veda.bind.msgpuck;
@@ -16,173 +17,162 @@ public int msgpack2vjson(Json *individual, string in_str)
 {
     try
     {
-        char *ptr         = cast(char *)in_str.ptr;
-        int  root_el_size = mp_decode_array(&ptr);
+        StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
 
-        if (root_el_size != 2)
-            return -1;
-
-        uint uri_lenght;
-        char *uri = mp_decode_str(&ptr, &uri_lenght);
-        (*individual)[ "@" ] = uri[ 0..uri_lenght ].dup;
-
-        int predicates_length = mp_decode_map(&ptr);
-
-        for (int idx = 0; idx < predicates_length; idx++)
-        {
-            uint   key_lenght;
-            char   *key          = mp_decode_str(&ptr, &key_lenght);
-            string predicate_uri = key[ 0..key_lenght ].dup;
-
-            Json   resources = Json.emptyArray;
-
-            int    resources_el_length = mp_decode_array(&ptr);
-            for (int i_resource = 0; i_resource < resources_el_length; i_resource++)
+        if (unpacker.execute()) 
+        {      
+            size_t root_el_size = unpacker.unpacked.length;
+            if (root_el_size != 2)
+                return -1;
+            
+            foreach (obj; unpacker.purge()) 
             {
-                Json    resource_json = Json.emptyObject;
-                mp_type el_type       = mp_typeof(*ptr);
-
-                if (el_type == mp_type.MP_ARRAY)
+                switch (obj.type) 
                 {
-                    int predicate_el_length = mp_decode_array(&ptr);
-                    if (predicate_el_length == 2)
+                    case Value.Type.raw:
+                    (*individual)[ "@" ] = (cast(string)obj.via.raw).dup;
+                    break;
+
+                    case Value.Type.map:
+                    Value[Value] map = obj.via.map;
+                    foreach (key; map.byKey) 
                     {
-                        long type;
-
-                        if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                            type = mp_decode_uint(&ptr);
-                        else
-                            type = mp_decode_int(&ptr);
-
-                        if (type == DataType.Datetime)
+                        string predicate = (cast(string)key.via.raw).dup;
+                        Value[] resources_vals = map[key].via.array;
+                        Json   resources = Json.emptyArray;
+                        
+                        for (int i = 0; i < resources_vals.length; i++) 
                         {
-                            long value;
+                            Json resource_json = Json.emptyObject;                        
+                            switch (resources_vals[i].type)
+                            {
+                                case Value.Type.array:
+                                Value[] arr = resources_vals[i].via.array;
+                                if (arr.length == 2)
+                                {
+                                    long type = arr[0].via.uinteger;
+
+                                    if (type == DataType.Datetime)
+                                    {
+                                        long value;
                             
-                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                                value = mp_decode_uint(&ptr);
-                            else
-                                value = mp_decode_int(&ptr);
+                                        if (arr[1].type == Value.Type.unsigned)
+                                            value = arr[1].via.uinteger;
+                                        else 
+                                            value = arr[1].via.integer;
 
-                            resource_json[ "type" ] = text(DataType.Datetime);
-                            SysTime st = SysTime(unixTimeToStdTime(value), UTC());
-                            resource_json[ "data" ] = st.toISOExtString();
-                        }
-                        else if (type == DataType.String)
-                        {
-                            uint val_length;
-                            if (mp_typeof(*ptr) != mp_type.MP_NIL) {
-                                char *val = mp_decode_str(&ptr, &val_length);
-                                resource_json[ "data" ] = val[ 0..val_length ].dup;
-                            } else {
-                                mp_decode_nil(&ptr);
-                                resource_json[ "data" ] = "";
+                                        resource_json[ "type" ] = text(DataType.Datetime);
+                                        SysTime st = SysTime(unixTimeToStdTime(value), UTC());
+                                        resource_json[ "data" ] = st.toISOExtString();
+                                    }
+                                    else if (type == DataType.String)
+                                    {  
+                                        if (arr[1].type == Value.type.raw)
+                                            resource_json[ "data" ] = 
+                                                (cast(string)arr[1].via.raw).dup;
+                                        else if (arr[1].type == Value.type.nil)
+                                            resource_json[ "data" ] = "";
+
+                                        resource_json[ "lang" ] = text(LANG.NONE);
+                                        resource_json[ "type" ] = text(DataType.String);
+                                    }
+                                    else
+                                    {
+                                        writeln("@1");
+                                        return -1;
+                                    }
+                                }
+                                else if (arr.length == 3)
+                                {
+                                    long type = arr[0].via.uinteger;
+
+                                    if (type == DataType.Decimal)
+                                    {
+                                        long mantissa, exponent;
+
+                                        if (arr[1].type == Value.Type.unsigned)
+                                            mantissa = arr[1].via.uinteger;
+                                        else 
+                                            mantissa = arr[1].via.integer;
+
+                                        if (arr[2].type == Value.Type.unsigned)
+                                            exponent = arr[2].via.uinteger;
+                                        else 
+                                            exponent = arr[2].via.integer;
+
+                                        resource_json[ "type" ] = text(DataType.Decimal);
+                                        auto dres = decimal(mantissa, cast(byte)exponent);
+                                        resource_json[ "data" ] = dres.asString();
+                                    }
+                                    else if (type == DataType.String)
+                                    {
+                                        if (arr[1].type == Value.type.raw)
+                                            resource_json[ "data" ] = 
+                                                (cast(string)arr[1].via.raw).dup;
+                                        else if (arr[1].type == Value.type.nil)
+                                            resource_json[ "data" ] = "";
+
+                                        resource_json[ "type" ] = text(DataType.String);
+                                        resource_json[ "lang" ] = 
+                                            text(cast(LANG)arr[2].via.uinteger);
+                                    }
+                                    else
+                                    {
+                                        writeln("@2");
+                                        return -1;
+                                    }
+                                }
+                                break;
+
+                                case Value.Type.raw:
+                                // writeln("\t\t\t\t", cast(string)resources_vals[i].via.raw);
+                                resource_json[ "type" ] = text(DataType.Uri);
+                                resource_json[ "data" ] = 
+                                    (cast(string)resources_vals[i].via.raw).dup;
+                                break;
+
+                                case Value.Type.unsigned:
+                                    resource_json[ "type" ] = text(DataType.Integer);
+                                    resource_json[ "data" ] = resources_vals[i].via.uinteger;
+                                break;
+
+                                case Value.Type.signed:
+                                resource_json[ "type" ] = text(DataType.Integer);
+                                resource_json[ "data" ] = resources_vals[i].via.integer;
+                                break;
+
+
+                                case Value.Type.boolean:
+                                resource_json[ "type" ] = text(DataType.Boolean);
+                                resource_json[ "data" ] = resources_vals[i].via.boolean;
+                                break;
+
+                                default:
+                                    stderr.writefln("@ERR! UNSUPPORTED TYPE IN MSGPACK!");
+                                break;
                             }
-                            resource_json[ "lang" ] = text(LANG.NONE);
-                            resource_json[ "type" ] = text(DataType.String);
+                            resources ~= resource_json;
                             
-                        }
-                        else
-                            return -1;
+                        }   
+                        
+                        (*individual)[ predicate ] = resources;                     
                     }
-                    else if (predicate_el_length == 3)
-                    {
-                        long type;
+                    break;
 
-                        if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                            type = mp_decode_uint(&ptr);
-                        else
-                            type = mp_decode_int(&ptr);
-
-                        if (type == DataType.Decimal)
-                        {
-                            long mantissa, exponent;
-
-
-                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                                mantissa = mp_decode_uint(&ptr);
-                            else
-                                mantissa = mp_decode_int(&ptr);
-
-                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                                exponent = mp_decode_uint(&ptr);
-                            else
-                                exponent = mp_decode_int(&ptr);
-                            
-
-                            resource_json[ "type" ] = text(DataType.Decimal);
-
-                            auto dres = decimal(mantissa, cast(byte)exponent);
-                            resource_json[ "data" ] = dres.asString();
-                        }
-                        else if (type == DataType.String)
-                        {
-                            uint val_length;
-
-                            if (mp_typeof(*ptr) != mp_type.MP_NIL) {
-                                char *val = mp_decode_str(&ptr, &val_length);
-                                resource_json[ "data" ] = val[ 0..val_length ].dup;
-                            } else {
-                                mp_decode_nil(&ptr);
-                                resource_json[ "data" ] = "";
-                            }
-
-                            long lang;
-                            if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                                lang = mp_decode_uint(&ptr);
-                            else
-                                lang = mp_decode_int(&ptr);
-
-                            resource_json[ "type" ] = text(DataType.String);
-                            resource_json[ "lang" ] = text(cast(LANG)lang);
-                        }
-                        else
-                            return -1;
-                    }
-                    else
-                    {
-                        return -1;
-                    }
+                    default:
+                    break;
                 }
-                else if (el_type == mp_type.MP_STR)
-                {
-                    // this uri
-                    uint val_length;
-                    if (mp_typeof(*ptr) != mp_type.MP_NIL) {
-                        char *val = mp_decode_str(&ptr, &val_length);
-                        resource_json[ "data" ] = val[ 0..val_length ].dup;
-                    } else {
-                        mp_decode_nil(&ptr);
-                        resource_json[ "data" ] = "";
-                    }
-                    resource_json[ "type" ] = text(DataType.Uri);
-                }
-                else if (el_type == mp_type.MP_INT || el_type == mp_type.MP_UINT)
-                {
-                    // this int
-                    long val;
-                    if (mp_typeof(*ptr) == mp_type.MP_UINT) 
-                        val = mp_decode_uint(&ptr);
-                    else
-                        val = mp_decode_int(&ptr);
-                    resource_json[ "type" ] = text(DataType.Integer);
-                    resource_json[ "data" ] = val;
-                }
-                else if (el_type == mp_type.MP_BOOL)
-                {
-                    // this bool
-                    bool val = mp_decode_bool(&ptr);
-                    resource_json[ "type" ] = text(DataType.Boolean);
-                    resource_json[ "data" ] = val;
-                }
-                else
-                    return -1;
-
-                resources ~= resource_json;
             }
-            (*individual)[ predicate_uri ] = resources;
+        } 
+        else 
+        {
+                stderr.writeln("Serialized object is too large!");
+                return -1;
         }
 
-        return -1; //read_element(individual, cast(ubyte[])in_str, dummy);
+        stderr.writeln("JSON: ", *individual);
+
+        return 1; //read_element(individual, cast(ubyte[])in_str, dummy);
     }
     catch (Throwable ex)
     {

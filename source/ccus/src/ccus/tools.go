@@ -3,21 +3,25 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
-	"log"
+	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	"unsafe"
+
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 // #define MP_SOURCE 1
 // #include "msgpuck.h"
-import "C"
+// import "C"
 
 type CustomDecimal struct {
-	Mantissa int
-	Exponent int
+	Mantissa int64
+	Exponent int64
 }
 
-func NewCustomDecimal(mantissa int, exponent int) CustomDecimal {
+func NewCustomDecimal(mantissa int64, exponent int64) CustomDecimal {
 	var res CustomDecimal
 
 	res.Mantissa = mantissa
@@ -80,124 +84,122 @@ func CopyString(s string) string {
 	return string(b)
 }
 
-func msgpack2individual(individual *Individual, msgpack string) {
-	var curiLen C.uint32_t
-
-	startPtr := C.CString(msgpack)
-	ptr := startPtr
-	arrLen := C.mp_decode_array(&ptr)
-
-	if arrLen != 2 {
-		log.Fatal("INCORRECT MSGPACK ARR LEN IS NOT 2: ", msgpack)
+func msgpack2individual(individual *Individual, str string) error {
+	decoder := msgpack.NewDecoder(strings.NewReader(str))
+	arrLen, err := decoder.DecodeArrayLen()
+	if err != nil {
+		return err
+	} else if arrLen != 2 {
+		return errors.New("@ERR! INVALID INDIVID %s")
 	}
 
-	curi := C.mp_decode_str(&ptr, &curiLen)
-	individual.uri = C.GoStringN(curi, C.int(curiLen))
-	// fmt.Println("DECODED MAIN URI")
+	individual.uri, err = decoder.DecodeString()
+	resMapI, err := decoder.DecodeMap()
+	resMap := resMapI.(map[interface{}]interface{})
 
-	cmpLen := int(C.mp_decode_map(&ptr))
-
-	for i := 0; i < cmpLen; i++ {
-		var resType DataType
+	for keyI, resArrI := range resMap {
 		var resource Resource
-		var curiResLen C.uint32_t
-		curiRes := C.mp_decode_str(&ptr, &curiResLen)
-		predicate := C.GoStringN(curiRes, C.int(curiResLen))
 
-		resArrLen := int(C.mp_decode_array(&ptr))
-		individual.resources[predicate] = make(Resources, int(resArrLen))
-		for j := 0; j < resArrLen; j++ {
-			switch C.mp_typeof(*ptr) {
-			case C.MP_ARRAY:
-				cresLen := C.mp_decode_array(&ptr)
-				// fmt.Println(cresLen)
-				if cresLen == 2 {
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						resType = DataType(C.mp_decode_uint(&ptr))
-					} else {
-						resType = DataType(C.mp_decode_int(&ptr))
-					}
+		predicate := keyI.(string)
+		resArr := resArrI.([]interface{})
+		individual.resources[predicate] = make(Resources, len(resArr))
+
+		for i := 0; i < len(resArr); i++ {
+			resI := resArr[0]
+			switch resI.(type) {
+			case []interface{}:
+				resArrI := resI.([]interface{})
+				if len(resArrI) == 2 {
+					resType := DataType(resArrI[0].(uint64))
 
 					if resType == Datetime {
-						if C.mp_typeof(*ptr) == C.MP_UINT {
-							resource.data = int(C.mp_decode_uint(&ptr))
-						} else {
-							resource.data = int(C.mp_decode_int(&ptr))
+						switch resArrI[1].(type) {
+						case int:
+							resource.data = resArrI[1]
+						case uint:
+							resource.data = resArrI[1]
+						default:
+							return fmt.Errorf("@ERR SIZE 2! NOT INT/UINT IN DATETIME: %s",
+								reflect.TypeOf(resArrI[1]))
 						}
 						resource._type = Datetime
 					} else if resType == String {
 						// fmt.Println("TRY TO DECODE STR")
-						if C.mp_typeof(*ptr) != C.MP_NIL {
-							var valLen C.uint32_t
-							val := C.mp_decode_str(&ptr, &valLen)
-							resource.data = C.GoStringN(val, C.int(valLen))
-						} else {
-							C.mp_decode_nil(&ptr)
+						switch resArrI[1].(type) {
+						case string:
+							resource.data = resArrI[1]
+						case nil:
 							resource.data = ""
+						default:
+							return fmt.Errorf("@ERR SIZE 2! NOT STRING: %s",
+								reflect.TypeOf(resArrI[1]))
 						}
+						resource._type = String
+						resource.lang = LANG_NONE
 					}
-				} else if cresLen == 3 {
-					if C.mp_typeof(*ptr) == C.MP_UINT {
-						resType = DataType(C.mp_decode_uint(&ptr))
-					} else {
-						resType = DataType(C.mp_decode_int(&ptr))
-					}
+				} else if len(resArrI) == 3 {
+					resType := DataType(resArrI[0].(uint64))
 
 					if resType == Decimal {
-						var mantissa, exponent int
+						var mantissa, exponent int64
 
-						if C.mp_typeof(*ptr) == C.MP_UINT {
-							mantissa = int(C.mp_decode_uint(&ptr))
-						} else {
-							mantissa = int(C.mp_decode_int(&ptr))
+						switch resArrI[1].(type) {
+						case int64:
+							mantissa = resArrI[1].(int64)
+						case uint64:
+							mantissa = int64(resArrI[1].(uint64))
+						default:
+							return fmt.Errorf("@ERR SIZE 3! NOT INT/UINT IN MANTISSA: %s",
+								reflect.TypeOf(resArrI[1]))
 						}
 
-						if C.mp_typeof(*ptr) == C.MP_UINT {
-							exponent = int(C.mp_decode_uint(&ptr))
-						} else {
-							exponent = int(C.mp_decode_int(&ptr))
+						switch resArrI[2].(type) {
+						case int64:
+							exponent = resArrI[2].(int64)
+						case uint64:
+							exponent = int64(resArrI[2].(uint64))
+						default:
+							return fmt.Errorf("@ERR SIZE 3! NOT INT/UINT IN MANTISSA: %s",
+								reflect.TypeOf(resArrI[1]))
 						}
 
+						resource._type = Decimal
 						resource.data = NewCustomDecimal(mantissa, exponent)
 					} else if resType == String {
-						if C.mp_typeof(*ptr) != C.MP_NIL {
-							var valLen C.uint32_t
-							val := C.mp_decode_str(&ptr, &valLen)
-							resource.data = C.GoStringN(val, C.int(valLen))
-						} else {
-							C.mp_decode_nil(&ptr)
+						switch resArrI[1].(type) {
+						case string:
+							resource.data = resArrI[1]
+						case nil:
 							resource.data = ""
+						default:
+							return fmt.Errorf("@ERR SIZE 3! NOT STRING: %s",
+								reflect.TypeOf(resArrI[1]))
 						}
 
-						if C.mp_typeof(*ptr) == C.MP_UINT {
-							resource.lang = LANG(C.mp_decode_uint(&ptr))
-						} else {
-							resource.lang = LANG(C.mp_decode_int(&ptr))
-						}
+						resource._type = String
+						resource.lang = LANG(resArrI[2].(uint64))
 					}
 				}
-			case C.MP_STR:
-				if C.mp_typeof(*ptr) != C.MP_NIL {
-					var valLen C.uint32_t
-					val := C.mp_decode_str(&ptr, &valLen)
-					resource.data = C.GoStringN(val, C.int(valLen))
-				} else {
-					C.mp_decode_nil(&ptr)
-					resource.data = ""
-				}
-			case C.MP_INT:
-				fallthrough
-			case C.MP_UINT:
-				if C.mp_typeof(*ptr) == C.MP_UINT {
-					resource.data = int(C.mp_decode_uint(&ptr))
-				} else {
-					resource.data = int(C.mp_decode_int(&ptr))
-				}
-			case C.MP_BOOL:
-				resource.data = bool(C.mp_decode_bool(&ptr))
+
+			case string:
+				resource._type = Uri
+				resource.data = resI
+			case int64:
+				resource.data = resI
+				resource._type = Integer
+			case uint64:
+				resource.data = resI
+				resource._type = Integer
+			case bool:
+				resource.data = resI
+				resource._type = Boolean
+			default:
+				return fmt.Errorf("@ERR! UNSUPPORTED TYPE %s", reflect.TypeOf(resI))
 			}
 
-			individual.resources[predicate][j] = resource
+			individual.resources[predicate][i] = resource
 		}
 	}
+
+	return nil
 }

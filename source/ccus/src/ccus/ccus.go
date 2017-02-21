@@ -153,12 +153,17 @@ func queue_reader(ch_collector_update chan updateInfo) {
 
 			var individual *Individual = NewIndividual()
 
-			msgpack2individual(individual, data)
+			err := msgpack2individual(individual, data)
+			if err != nil {
+				log.Println(err)
+				log.Println(data)
+				continue
+			}
 			uri := individual.resources["uri"][0].data.(string)
-			u_count := individual.resources["u_count"][0].data.(int)
-			op_id := individual.resources["op_id"][0].data.(int)
+			u_count := individual.resources["u_count"][0].data.(uint64)
+			op_id := individual.resources["op_id"][0].data.(uint64)
 			if uri != "" {
-				new_info := updateInfo{uri, op_id, u_count, nil}
+				new_info := updateInfo{uri, int(op_id), int(u_count), nil}
 				ch_collector_update <- new_info
 			} else {
 				log.Printf("BROKEN INDIVID %v", individual)

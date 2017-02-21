@@ -154,9 +154,10 @@ public int msgpack2individual(ref Individual individual, string in_str)
                                         {  
                                             if (arr[1].type == Value.type.raw)
                                                 resources ~= Resource(DataType.String, 
-                                                    (cast(string)arr[1].via.raw).dup);
+                                                    (cast(string)arr[1].via.raw).dup, LANG.NONE);
                                             else if (arr[1].type == Value.type.nil)
-                                                resources ~= Resource(DataType.String, "");
+                                                resources ~= Resource(DataType.String, "", 
+                                                    LANG.NONE);
                                         }
                                         else
                                         {
@@ -237,7 +238,8 @@ public int msgpack2individual(ref Individual individual, string in_str)
             } 
             else 
             {
-                // writeln("Serialized object is too large!");
+                 stderr.writeln("Serialized object is too large!");
+                 return -1;
             }
 
             return 1;
