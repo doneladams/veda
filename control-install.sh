@@ -264,3 +264,6 @@ fi
    cd ..
    cd ..
    rm -rf tmp
+
+   cd $SMD/source/lib64/ext-lib-bind-src/v8_d
+   make    
