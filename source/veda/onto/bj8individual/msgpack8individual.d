@@ -101,17 +101,17 @@ public int msgpack2individual(ref Individual individual, string in_str)
     {
         try
         {
-        	bool is_pupkin = false;
-        	if (in_str.indexOf ("Пупкин") >= 0)
-        	{
-        		is_pupkin = true;
-        	}
+        	//bool is_pupkin = false;
+        	//if (in_str.indexOf ("Пупкин") >= 0)
+        	//{
+        	//	is_pupkin = true;
+        	//}
         	
         	
             StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
 
-             if (is_pupkin)
-	             stderr.writefln("TRY TO UNPACK len=%d, val=%s", in_str.length, in_str);
+             //if (is_pupkin)
+	         //    stderr.writefln("TRY TO UNPACK len=%d, val=%s", in_str.length, in_str);
              
             if (unpacker.execute()) 
             {      
@@ -130,23 +130,23 @@ public int msgpack2individual(ref Individual individual, string in_str)
                         case Value.Type.raw:
                         individual.uri = (cast(string)obj.via.raw).dup;
 
-                            if (is_pupkin)
-                         stderr.writefln("\tTRY TO UNPACK uri=%s", individual.uri);
+                         //   if (is_pupkin)
+                         //stderr.writefln("\tTRY TO UNPACK uri=%s", individual.uri);
 
                         break;
 
                         case Value.Type.map:
                         
-                            if (is_pupkin)
-	                         stderr.writefln("\tTRY TO UNPACK map_len=%d", obj.via.map.length);
+                        //    if (is_pupkin)
+	                    //     stderr.writefln("\tTRY TO UNPACK map_len=%d", obj.via.map.length);
                          
                         Value[Value] map = obj.via.map;
                         foreach (key; map.byKey) 
                         {
                             string predicate = (cast(string)key.via.raw).dup;
                             
-                            if (is_pupkin)
-                             stderr.writeln("\t\tTRY UNPACK KEY VAL: ", predicate);
+                            //if (is_pupkin)
+                            // stderr.writeln("\t\tTRY UNPACK KEY VAL: ", predicate);
                              
                             Resources resources = Resources.init;
                             Value[] resources_vals = map[key].via.array;

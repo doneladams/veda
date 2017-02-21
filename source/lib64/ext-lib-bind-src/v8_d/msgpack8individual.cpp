@@ -24,11 +24,11 @@ uint32_t write_individual(Individual *individual, char *in_buff)
 
     memcpy(in_buff, buffer.data(), buffer.size());
 
-    for (int i  = 0; i < individual->resources["rdfs:label"].size(); i++)
-        if (individual->resources["rdfs:label"][i].str_data.find("Пупкин Вася") != string::npos) {
-            std::cerr << "MSGPACK: " << string(buffer.data(), buffer.size()) << endl;
-            break;
-        }
+    //for (int i  = 0; i < individual->resources["rdfs:label"].size(); i++)
+    //    if (individual->resources["rdfs:label"][i].str_data.find("Пупкин Вася") != string::npos) {
+    //        std::cerr << "MSGPACK: " << string(buffer.data(), buffer.size()) << endl;
+    //        break;
+    //    }
     return buffer.size();
 }
 
@@ -289,13 +289,13 @@ int32_t msgpack2individual(Individual *individual, string in_str)
 
     // std::cerr << individual << endl;
     // std::cerr << "END" << endl;
-    for (int i  = 0; i < individual->resources["rdfs:label"].size(); i++)
-        if (individual->resources["rdfs:label"][i].str_data.find("Пупкин Вася") != string::npos) {
-            std::cerr << "INDIVIDUAL BEGIN" << endl;
-            individual->print_to_stderr();
-            std::cerr << "INDIVIDUAL END" << endl;
-            break;
-        }
+    //for (int i  = 0; i < individual->resources["rdfs:label"].size(); i++)
+    //    if (individual->resources["rdfs:label"][i].str_data.find("Пупкин Вася") != string::npos) {
+    //        std::cerr << "INDIVIDUAL BEGIN" << endl;
+    //        individual->print_to_stderr();
+    //        std::cerr << "INDIVIDUAL END" << endl;
+    //        break;
+    //    }
     return (int32_t)in_str.size();
 }
 
