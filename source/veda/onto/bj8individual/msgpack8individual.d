@@ -40,10 +40,6 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
     packer.pack(uri.dup);
     // stderr.writef("\tRESOURCE URI=%s\n", uri);
     packer.beginArray(vv.length);
-    if (uri == null)
-        stderr.writef("ENCODING NULL STRING D");
-    else if (uri.length == 0)
-        stderr.writef("ENCODING ZERO LEN STRING D");
     foreach (value; vv)
     {
         if (value.type == DataType.Uri)
@@ -147,13 +143,20 @@ public int msgpack2individual(ref Individual individual, string in_str)
 
                                         if (type == DataType.Datetime)
                                         {
-                                            long value = arr[1].via.uinteger;
-                                            resources ~= Resource(DataType.Datetime, value);
+                                            if (arr[1].type == Value.Type.unsigned)
+                                                resources ~= Resource(DataType.Datetime, 
+                                                    arr[1].via.uinteger);
+                                            else 
+                                                resources ~= Resource(DataType.Datetime, 
+                                                    arr[1].via.integer);
                                         }
                                         else if (type == DataType.String)
                                         {  
-                                            resources ~= Resource(DataType.String, 
-                                                (cast(string)arr[1].via.raw).dup);
+                                            if (arr[1].type == Value.type.raw)
+                                                resources ~= Resource(DataType.String, 
+                                                    (cast(string)arr[1].via.raw).dup);
+                                            else if (arr[1].type == Value.type.nil)
+                                                resources ~= Resource(DataType.String, "");
                                         }
                                         else
                                         {
@@ -167,13 +170,23 @@ public int msgpack2individual(ref Individual individual, string in_str)
 
                                         if (type == DataType.Decimal)
                                         {
-                                            long mantissa = arr[1].via.uinteger;
-                                            long exponent = arr[2].via.uinteger;
-                                            resources ~= Resource(decimal(mantissa, cast(byte)exponent));
+                                            long mantissa, exponent;
+
+                                            if (arr[1].type == Value.Type.unsigned)
+                                                mantissa = arr[1].via.uinteger;
+                                            else 
+                                                mantissa = arr[1].via.integer;
+
+                                            if (arr[2].type == Value.Type.unsigned)
+                                                exponent = arr[2].via.uinteger;
+                                            else 
+                                                exponent = arr[2].via.integer;
+
+                                            resources ~= Resource(decimal(mantissa, 
+                                                cast(byte)exponent));
                                         }
                                         else if (type == DataType.String)
                                         {
-
                                             long lang = arr[2].via.uinteger;
                                             resources ~= Resource(DataType.String, 
                                                 (cast(string)arr[1].via.raw).dup, cast(LANG)lang);
@@ -193,14 +206,23 @@ public int msgpack2individual(ref Individual individual, string in_str)
                                     break;
 
                                     case Value.Type.unsigned:
-                                    resources ~= Resource(DataType.Integer, resources_vals[i].via.uinteger);
+                                    resources ~= Resource(DataType.Integer, 
+                                        resources_vals[i].via.uinteger);
                                     break;
 
+                                    case Value.Type.signed:
+                                    resources ~= Resource(DataType.Integer, 
+                                        resources_vals[i].via.integer);
+                                    break;
+
+
                                     case Value.Type.boolean:
-                                    resources ~= Resource(DataType.Boolean, resources_vals[i].via.boolean);
+                                    resources ~= Resource(DataType.Boolean, 
+                                        resources_vals[i].via.boolean);
                                     break;
 
                                     default:
+                                        stderr.writefln("@ERR! UNSUPPORTED TYPE IN MSGPACK!");
                                     break;
                                 }
                             }
