@@ -53,6 +53,7 @@ void write_resources(string uri, vector <Resource> vv, msgpack::packer<msgpack::
             pk.pack_array(3);
             pk.pack((uint)_Decimal);
             pk.pack(value.decimal_mantissa_data);
+            pk.pack(value.decimal_expanent_data);
         }
         else
             if (value.lang != LANG_NONE)
