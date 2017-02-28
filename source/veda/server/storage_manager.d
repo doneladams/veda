@@ -14,6 +14,7 @@ private
     import kaleidic.nanomsg.nano;
     import veda.bind.libwebsocketd;
     import veda.server.wslink;
+    import std.socket;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -250,12 +251,24 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
     long                         committed_op_id = 0;
 
     string                       notify_channel_url = "tcp://127.0.0.1:9111\0";
-    int                          sock;
+    string                       tarantool_url = "tcp://127.0.0.1:9090\0";
+    int                          sock, tarantool_sock;
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
 
+    stderr.writeln("@INDIVIDUALS MANAGER");
     try
     {
+        if ((tarantool_sock = nn_socket(AF_SP, NN_PAIR)) < 0) {
+            stderr.writeln("@ERROR ON CREATING SOCKET");
+            return;
+        }
+        if (nn_connect(tarantool_sock, cast(char *)tarantool_url) < 0) {
+            stderr.writeln("@ERROR ON CONNECTING SOCKET");
+            return;
+        }
+        stderr.writeln("@CONNECTED");
+
         if (storage_id == P_MODULE.subject_manager)
         {
             individual_queue = new Queue("individuals-flow", Mode.RW, log);
@@ -512,7 +525,12 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            //writeln("*binobj.length=", binobj.length);
+                                            stderr.writefln("@INDIVIDUALS MANAGER binobj=%s 
+                                                *binobj.length=%d", binobj, binobj.length);
+                                            stderr.writeln("@INDIVIDUALS MANAGER TRY TO SEND");
+                                            nn_send(tarantool_sock, cast(char *)binobj, 
+                                                binobj.length, 0);
+                                            stderr.writeln("@INDIVIDUALS MANAGER SEND DONE");
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
