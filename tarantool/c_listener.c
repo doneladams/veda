@@ -18,6 +18,8 @@ c_listener_start(lua_State *L)
 	uint32_t individuals_space_id;
 	int socket_fd;
 
+	printf("@LISTENER STARTED\n");
+
 	if ((individuals_space_id = box_space_id_by_name("individuals", 
 		strlen("individuals"))) == BOX_ID_NIL) {
 		fprintf(stderr, "No such space");
@@ -40,7 +42,7 @@ c_listener_start(lua_State *L)
 
 		msgpack = NULL;
 		size = nn_recv(socket_fd, &msgpack, NN_MSG, 0);
-		printf("GOT MSGPACK %s\n", msgpack);
+		// printf("GOT MSGPACK %s\n", msgpack);
 		if (box_replace(individuals_space_id, msgpack, msgpack + size, NULL) < 0) {
 			fprintf(stderr, "LISTENER: Error on inserting msgpack %s\n", msgpack);
 			nn_close(socket_fd);

@@ -69,5 +69,11 @@ if [ -z $1 ] || [ $1 == "ttlreader" ] || [ $1 == "veda-ttlreader" ] ; then
     ./build-component.sh veda-ttlreader ttlreader
 fi
 
+if [ -z $1 ] || [ $1 == "listener" ] ; then
+    cd tarantool
+    ./compile_listener.sh
+    cd ..
+fi
+
 #sudo ifup -a
 

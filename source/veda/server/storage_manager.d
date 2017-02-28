@@ -505,8 +505,8 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             Individual imm;
                                             imm.uri = text(op_id);
                                             imm.addResource("cmd", Resource(cmd));
-
                                             imm.addResource("uri", Resource(DataType.Uri, indv_uri));
+
 
                                             if (user_uri !is null && user_uri.length > 0)
                                                 imm.addResource("user_uri", Resource(DataType.Uri, user_uri));
@@ -525,12 +525,12 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            stderr.writefln("@INDIVIDUALS MANAGER binobj=%s 
-                                                *binobj.length=%d", binobj, binobj.length);
-                                            stderr.writeln("@INDIVIDUALS MANAGER TRY TO SEND");
+                                            // stderr.writefln("@INDIVIDUALS MANAGER binobj=%s 
+                                                // *binobj.length=%d", binobj, binobj.length);
+                                            // stderr.writeln("@INDIVIDUALS MANAGER TRY TO SEND");
                                             nn_send(tarantool_sock, cast(char *)binobj, 
                                                 binobj.length, 0);
-                                            stderr.writeln("@INDIVIDUALS MANAGER SEND DONE");
+                                            // stderr.writeln("@INDIVIDUALS MANAGER SEND DONE");
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
