@@ -1,4 +1,4 @@
-box.cfg{listen=3309, work_dir='./data', slab_alloc_arena=10.0, slab_alloc_maximal=67108864}
+box.cfg{listen=3309, work_dir='./data/tarantool', slab_alloc_arena=10.0, slab_alloc_maximal=67108864}
 if box.space.individuals == nil then
     box.schema.space.create('individuals', {engine='vinyl'})
     box.space.individuals:create_index('primary', {parts={1, 'string'}})

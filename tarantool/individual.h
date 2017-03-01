@@ -5,7 +5,6 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <msgpack.hpp>
 
 #define MP_SOURCE 1
 
