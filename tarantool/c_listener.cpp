@@ -40,7 +40,9 @@ msgpack_to_individual(Individual *individual, const char *msgpack)
         vector <Resource> resources;
 
 		if (mp_typeof(*msgpack) != MP_STR) {
-			std::cerr << "@ERR LISTENER! PREDICATE IS NOT STRING!" << endl;
+			std::cerr << "@ERR LISTENER! PREDICATE IS NOT STRING! " << hex << 
+                mp_typeof(*msgpack) << endl;
+            std::cerr << "PACK" << msgpack << endl;
             return -1;
 		}
 		
@@ -260,8 +262,19 @@ if(it != m.end())
 		new_state = new Individual();
 		it = individual->resources.find("new_state");
 		if(it != individual->resources.end()) {
-			tmp_vec  = it->second;
-			if (msgpack_to_individual(new_state, tmp_vec[0].str_data.c_str()) < 0) {
+            const char *tmp_ptr;
+            uint32_t tmp_len;
+			
+            tmp_vec  = it->second;
+            cout << "NEW STATE " << tmp_vec[0].str_data << endl;
+            tmp_ptr = tmp_vec[0].str_data.c_str();
+            tmp_len = tmp_vec[0].str_data.length();
+            if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
+                fprintf(stderr, "LISTENER: Error on inserting msgpack %s\n", msgpack);
+                nn_close(socket_fd);
+                return 0;
+		    }
+			if (msgpack_to_individual(new_state, tmp_ptr) < 0) {
 				cerr << "@ERR LISTENER! ERR ON DECODING NEW_STATE" << endl << msgpack << endl;
 				nn_freemsg(msgpack);
 				continue;
@@ -273,7 +286,7 @@ if(it != m.end())
 			continue;
 		}
 
-		it = individual->resources.find("old_state");
+/*		it = individual->resources.find("old_state");
 		if(it != individual->resources.end()) {
 			tmp_vec  = it->second;
 			if (msgpack_to_individual(new_state, tmp_vec[0].str_data.c_str()) < 0) {
@@ -281,14 +294,14 @@ if(it != m.end())
 				nn_freemsg(msgpack);
 				continue;
 			}
-		}
+		}*/
 		
 		
-		if (box_replace(individuals_space_id, msgpack, msgpack + size, NULL) < 0) {
+		/*if (box_replace(individuals_space_id, msgpack, msgpack + size, NULL) < 0) {
 			fprintf(stderr, "LISTENER: Error on inserting msgpack %s\n", msgpack);
 			nn_close(socket_fd);
 			return 0;
-		}
+		}*/
 		
 		nn_freemsg(msgpack);
 	}
