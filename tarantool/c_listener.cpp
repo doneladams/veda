@@ -1,12 +1,7 @@
-#include <arpa/inet.h>
 #include <errno.h>
-#include <strings.h>
-#include <signal.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pair.h>
 #include <tarantool/module.h>
-#include <unistd.h>
-#include <sys/time.h>
 
 #include "individual.h"
 
@@ -18,8 +13,7 @@ extern "C" {
 int32_t 
 msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
 {
-    msgpack::unpacker unpk;
-    
+    msgpack::unpacker unpk;    
 
     unpk.reserve_buffer(len);
     memcpy(unpk.buffer(), ptr, len);
@@ -37,15 +31,9 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
     
     individual->uri = string(obj_uri->via.str.ptr, obj_uri->via.str.size);
     
-    // std::cerr << glob_obj << endl;
-    // std::cerr << "URI " << uri << endl;
-
     msgpack::object_map map = obj_map->via.map;
-    // std::cerr << "MAP_SIZE " << map.size << endl;
     
     for (int i = 0; i < map.size; i++ ) {
-        // std::cerr << "\tKEY "  << *obj << endl;
-        // std::cerr << "\tKEY: " << pair->key << " VALUE: " << pair->val << endl;
         msgpack::object_kv pair = map.ptr[i];
         msgpack::object key = pair.key;
         msgpack::object_array res_objs = pair.val.via.array;
@@ -58,16 +46,12 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
         vector <Resource> resources;
         
 
-        // std::cerr << "SIZE " << res_objs.size << endl;
         for (int j = 0; j < res_objs.size; j++) {
             msgpack::object value = res_objs.ptr[j];
             
             switch (value.type) {
                 case msgpack::type::ARRAY: {
-                // std::cerr << "is array" << endl;
-                    // std::cerr << "\t\t\tTRY ARR SIZE ";
                     msgpack::object_array res_arr = value.via.array;
-                    // std::cerr << "ARR SIZE " << res_arr.size << endl; 
                     if (res_arr.size == 2) {
                         long type = res_arr.ptr[0].via.u64;
 
@@ -84,7 +68,6 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
                         else if (type == _String) {
                             Resource    rr;
 
-                            // std::cerr << "string" << endl;
                             rr.type = _String;
                             
                             if (res_arr.ptr[1].type == msgpack::type::STR)
@@ -106,22 +89,16 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
                         }
                     } else if (res_arr.size == 3) {
                         long type = res_arr.ptr[0].via.u64;
-                        // std::cerr << "TYPE " << type << endl;
                         if (type == _Decimal) {
                             long mantissa, exponent;
-                            // std::cerr << "is decimal" << endl << "\t\t\t\tTRY MANTISSA";
                             if (res_arr.ptr[1].type == msgpack::type::POSITIVE_INTEGER)
                                 mantissa = res_arr.ptr[1].via.u64;
                             else
                                 mantissa = res_arr.ptr[1].via.i64;
-                            // std::cerr << mantissa << endl << "\t\t\t\tTRY EXP";
                             if (res_arr.ptr[2].type == msgpack::type::POSITIVE_INTEGER)
                                 exponent = res_arr.ptr[2].via.u64;
                             else
                                 exponent = res_arr.ptr[2].via.i64;
-
-                            
-                            // std::cerr << exponent << endl;
 
                             Resource rr;
                             rr.type                  = _Decimal;
@@ -198,19 +175,9 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
             }
         }
 
-        // std::cerr << "RES SIZE " << resources.size() << endl;
         individual->resources[ predicate ] = resources;        
     }
 
-    // std::cerr << individual << endl;
-    // std::cerr << "END" << endl;
-    //for (int i  = 0; i < individual->resources["rdfs:label"].size(); i++)
-    //    if (individual->resources["rdfs:label"][i].str_data.find("Пупкин Вася") != string::npos) {
-    //        std::cerr << "INDIVIDUAL BEGIN" << endl;
-    //        individual->print_to_stderr();
-    //        std::cerr << "INDIVIDUAL END" << endl;
-    //        break;
-    //    }
     return 0;
 }
 
@@ -245,15 +212,6 @@ c_listener_start(lua_State *L)
 		Individual *prev_state, *new_state;
 		map< string, vector<Resource> >::iterator it;
 		vector<Resource> tmp_vec;
-
-/*		map< string, vector<Resource> >::iterator it = m.find('2');
-Bar b3;
-if(it != m.end())
-{
-   //element found;
-   b3 = it->second;
-}*/
-
 		
 		msgpack = NULL;
 		size = nn_recv(socket_fd, &msgpack, NN_MSG, 0);
@@ -272,7 +230,7 @@ if(it != m.end())
             uint32_t tmp_len;
 			
             tmp_vec  = it->second;
-            cout << "NEW STATE " << tmp_vec[0].str_data << endl;
+            // cout << "NEW STATE " << tmp_vec[0].str_data << endl;
             tmp_ptr = tmp_vec[0].str_data.c_str();
             tmp_len = tmp_vec[0].str_data.length();
             if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
@@ -292,22 +250,22 @@ if(it != m.end())
 			continue;
 		}
 
-/*		it = individual->resources.find("old_state");
+		it = individual->resources.find("prev_state");
+        prev_state = NULL;
 		if(it != individual->resources.end()) {
+            const char *tmp_ptr;
+            uint32_t tmp_len;
+
+            prev_state = new Individual();
 			tmp_vec  = it->second;
-			if (msgpack_to_individual(new_state, tmp_vec[0].str_data.c_str()) < 0) {
-				cerr << "@ERR LISTENER! ERR ON DECODING NEW_STATE" << endl << msgpack << endl;
+            tmp_ptr = tmp_vec[0].str_data.c_str();
+            tmp_len = tmp_vec[0].str_data.length();
+			if (msgpack_to_individual(prev_state, tmp_ptr, tmp_len) < 0) {
+				cerr << "@ERR LISTENER! ERR ON DECODING PREV_STATE" << endl << msgpack << endl;
 				nn_freemsg(msgpack);
 				continue;
 			}
-		}*/
-		
-		
-		/*if (box_replace(individuals_space_id, msgpack, msgpack + size, NULL) < 0) {
-			fprintf(stderr, "LISTENER: Error on inserting msgpack %s\n", msgpack);
-			nn_close(socket_fd);
-			return 0;
-		}*/
+		}
 		
 		nn_freemsg(msgpack);
 	}
