@@ -42,6 +42,7 @@ struct Resource {
     int64_t long_data;
     int64_t decimal_mantissa_data;
     int64_t decimal_exponent_data;
+    bool operator== (Resource &res);    
 
     Resource () : type(0), origin(0), lang(0), str_data (""), bool_data(false), long_data(0), decimal_mantissa_data(0), decimal_exponent_data(0){};
 };

@@ -4,10 +4,95 @@
 #include <tarantool/module.h>
 
 #include "individual.h"
+#include "right.h"
 
 extern "C" {
 	int c_listener_start(lua_State *L);	
 	int luaopen_c_listener(lua_State *L);
+}
+
+vector<Resource>
+get_delta(vector<Resource> &a, vector<Resource> &b)
+{
+    vector<Resource> delta;
+    // cout << "DEFAULT DELTA SIZE " << delta.size() << endl;
+    
+    for (int i = 0; i < a.size(); i++) {
+        int j;
+        for (j = 0; j < b.size(); j++)
+            if (a[i] == b[j])
+                break;
+
+        if (j < b.size())
+            delta.push_back(a[i]);
+    }
+
+    cout << "RESULT DELTA SIZE " << delta.size() << endl;
+    return delta;
+}
+
+void update_right_set(vector<Resource> &resource, vector<Resource> &in_set, bool is_deleted, 
+    string prefix, uint8_t access)
+{
+    
+}
+
+void
+prepare_right_set(Individual *prev_state, Individual *new_state, string p_resource, 
+    string p_in_set, string prefix)
+{
+    bool is_deleted = false;
+	uint8_t access = 0;
+	vector <Resource> new_resource, new_in_set, prev_resource, prev_in_set, delta;
+    map< string, vector<Resource> >::iterator it; 
+
+    it = new_state->resources.find("v-d:deleted");
+    if (it != new_state->resources.end()) {
+        it->second = it->second;
+        is_deleted = it->second[0].bool_data;
+    }
+
+    it = new_state->resources.find("v-s:canCreate");
+    if (it != new_state->resources.end()) {
+    	it->second = it->second;
+		if (it->second[0].bool_data)
+			access |= ACCESS_CAN_CREATE;
+    }
+
+	it = new_state->resources.find("v-s:canRead");
+    if (it != new_state->resources.end()) {
+    	it->second = it->second;
+		if (it->second[0].bool_data)
+			access |= ACCESS_CAN_READ;
+    }
+
+	it = new_state->resources.find("v-s:canUpdate");
+    if (it != new_state->resources.end()) {
+    	it->second = it->second;
+		if (it->second[0].bool_data)
+			access |= ACCESS_CAN_UPDATE;
+    }
+
+	it = new_state->resources.find("v-s:canDelete");
+    if (it != new_state->resources.end()) {
+    	it->second = it->second;
+		if (it->second[0].bool_data)
+			access |= ACCESS_CAN_DELETE;
+    }
+
+	access = (access > 0) ? access : DEFAULT_ACCESS;
+
+	new_resource = new_state->resources[p_resource];
+	new_in_set = new_state->resources[p_in_set]; 
+
+    // cout << "ACCESS " << (int)access << " " << p_resource << endl;
+    delta = get_delta(prev_resource, new_resource);
+
+    if (delta.size() > 0) {
+
+    } else {
+
+    }
 }
 
 int32_t 
@@ -238,6 +323,7 @@ c_listener_start(lua_State *L)
                 nn_close(socket_fd);
                 return 0;
 		    }
+	
 			if (msgpack_to_individual(new_state, tmp_ptr, tmp_len) < 0) {
 				cerr << "@ERR LISTENER! ERR ON DECODING NEW_STATE" << endl << msgpack << endl;
 				nn_freemsg(msgpack);
@@ -251,12 +337,11 @@ c_listener_start(lua_State *L)
 		}
 
 		it = individual->resources.find("prev_state");
-        prev_state = NULL;
+        prev_state = new Individual();
 		if(it != individual->resources.end()) {
             const char *tmp_ptr;
             uint32_t tmp_len;
 
-            prev_state = new Individual();
 			tmp_vec  = it->second;
             tmp_ptr = tmp_vec[0].str_data.c_str();
             tmp_len = tmp_vec[0].str_data.length();
@@ -266,6 +351,15 @@ c_listener_start(lua_State *L)
 				continue;
 			}
 		}
+        
+		it = new_state->resources.find("rdf:type");
+		if (it != new_state->resources.end()) 
+			if (it->second[0].str_data == "v-s:PermissionStatement") 
+                prepare_right_set(prev_state, new_state, "v-s:permissionObject", 
+                    "v-s:permissionSubject", PERMISSION_PREFIX);
+            else if (it->second[0].str_data == "v-s:Membership")
+                prepare_right_set(prev_state, new_state, "v-s:resource", "v-s:memberOf", 
+                    MEMBERSHIP_PREFIX);
 		
 		nn_freemsg(msgpack);
 	}

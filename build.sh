@@ -71,7 +71,7 @@ fi
 
 if [ -z $1 ] || [ $1 == "listener" ] ; then
     cd tarantool
-    ./compile_listener.sh
+    make
     cd ..
 fi
 
