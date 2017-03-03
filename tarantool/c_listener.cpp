@@ -6,10 +6,13 @@
 #include "individual.h"
 #include "right.h"
 
+
 extern "C" {
 	int c_listener_start(lua_State *L);	
 	int luaopen_c_listener(lua_State *L);
 }
+
+uint32_t acl_space_id, acl_index_id;
 
 vector<Resource>
 get_delta(vector<Resource> &a, vector<Resource> &b)
@@ -27,14 +30,121 @@ get_delta(vector<Resource> &a, vector<Resource> &b)
             delta.push_back(a[i]);
     }
 
-    cout << "RESULT DELTA SIZE " << delta.size() << endl;
+    // cout << "RESULT DELTA SIZE " << delta.size() << endl;
     return delta;
 }
+
+void
+peek_from_tarantool(string key, map<string, Right> &new_right_set) 
+{
+    box_tuple_t *tuple;
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
+    msgpack::unpacker unpk;
+    size_t tuple_size;
+    uint32_t nmb_rights;
+    string right_uri;
+    char *buf;  
+
+
+    pk.pack_array(1);
+    pk.pack(key);
+
+    box_index_get(acl_space_id, acl_index_id, buffer.data(), buffer.data() + buffer.size(), 
+        &tuple);
+
+    if (tuple == NULL)
+        return;
+
+    tuple_size = box_tuple_bsize(tuple);
+    buf = new char[tuple_size];
+    box_tuple_to_buf(tuple, buf, tuple_size);
+    
+    unpk.reserve_buffer(tuple_size);
+    memcpy(unpk.buffer(), buf, tuple_size);
+    unpk.buffer_consumed(tuple_size);
+    msgpack::object_handle result;
+    unpk.next(result);
+    msgpack::object right_entry(result.get()); 
+    msgpack::object_array right_obj_arr = right_entry.via.array;
+
+    delete buf;
+
+    nmb_rights = right_obj_arr.size;
+    right_uri = string(right_obj_arr.ptr->via.str.ptr, right_obj_arr.ptr->via.str.size);
+
+    for (int i = 1; i < right_obj_arr.size; i++) {
+        Right right;
+        msgpack::object obj;
+
+        obj = right_obj_arr.ptr[i];
+        right.id = string(obj.via.str.ptr, obj.via.str.size - 1);
+        right.access = obj.via.str.ptr[obj.via.str.size - 1];
+        
+        // cout << "RIGHT ID " << right.id << " ACCESS " << right.access << endl;
+        new_right_set[right.id] = right;
+    } 
+}
+
+void 
+push_into_tarantool(string in_key, map<string, Right> new_right_set)
+{
+    int count = 0;
+    map<string, Right>::iterator it;
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
+
+    pk.pack_array(new_right_set.size() + 1);
+    pk.pack(in_key);
+
+    for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
+        if (!it->second.is_deleted) { 
+            pk.pack(it->second.id + (char)it->second.access);
+            count++;
+        }
+
+    if (count > 0) {
+        if (box_replace(acl_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
+            cerr << "LISTENER: Error on inserting acl msgpack " << buffer.data() << endl;
+    } else if (box_delete(acl_space_id, acl_index_id, buffer.data(), 
+        buffer.data() + buffer.size(), NULL) < 0)
+            cerr << "LISTENER: Error on deleting acl msgpack " << buffer.data() << endl;
+            
+}
+
 
 void update_right_set(vector<Resource> &resource, vector<Resource> &in_set, bool is_deleted, 
     string prefix, uint8_t access)
 {
-    
+
+    // cout << "UPDATE" << endl;
+    for (int i = 0; i < resource.size(); i++) {
+        map<string, Right> new_right_set;
+        string key;
+        // cout << "\tRES URI " << prefix + resource[i].str_data << endl;
+
+        key = prefix + resource[i].str_data;
+        peek_from_tarantool(key, new_right_set);
+        for (int j = 0; j < in_set.size(); j++) {
+            map<string, Right>::iterator it;
+            string in_set_key;
+
+            in_set_key = in_set[j].str_data;
+            it = new_right_set.find(in_set_key);
+            if (it != new_right_set.end()) {
+                it->second.is_deleted = is_deleted;
+                it->second.access |= access;
+            } else {
+                Right right;
+                right.id = in_set_key;
+                right.access = access;
+                right.is_deleted = is_deleted;
+                new_right_set[in_set_key] = right;
+            }
+            
+            push_into_tarantool(key, new_right_set);
+        }
+    }
 }
 
 void
@@ -88,11 +198,9 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     // cout << "ACCESS " << (int)access << " " << p_resource << endl;
     delta = get_delta(prev_resource, new_resource);
 
-    if (delta.size() > 0) {
-
-    } else {
-
-    }
+    update_right_set(new_resource, new_in_set, is_deleted, prefix, access);    
+    if (delta.size() > 0) 
+        update_right_set(delta, new_in_set, true, prefix, access);
 }
 
 int32_t 
@@ -274,19 +382,31 @@ c_listener_start(lua_State *L)
 
 	cout << "@LISTENER STARTED\n" << endl;
 
-	if ((individuals_space_id = box_space_id_by_name("individuals", 
-		strlen("individuals"))) == BOX_ID_NIL) {
-		fprintf(stderr, "No such space");
+	if ((individuals_space_id = box_space_id_by_name("individuals",  
+        strlen("individuals"))) == BOX_ID_NIL) {
+		cerr << "@ERR LISTENER! NO SUCH SPACE: individuals" << endl;
 		return 0;
 	}
+
+    if ((acl_space_id = box_space_id_by_name("acl", strlen("acl"))) == BOX_ID_NIL) {
+		cerr << "@ERR LISTENER! NO SUCH SPACE: acl" << endl;
+		return 0;
+	}
+
+    if ((acl_index_id = box_index_id_by_name(acl_space_id, "primary", 
+        strlen("primary"))) == BOX_ID_NIL) {
+        cerr << "@ERR LISTENER! NO SUCH INDEX: primary" << endl;   
+        return 0;
+    }
+	
 	
 	if ((socket_fd = nn_socket(AF_SP, NN_PAIR)) < 0) {
-		fprintf(stderr, "LISTENER: Error on creating socket: %s\n", nn_strerror(errno));
+		cerr << "LISTENER: Error on creating socket: " << nn_strerror(errno) << endl;
 		return 0;
 	}
 
 	if ((nn_bind (socket_fd, "tcp://127.0.0.1:9090")) < 0) {
-		fprintf(stderr, "LISTENER: Error on binding socket: %s\n", nn_strerror(errno));
+		cerr << "LISTENER: Error on binding socket: %s\n" << nn_strerror(errno) << endl;;
 		return 0;
 	}
 			

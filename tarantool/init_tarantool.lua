@@ -5,16 +5,16 @@ if box.space.individuals == nil then
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
---[[if box.space.acl == nil then
+if box.space.acl == nil then
     box.schema.space.create('acl', {engine='vinyl'})
-    box.space.individuals:create_index('primary', {parts={1, 'string'}})
+    box.space.acl:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'acl')
 end
 if box.space.acl_cache == nil then
     box.schema.space.create('acl_cache')
-    box.space.individuals:create_index('primary', {parts={1, 'string'}})
+    box.space.acl_cache:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'acl_cache')
-end]]
+end
 
 listener= require("listener")
 listener.start();
