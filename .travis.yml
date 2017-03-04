@@ -49,7 +49,7 @@ before_script:
   - cat $PWD/logs/veda-ttlreader-stderr.log
   - cat $PWD/logs/veda-webserver-stderr.log 
   - cat $PWD/veda_s.log
-#  - cat $PWD/logs/veda-core-server_*.log          
+  - cat $PWD/logs/veda-core-server_*.log          
   - ps aux | grep veda
 
 # Run API & integration test
