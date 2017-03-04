@@ -267,8 +267,4 @@ fi
 
    cd $SMD/source/lib64/ext-lib-bind-src/v8_d
    make    
-
-   cd $SMD/tarantool
-   ./compile_listener.sh
-
     
