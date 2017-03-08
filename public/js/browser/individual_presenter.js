@@ -71,18 +71,19 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           $("#save", cntr).click(function () {
             $(".actions *", cntr).toggleClass("hidden");
             pre.prop("contenteditable", false);
-            var notify = new veda.Notify();
+            var notify = veda.Notify ? new veda.Notify() : function () {};
             var original = individual.properties;
             try {
               formatted = pre.text();
               anchorized = anchorize(formatted);
               json = JSON.parse( formatted );
               individual.properties = json;
-              individual.save(true);
-              notify("success", {status: "", description: "Объект сохранен"});
-            } catch (e) {
+              individual.isSync(false);
+              individual.save();
+              notify("success", {name: "Объект сохранен"});
+            } catch (error) {
               individual.properties = original;
-              notify("danger", {status: "Ошибка", description: "Объект не сохранен"});
+              notify("danger", error);
             }
           });
           return;
@@ -618,9 +619,10 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
             } else {
               relContainer.empty();
             }
-          } catch (ex) {
-            if (ex instanceof TypeError) {
-              veda.trigger("warning", {status: "CL:001", description: "Attribute undefined - " + rel_uri});
+          } catch (error) {
+            if (error instanceof TypeError) {
+              var notify = veda.Notify ? new veda.Notify() : function () {};
+              notify("warning", {name: "Error", message: "Attribute undefined: " + rel_uri});
             }
           }
           // Remove rendered templates for removed values

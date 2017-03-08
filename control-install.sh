@@ -204,6 +204,7 @@ EOF
 # install
 sudo apt-get update
 sudo apt-get -y install tarantool
+sudo apt-get -y install tarantool-dev
 
 tarantool -V
 
@@ -267,8 +268,4 @@ fi
 
    cd $SMD/source/lib64/ext-lib-bind-src/v8_d
    make    
-
-   cd $SMD/tarantool
-   ./compile_listener.sh
-
     
