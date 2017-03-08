@@ -9,7 +9,7 @@ import (
 )
 
 // #cgo CFLAGS: -I/usr/include/lua5.3
-// #cgo LDFLAGS: -llua5.3 -L/usr/local/lib -ltarantool
+// #cgo LDFLAGS: -llua5.3 -L/usr/local/lib -ltarantool -Wl,-unresolved-symbols=ignore-all
 // #include <tarantool/module.h>
 // extern int golistener_start();
 import "C"
@@ -20,12 +20,12 @@ var aclSpaceId, aclIndexId C.uint32_t
 func golistener_start(L *C.lua_State) C.int {
 	fmt.Println("@GOLISTENER START")
 
-	/*individualsSpaceID := C.box_space_id_by_name(C.CString("individuals"),
-		C.int(len("individuals")))
-	if individuals_space_id == C.BOX_ID_NIL {
+	individualsSpaceID := C.box_space_id_by_name(C.CString("individuals"),
+		C.uint32_t(len("individuals")))
+	if individualsSpaceID == C.BOX_ID_NIL {
 		log.Printf("LISTENER: Error on getting individuals space id")
 		return C.int(0)
-	}*/
+	}
 
 	socket, err := nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.PAIR)
 	if err != nil {
