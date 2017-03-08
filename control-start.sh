@@ -4,7 +4,8 @@ ulimit -c unlimited
 mkdir logs
 mkdir data
 mkdir data/tarantool
-cp tarantool/c_listener.so data/tarantool/
+# cp tarantool/c_listener.so data/tarantool/
+cp tarantool/golistener.so data/tarantool/
 cp tarantool/listener.lua data/tarantool/
 tarantool ./tarantool/init_tarantool.lua &
 
