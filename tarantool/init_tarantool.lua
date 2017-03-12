@@ -5,6 +5,12 @@ if box.space.individuals == nil then
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
+if box.space.rdf_types == nil then
+    box.schema.space.create('rdf_types', {engine='vinyl'})
+    box.space.individuals:create_index('primary', {parts={1, 'string'}})
+    box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
+end
+
 if box.space.acl == nil then
     box.schema.space.create('acl', {engine='vinyl'})
     box.space.acl:create_index('primary', {parts={1, 'string'}})

@@ -75,5 +75,10 @@ if [ -z $1 ] || [ $1 == "listener" ] ; then
     cd ..
 fi
 
+if [ -z $1 ] || [ $1 == "aclserver" ] ; then
+    cd aclserver
+    make
+    cd ..
+fi
 #sudo ifup -a
 
