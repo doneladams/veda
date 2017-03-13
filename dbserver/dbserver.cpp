@@ -3,8 +3,8 @@
 #include <msgpack.hpp>
 #include <tarantool/module.h>
 
-#include "aclauth.h"
-#include "aclcodes.h"
+#include "dbauth.h"
+#include "dbcodes.h"
 
 using namespace std;
 
@@ -20,8 +20,8 @@ using namespace std;
 
 
 extern "C" {
-	int aclserver_start(lua_State *L);	
-	int luaopen_aclserver(lua_State *L);
+	int dbserver_start(lua_State *L);	
+	int luaopen_dbserver(lua_State *L);
 }
 
 
@@ -79,7 +79,7 @@ do_get_requet(const char *msg, msgpack::packer<msgpack::sbuffer> &pk)
     
 
     if (obj_arr.size < 3) {
-        cerr << "Error aclserver: msg arr size less than 2" << endl;
+        cerr << "Error dbserver: msg arr size less than 2" << endl;
         pk.pack_array(1);
         pk.pack(BAD_REQUEST);
         return;
@@ -105,7 +105,7 @@ do_get_requet(const char *msg, msgpack::packer<msgpack::sbuffer> &pk)
         if (res_size > 0) {
             cout << "EXISTS" << endl;
             if (need_auth) 
-                auth_result = aclauth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
+                auth_result = dbauth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
             cout << "AUTH " << auth_result << endl;
             if ((auth_result & ACCESS_CAN_READ) || !need_auth) {
                 pk.pack(OK);
@@ -121,7 +121,7 @@ do_get_requet(const char *msg, msgpack::packer<msgpack::sbuffer> &pk)
 }
 
 int
-aclserver_start(lua_State *L)
+dbserver_start(lua_State *L)
 {
     uint8_t op;
     const char *msg;
@@ -165,8 +165,8 @@ aclserver_start(lua_State *L)
 }
 
 int 
-luaopen_aclserver(lua_State *L)
+luaopen_dbserver(lua_State *L)
 {
-    lua_register(L, "aclserver_start", aclserver_start);  
+    lua_register(L, "dbserver_start", dbserver_start);  
 	return 0;
 }

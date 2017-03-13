@@ -1,5 +1,5 @@
-#ifndef ACLCODES_H
-#define ACLCODES_H
+#ifndef DBCODES_H
+#define DBCODES_H
 
 #define OK          200
 #define BAD_REQUEST 400

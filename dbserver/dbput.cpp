@@ -371,7 +371,7 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
 }
 
 int
-aclput(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool need_auth)
+dbput(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool need_auth)
 {
     Individual *individual;
     Individual *prev_state, *new_state;

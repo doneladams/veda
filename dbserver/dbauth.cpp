@@ -245,7 +245,7 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 
 
 int
-aclauth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res_uri_len)
+dbauth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res_uri_len)
 {
 	struct Right object_rights[MAX_RIGHTS], subject_rights[MAX_RIGHTS], extra_membership;
 	int32_t object_rights_count, subject_rights_count;
