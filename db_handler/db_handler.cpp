@@ -3,8 +3,8 @@
 #include <msgpack.hpp>
 #include <tarantool/module.h>
 
-#include "dbauth.h"
-#include "dbcodes.h"
+#include "db_auth.h"
+#include "db_codes.h"
 
 using namespace std;
 
@@ -105,7 +105,7 @@ do_get_requet(const char *msg, msgpack::packer<msgpack::sbuffer> &pk)
         if (res_size > 0) {
             cout << "EXISTS" << endl;
             if (need_auth) 
-                auth_result = dbauth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
+                auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
             cout << "AUTH " << auth_result << endl;
             if ((auth_result & ACCESS_CAN_READ) || !need_auth) {
                 pk.pack(OK);
@@ -121,7 +121,7 @@ do_get_requet(const char *msg, msgpack::packer<msgpack::sbuffer> &pk)
 }
 
 int
-dbserver_start(lua_State *L)
+dbhandle_request(lua_State *L)
 {
     uint8_t op;
     const char *msg;
@@ -165,8 +165,8 @@ dbserver_start(lua_State *L)
 }
 
 int 
-luaopen_dbserver(lua_State *L)
+luaopen_db_handler(lua_State *L)
 {
-    lua_register(L, "dbserver_start", dbserver_start);  
+    lua_register(L, "dbserver_start", dbhandle_request);  
 	return 0;
 }

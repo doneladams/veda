@@ -1,6 +1,6 @@
 box.cfg{listen=3309, slab_alloc_arena=10.0, slab_alloc_maximal=67108864}
 socket = require('socket')
-aclserver = require('dbserver')
+aclserver = require('db_handler')
 
 socket.tcp_server('0.0.0.0', 3303, function(s)
         local size, op, msg, resp, resp_size, resp_size_str
@@ -15,7 +15,7 @@ socket.tcp_server('0.0.0.0', 3303, function(s)
         
         msg = s:read(size)
         print('msg='..msg)
-        resp = dbserver_start(op, msg)
+        resp = db_handle_request(op, msg)
         resp_size = string.len(resp)
         print('resp_len='..resp_size)
         print('resp='..resp)

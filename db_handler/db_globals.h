@@ -1,5 +1,5 @@
-#ifndef DBGLOBALS_H
-#define DBGLOBALS_H
+#ifndef DB_GLOBALS_H
+#define DB_GLOBALS_H
 
 #include <stdint.h>
 

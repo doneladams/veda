@@ -3,8 +3,9 @@
 #include <nanomsg/pair.h>
 #include <tarantool/module.h>
 
-#include "aclcodes.h"
-#include "aclglobals.h"
+#include "db_auth.h"
+#include "db_codes.h"
+#include "db_globals.h"
 
 #include "individual.h"
 #include "right.h"
@@ -371,48 +372,124 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
 }
 
 int
-dbput(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool need_auth)
+get_rdf_types(string &key, vector<string> &rdf_types)
+{
+    box_tuple_t *tuple;
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
+    msgpack::object_handle result;    
+    msgpack::unpacker unpk;
+    msgpack::object glob_obj;
+    msgpack::object_array obj_arr;
+    size_t tuple_size;
+    char *buf;  
+
+
+    pk.pack_array(1);
+    pk.pack(key);
+
+    box_index_get(acl_space_id, acl_index_id, buffer.data(), buffer.data() + buffer.size(), 
+        &tuple);
+
+    if (tuple == NULL)
+        return 0;
+
+    tuple_size = box_tuple_bsize(tuple);
+    buf = new char[tuple_size];
+    box_tuple_to_buf(tuple, buf, tuple_size);
+
+    unpk.reserve_buffer(tuple_size);
+    memcpy(unpk.buffer(), buf, tuple_size);
+    unpk.buffer_consumed(tuple_size);
+    unpk.next(result);
+    glob_obj = msgpack::object(result.get()); 
+    obj_arr = glob_obj.via.array;
+
+    delete buf;
+
+    if (obj_arr.size < 2)
+        return -1;
+
+    for (int i = 1; i < obj_arr.size; i++) 
+       rdf_types.push_back(string(obj_arr.ptr[i].via.str.ptr, obj_arr.ptr[i].via.str.size));
+    
+    return rdf_types.size();
+}
+
+int
+db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool need_auth)
 {
     Individual *individual;
     Individual *prev_state, *new_state;
     map< string, vector<Resource> >::iterator it;
     vector<Resource> tmp_vec, rdf_type;
-
+    bool is_update = true;
+    int auth_result;
+    
     individual = new Individual();
     if (msgpack_to_individual(individual, indiv_msgpack.ptr, indiv_msgpack.size) < 0) {
         cerr << "@ERR REST! ERR ON ENCODING MSGPACK";
         return BAD_REQUEST;
-    }		
-
-    it = individual->resources.find("rdf:type");
-    if (it == individual->resources.end()) {
-        cerr << "@ERR REST! NO RDF TYPE FOUND!";
-        return BAD_REQUEST;
     }
-    rdf_type = it->second;
-
     
-
-    /*new_state = new Individual();
+    new_state = new Individual();
     it = individual->resources.find("new_state");
     if(it != individual->resources.end()) {
         const char *tmp_ptr;
         uint32_t tmp_len;
-        
+
+        it = new_state->resources.find("rdf:type");
+        if (it == individual->resources.end()) {
+            cerr << "@ERR REST! NO RDF TYPE FOUND!";
+            return BAD_REQUEST;
+        }
+        rdf_type = it->second;
+
+        if (need_auth) {   
+            int res;
+            vector<string> tnt_rdf_types;
+
+            res = get_rdf_types(individual->uri, tnt_rdf_types);
+            if (res < 0) {
+                cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
+                return INTERNAL_SERVER_ERROR;
+            } else if (res > 0) {
+                vector<string>::iterator it;
+                for (int i = 0; i < rdf_type.size(); i++) {
+                    it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
+                    if (it == tnt_rdf_types.end()) {
+                        is_update = false;
+                        auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
+                            rdf_type[i].str_data.size());
+                        if (!(auth_result & ACCESS_CAN_CREATE))
+                            return AUTH_FAILED;
+                    }
+                }
+            }
+                
+        }
+
+        if (is_update) {
+            auth_result = db_auth(user_id.ptr, user_id.size, individual->uri.c_str(),
+                individual->uri.size());
+            if (!(auth_result & ACCESS_CAN_UPDATE))
+                return AUTH_FAILED;
+        }
+            
         tmp_vec  = it->second;
         // cout << "NEW STATE " << tmp_vec[0].str_data << endl;
         tmp_ptr = tmp_vec[0].str_data.c_str();
         tmp_len = tmp_vec[0].str_data.length();
         if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
-            fprintf(stderr, "LISTENER: Error on inserting msgpack %s\n", msgpack);
-            nn_close(socket_fd);
-            return 0;
+            delete new_state;
+            cerr << "@ERR REST: ERR ON INSERTING MSGPACK" << endl;
+            return INTERNAL_SERVER_ERROR;
         }
 
         if (msgpack_to_individual(new_state, tmp_ptr, tmp_len) < 0) {
-            cerr << "@ERR REST! ERR ON DECODING NEW_STATE" << endl << msgpack << endl;
-            nn_freemsg(msgpack);
-            continue;
+            delete new_state;            
+            cerr << "@ERR REST! ERR ON DECODING NEW_STATE" << endl << endl;
+            return INTERNAL_SERVER_ERROR;
         }
     } else {
         delete new_state;
@@ -430,19 +507,22 @@ dbput(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool nee
         tmp_ptr = tmp_vec[0].str_data.c_str();
         tmp_len = tmp_vec[0].str_data.length();
         if (msgpack_to_individual(prev_state, tmp_ptr, tmp_len) < 0) {
-            cerr << "@ERR REST! ERR ON DECODING PREV_STATE" << endl << msgpack << endl;
+            delete prev_state;
+            delete new_state;
+            cerr << "@ERR REST! ERR ON DECODING PREV_STATE" << endl;
             return BAD_REQUEST;
         }
     }
     
     it = new_state->resources.find("rdf:type");
-    if (it != new_state->resources.end()) 
+    if (it != new_state->resources.end()) {
         if (it->second[0].str_data == "v-s:PermissionStatement") 
             prepare_right_set(prev_state, new_state, "v-s:permissionObject", 
                 "v-s:permissionSubject", PERMISSION_PREFIX);
         else if (it->second[0].str_data == "v-s:Membership")
             prepare_right_set(prev_state, new_state, "v-s:resource", "v-s:memberOf", 
-                MEMBERSHIP_PREFIX);*/
+                MEMBERSHIP_PREFIX);
+    }
     
     return OK;
 }

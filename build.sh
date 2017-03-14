@@ -75,8 +75,8 @@ if [ -z $1 ] || [ $1 == "listener" ] ; then
     cd ..
 fi
 
-if [ -z $1 ] || [ $1 == "dbserver" ] ; then
-    cd dbserver
+if [ -z $1 ] || [ $1 == "db_handler" ] ; then
+    cd db_handler
     make
     cd ..
 fi
