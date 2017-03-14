@@ -39,6 +39,10 @@ func main() {
 		respStream, err := httpClient.Do(req)
 		if err != nil {
 			log.Println("Failed to do request: ", err)
+
+			respStream.Body.Close()
+			time.Sleep(5000 * time.Millisecond)
+
 			continue
 		}
 
@@ -46,6 +50,10 @@ func main() {
 		err = decoder.Decode(&vedaData)
 		if err != nil {
 			log.Println("Error on decoding json: ", err)
+
+			respStream.Body.Close()
+			time.Sleep(5000 * time.Millisecond)
+
 			continue
 		}
 
