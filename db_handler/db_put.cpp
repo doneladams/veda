@@ -371,6 +371,8 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
     return 0;
 }
 
+
+
 int
 get_rdf_types(string &key, vector<string> &rdf_types)
 {
@@ -427,8 +429,7 @@ void put_rdf_types(string &key, vector<Resource> &rdf_types)
     for (int i = 0; i < rdf_types.size(); i++)
         pk.pack(rdf_types[i].str_data);
     cout << "PUT RDF TYPES " << buffer.data() << endl;
-    for (;;) {}
-    if (box_replace(rdf_types_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
+    if (box_replace(rdf_types_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0) 
         cerr << "@ERR REST! ERR ON REPLACING RDF TYPES" << endl;
 }
 
@@ -441,7 +442,6 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
     vector<Resource> tmp_vec, rdf_type;
     bool is_update = true;
     int auth_result;
-    cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
     individual = new Individual();
     if (msgpack_to_individual(individual, indiv_msgpack.ptr, indiv_msgpack.size) < 0) {
         cerr << "@ERR REST! ERR ON ENCODING MSGPACK";
@@ -500,8 +500,6 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         } else
             is_update = false;
                 
-        cout << "IS UPDATE " << is_update << endl;
-        for (;;) {}
         if (is_update && need_auth) {
             auth_result = db_auth(user_id.ptr, user_id.size, individual->uri.c_str(),
                 individual->uri.size());
