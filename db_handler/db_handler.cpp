@@ -81,7 +81,7 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     }
     printf("OBJ ARR SIZE=%u\n", obj_arr.size);
 
-    pk.pack_array(obj_arr.size * 2);
+    pk.pack_array(obj_arr.size - 1);
     need_auth = obj_arr.ptr[0].via.boolean;    
     user_id = obj_arr.ptr[1].via.str;
     cout << "MSG " << msg << endl;
@@ -89,7 +89,7 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
         cout << "USER ID " << user_id.ptr << endl;
 
     printf("NEED AUTH %d\n", need_auth);
-
+    pk.pack(OK);
     for (uint32_t i = 2; i < obj_arr.size; i++) {
         msgpack::object_str indiv_msgpack;
         // printf("size=%u i=%u\n", obj_arr.size, i);
@@ -124,7 +124,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
         return;
     }
 
-    pk.pack_array(obj_arr.size * 2);
+    pk.pack_array((obj_arr.size - 2) * 2 + 1);
     need_auth = obj_arr.ptr[0].via.boolean;    
     user_id = obj_arr.ptr[1].via.str;
     if (need_auth)
@@ -222,6 +222,7 @@ db_handle_request(lua_State *L)
         case PUT: {
             printf("PUT=%d %s\n", op, msg);
             handle_put_request(msg, msg_size, pk);
+            printf("PUT RESP szie=%zu %s\n", buffer.size(), buffer.data());
             lua_pushlstring(L, buffer.data(), buffer.size());
             break;
         }

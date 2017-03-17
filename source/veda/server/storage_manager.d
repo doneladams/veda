@@ -541,9 +541,43 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             TcpSocket s = new TcpSocket();
                                             s.connect(new InternetAddress("127.0.0.1", 9999));
 
-                                            stderr.writeln("SEND SIZE BUF ", s.send(size_buf));
-                                            stderr.writeln("SEND OP ", s.send([ cast(byte)1 ]));
-                                            stderr.writeln("SEND MSGPACK ", s.send(packer.stream.data));
+                                            s.send(size_buf);
+                                            s.send([ cast(byte)1 ]);
+                                            s.send(packer.stream.data);
+                                            stderr.writeln("RECEIVE SIZE BUF ", 
+                                                s.receive(size_buf));
+                                            stderr.writeln("RESPONSE SIZE BUF ", size_buf);
+                                            long response_size = 0;
+                                            for (int i = 0; i < 4; i++) 
+                                                response_size = (response_size << 8) + size_buf[i];
+                                            
+                                            stderr.writeln("RESPONSE SIZE ", response_size);
+                                            ubyte[] response = new ubyte[response_size];
+                                            stderr.writeln("RECEIVE RESPONSE ", 
+                                                s.receive(response));
+
+                                             StreamingUnpacker unpacker = 
+                                                StreamingUnpacker(response);
+             
+                                            if (unpacker.execute()) 
+                                            {  
+                                                size_t root_el_size = unpacker.unpacked.length;
+                                                stderr.writeln("ARR SIZE", root_el_size);
+                                                foreach (obj; unpacker.purge()) 
+                                                {
+                                                    long resp_code = obj.via.uinteger;
+
+                                                    stderr.writeln("resp_code ", resp_code);
+                                                    if (resp_code != 200)
+                                                    {
+                                                        stderr.writeln("@ERR ON PUT", 
+                                                            resp_code);
+                                                        break;
+                                                    }
+                                                }
+                                            } else 
+                                                stderr.writefln("@ERR ON UNPACKING RESPONSE");
+
                                             s.close();
 
                                             individual_queue.push(binobj);

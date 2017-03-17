@@ -24,6 +24,7 @@ end
 
 socket = require('socket')
 require('db_handler')
+msgpack = require('msgpack')
 
 socket.tcp_server('0.0.0.0', 9999, function(s)
         local size, op, msg, resp, resp_size, resp_size_str, msg_table, zero_count, zero_pos
@@ -39,15 +40,16 @@ socket.tcp_server('0.0.0.0', 9999, function(s)
         msg = s:read(size)
         print("lua msg="..msg)
         resp = db_handle_request(op, msg);
---[[        resp_size = string.len(resp)
+        resp_size = string.len(resp)
         print('resp_len='..resp_size)
         print('resp='..resp)
+        -- obj = msgpack.decode(resp)
+        -- print("obj ".. obj)
         resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
             string.char(bit.band(resp_size, 255))
         print('resp_size_str='..resp_size_str)
         s:send(resp_size_str)
-        s:send(resp)]]
-
-    end)
+        s:send(resp)
+    end)    
