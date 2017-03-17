@@ -37,7 +37,7 @@ socket.tcp_server('0.0.0.0', 9999, function(s)
         -- print('op='..op)
         
         msg = s:read(size)
-        -- print("lua msg="..msg)
+        print("lua msg="..msg)
         resp = db_handle_request(op, msg);
 --[[        resp_size = string.len(resp)
         print('resp_len='..resp_size)

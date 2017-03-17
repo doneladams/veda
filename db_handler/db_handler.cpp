@@ -173,7 +173,7 @@ db_handle_request(lua_State *L)
     msg = lua_tolstring(L, -1, &msg_size);
     printf("@HANDLE REQUEST\n");
     printf("@SIZE %zu\n", msg_size);
-    printf("@MSG %s\n", msg);
+    // printf("@MSG %s\n", msg);
 
 	if ((individuals_space_id = box_space_id_by_name("individuals",  
         strlen("individuals"))) == BOX_ID_NIL) {

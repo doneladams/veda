@@ -454,6 +454,18 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         const char *tmp_ptr;
         uint32_t tmp_len;
 
+        tmp_vec  = it->second;
+        // cout << "NEW STATE " << tmp_vec[0].str_data << endl;
+        tmp_ptr = tmp_vec[0].str_data.c_str();
+        tmp_len = tmp_vec[0].str_data.length();
+
+
+        if (msgpack_to_individual(new_state, tmp_ptr, tmp_len) < 0) {
+            delete new_state;            
+            cerr << "@ERR REST! ERR ON DECODING NEW_STATE" << endl << endl;
+            return INTERNAL_SERVER_ERROR;
+        }
+        
         it = new_state->resources.find("rdf:type");
         if (it == new_state->resources.end()) {
             printf("@ERR REST! NO RDF TYPE FOUND!\n");
@@ -502,21 +514,14 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         if (!is_update)
             put_rdf_types(new_state->uri, rdf_type);
             
-        tmp_vec  = it->second;
-        // cout << "NEW STATE " << tmp_vec[0].str_data << endl;
-        tmp_ptr = tmp_vec[0].str_data.c_str();
-        tmp_len = tmp_vec[0].str_data.length();
+        
         if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
             delete new_state;
             cerr << "@ERR REST: ERR ON INSERTING MSGPACK" << endl;
             return INTERNAL_SERVER_ERROR;
         }
 
-        if (msgpack_to_individual(new_state, tmp_ptr, tmp_len) < 0) {
-            delete new_state;            
-            cerr << "@ERR REST! ERR ON DECODING NEW_STATE" << endl << endl;
-            return INTERNAL_SERVER_ERROR;
-        }
+        
     } else {
         delete new_state;
         cerr << "@ERR REST! NO NEW STATE" << endl;
