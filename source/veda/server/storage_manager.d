@@ -15,6 +15,7 @@ private
     import veda.bind.libwebsocketd;
     import veda.server.wslink;
     import std.socket;
+    import msgpack;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -525,12 +526,25 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            // stderr.writefln("@INDIVIDUALS MANAGER binobj=%s 
-                                                // *binobj.length=%d", binobj, binobj.length);
-                                            // stderr.writeln("@INDIVIDUALS MANAGER TRY TO SEND");
-                                            nn_send(tarantool_sock, cast(char *)binobj, 
-                                                binobj.length, 0);
-                                            // stderr.writeln("@INDIVIDUALS MANAGER SEND DONE");
+                                            Packer packer = Packer(false);
+                                            stderr.writeln("PACK PUT REQUEST");
+                                            packer.beginArray(3).pack(false, null, binobj);
+                                            long request_size = packer.stream.data.length;
+                                            stderr.writeln("DATA SIZE ", request_size);
+                                            byte[4] size_buf;
+                                            
+                                            size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
+                                            size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
+                                            size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
+                                            size_buf[3] = cast(byte)(request_size & 0xFF);
+
+                                            TcpSocket s = new TcpSocket();
+                                            s.connect(new InternetAddress("127.0.0.1", 9999));
+
+                                            stderr.writeln("SEND SIZE BUF ", s.send(size_buf));
+                                            stderr.writeln("SEND OP ", s.send([ cast(byte)1 ]));
+                                            stderr.writeln("SEND MSGPACK ", s.send(packer.stream.data));
+                                            s.close();
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";

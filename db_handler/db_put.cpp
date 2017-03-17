@@ -388,8 +388,8 @@ get_rdf_types(string &key, vector<string> &rdf_types)
     pk.pack_array(1);
     pk.pack(key);
 
-    box_index_get(acl_space_id, acl_index_id, buffer.data(), buffer.data() + buffer.size(), 
-        &tuple);
+    box_index_get(rdf_types_space_id, rdf_types_index_id, buffer.data(), 
+        buffer.data() + buffer.size(), &tuple);
 
     if (tuple == NULL)
         return 0;
@@ -416,6 +416,22 @@ get_rdf_types(string &key, vector<string> &rdf_types)
     return rdf_types.size();
 }
 
+void put_rdf_types(string &key, vector<Resource> &rdf_types) 
+{
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
+
+    pk.pack_array(rdf_types.size() + 1);
+    pk.pack(key);
+    
+    for (int i = 0; i < rdf_types.size(); i++)
+        pk.pack(rdf_types[i].str_data);
+    cout << "PUT RDF TYPES " << buffer.data() << endl;
+    for (;;) {}
+    if (box_replace(rdf_types_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
+        cerr << "@ERR REST! ERR ON REPLACING RDF TYPES" << endl;
+}
+
 int
 db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool need_auth)
 {
@@ -425,7 +441,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
     vector<Resource> tmp_vec, rdf_type;
     bool is_update = true;
     int auth_result;
-    
+    cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
     individual = new Individual();
     if (msgpack_to_individual(individual, indiv_msgpack.ptr, indiv_msgpack.size) < 0) {
         cerr << "@ERR REST! ERR ON ENCODING MSGPACK";
@@ -439,42 +455,52 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         uint32_t tmp_len;
 
         it = new_state->resources.find("rdf:type");
-        if (it == individual->resources.end()) {
-            cerr << "@ERR REST! NO RDF TYPE FOUND!";
+        if (it == new_state->resources.end()) {
+            printf("@ERR REST! NO RDF TYPE FOUND!\n");
+            cerr << "@ERR REST! NO RDF TYPE FOUND!" << endl;
             return BAD_REQUEST;
         }
         rdf_type = it->second;
 
-        if (need_auth) {   
-            int res;
-            vector<string> tnt_rdf_types;
+        int res;
+        vector<string> tnt_rdf_types;
 
-            res = get_rdf_types(individual->uri, tnt_rdf_types);
-            if (res < 0) {
-                cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
-                return INTERNAL_SERVER_ERROR;
-            } else if (res > 0) {
-                vector<string>::iterator it;
-                for (int i = 0; i < rdf_type.size(); i++) {
-                    it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
-                    if (it == tnt_rdf_types.end()) {
-                        is_update = false;
-                        auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
-                            rdf_type[i].str_data.size());
-                        if (!(auth_result & ACCESS_CAN_CREATE))
-                            return AUTH_FAILED;
+        res = get_rdf_types(new_state->uri, tnt_rdf_types);
+        if (res < 0) {
+            printf("@ERR REST! GET RDF TYPES ERR!\n");
+            cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
+            return INTERNAL_SERVER_ERROR;
+        } else if (res > 0 && need_auth) {
+            vector<string>::iterator it;
+            for (int i = 0; i < rdf_type.size(); i++) {
+                
+                it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
+                if (it == tnt_rdf_types.end()) {
+                    is_update = false;
+                    auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
+                        rdf_type[i].str_data.size());
+                    if (!(auth_result & ACCESS_CAN_CREATE)){
+                        delete new_state;
+                        return AUTH_FAILED;
                     }
                 }
             }
+        } else
+            is_update = false;
                 
-        }
-
-        if (is_update) {
+        cout << "IS UPDATE " << is_update << endl;
+        for (;;) {}
+        if (is_update && need_auth) {
             auth_result = db_auth(user_id.ptr, user_id.size, individual->uri.c_str(),
                 individual->uri.size());
-            if (!(auth_result & ACCESS_CAN_UPDATE))
+            if (!(auth_result & ACCESS_CAN_UPDATE)) {
+                delete new_state;
                 return AUTH_FAILED;
+            }
         }
+
+        if (!is_update)
+            put_rdf_types(new_state->uri, rdf_type);
             
         tmp_vec  = it->second;
         // cout << "NEW STATE " << tmp_vec[0].str_data << endl;
@@ -524,5 +550,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                 MEMBERSHIP_PREFIX);
     }
     
+    delete prev_state;
+    delete new_state;
     return OK;
 }
