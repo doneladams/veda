@@ -69,12 +69,6 @@ if [ -z $1 ] || [ $1 == "ttlreader" ] || [ $1 == "veda-ttlreader" ] ; then
     ./build-component.sh veda-ttlreader ttlreader
 fi
 
-if [ -z $1 ] || [ $1 == "listener" ] ; then
-    cd tarantool
-    make
-    cd ..
-fi
-
 if [ -z $1 ] || [ $1 == "db_handler" ] ; then
     cd db_handler
     make
