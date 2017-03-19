@@ -16,6 +16,7 @@ private
     import veda.server.wslink;
     import std.socket;
     import msgpack;
+    import veda.connector.connector;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -526,59 +527,14 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            Packer packer = Packer(false);
-                                            stderr.writeln("PACK PUT REQUEST");
-                                            packer.beginArray(3).pack(false, null, binobj);
-                                            long request_size = packer.stream.data.length;
-                                            stderr.writeln("DATA SIZE ", request_size);
-                                            byte[4] size_buf;
-                                            
-                                            size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
-                                            size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
-                                            size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
-                                            size_buf[3] = cast(byte)(request_size & 0xFF);
+                                            RequestResponse request_response = Connector.Put("127.0.0.1", 9999, false, "", [ binobj ]);
+                                            if (request_response.common_rc != ResultCode.OK)
+                                                stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
+                                            else if (request_response.op_rc[0] != ResultCode.OK)
+                                                stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
+                                            else 
+                                                stderr.writeln("@OK");
 
-                                            TcpSocket s = new TcpSocket();
-                                            s.connect(new InternetAddress("127.0.0.1", 9999));
-
-                                            s.send(size_buf);
-                                            s.send([ cast(byte)1 ]);
-                                            s.send(packer.stream.data);
-                                            stderr.writeln("RECEIVE SIZE BUF ", 
-                                                s.receive(size_buf));
-                                            stderr.writeln("RESPONSE SIZE BUF ", size_buf);
-                                            long response_size = 0;
-                                            for (int i = 0; i < 4; i++) 
-                                                response_size = (response_size << 8) + size_buf[i];
-                                            
-                                            stderr.writeln("RESPONSE SIZE ", response_size);
-                                            ubyte[] response = new ubyte[response_size];
-                                            stderr.writeln("RECEIVE RESPONSE ", 
-                                                s.receive(response));
-
-                                             StreamingUnpacker unpacker = 
-                                                StreamingUnpacker(response);
-             
-                                            if (unpacker.execute()) 
-                                            {  
-                                                size_t root_el_size = unpacker.unpacked.length;
-                                                stderr.writeln("ARR SIZE", root_el_size);
-                                                foreach (obj; unpacker.purge()) 
-                                                {
-                                                    long resp_code = obj.via.uinteger;
-
-                                                    stderr.writeln("resp_code ", resp_code);
-                                                    if (resp_code != 200)
-                                                    {
-                                                        stderr.writeln("@ERR ON PUT", 
-                                                            resp_code);
-                                                        break;
-                                                    }
-                                                }
-                                            } else 
-                                                stderr.writefln("@ERR ON UNPACKING RESPONSE");
-
-                                            s.close();
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";

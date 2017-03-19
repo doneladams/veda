@@ -213,8 +213,12 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
     msgpack::object glob_obj(result.get()); 
     msgpack::object_array obj_arr = glob_obj.via.array;
 
-    if (obj_arr.size != 2)
+    if (obj_arr.size != 2) {
+        cerr << "@ERR DECODING! INVALID ROOT ARR SIZE " << obj_arr.size << endl;
+        cerr << ptr << endl;
+        cerr << obj_arr.ptr[0].via.str.ptr << endl;        
         return -1;
+    }
     
     msgpack::object *obj_uri = obj_arr.ptr;
     msgpack::object *obj_map = obj_arr.ptr + 1;
@@ -359,7 +363,7 @@ msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len)
                 } 
 
                 default: {
-                    std::cerr << "@ERR! UNSUPPORTED RESOURCE TYPE " << value.type << endl;
+                    cerr << "@ERR! UNSUPPORTED RESOURCE TYPE " << value.type << endl;
                     return -1;  
                 }  
             }
@@ -444,7 +448,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
     int auth_result;
     individual = new Individual();
     if (msgpack_to_individual(individual, indiv_msgpack.ptr, indiv_msgpack.size) < 0) {
-        cerr << "@ERR REST! ERR ON ENCODING MSGPACK";
+        cerr << "@ERR REST! ERR ON DECODING MSGPACK" << endl;
         return BAD_REQUEST;
     }
     

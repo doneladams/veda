@@ -31,7 +31,8 @@
 	    "../../veda/core",  
 	    "../../veda/onto", 
             "../../veda/onto/bj8individual",
-            "../../veda/vmodule"
+            "../../veda/vmodule",
+	    "../../veda/connector"
 	],
 	"configurations": [
 	{
