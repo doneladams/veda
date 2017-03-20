@@ -18,8 +18,7 @@
 	    "../../veda/core/az", 
 	    "../../veda/core/search", 
 	    "../../veda/core/storage",
-	    "../../veda/core/common",
-            "../../veda/connector"
+	    "../../veda/core/common"
 	],
         "sourceFiles":[
 	"../../veda/gluecode/script.d",
@@ -28,8 +27,7 @@
 	"../../veda/gluecode/v8d_header.d",
         "../../lib64/liblmdb.a",
         "../../lib64/libv8d.a", 
-	"../../lib64/libxapiand.a",
-		
+	"../../lib64/libxapiand.a",		
         "../../veda/bind/lmdb_header.d",
 	"../../veda/bind/xapian_d_header.d",
         "../../veda/bind/nano.d",
@@ -38,7 +36,10 @@
         "../../veda/util/queue.d",
         "../../veda/util/container.d",
         "../../veda/util/tests_tools.d",
-        "../../veda/util/module_info.d"
+        "../../veda/util/module_info.d",
+	"../../veda/connector/connector.d",
+	"../../veda/connector/requestresponse.d",
+	
 	],
 	"libs":["nanomsg"],
 	"configurations": [

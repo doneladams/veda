@@ -7,7 +7,8 @@ import properd, TrailDB;
 import veda.common.type, veda.core.common.context, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.log_msg;
 import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.onto.lang, veda.frontend.individual8vjson;
 import veda.frontend.msgpack8vjson;
-import veda.connector.connector;
+import veda.connector.vibeconnector;
+import veda.connector.requestresponse;
 
 // ////// Logger ///////////////////////////////////////////
 import veda.common.logger;
@@ -756,7 +757,7 @@ class VedaStorageRest : VedaStorageRest_API
                 else
                 {
                     
-                    RequestResponse request_response = Connector.get("127.0.0.1", 9999, true, 
+                    RequestResponse request_response = VibeConnector.get("127.0.0.1", 9999, true, 
                         ticket.user_uri, [ uri ]);
                     if (request_response.common_rc != ResultCode.OK)
                         stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);

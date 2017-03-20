@@ -18,8 +18,7 @@
 	    "../../veda/core/az", 
 	    "../../veda/core/search", 
 	    "../../veda/core/storage",
-	    "../../veda/core/common",
-            "../../veda/connector"
+	    "../../veda/core/common"
 	],
         "sourceFiles":[
 	"../../veda/bind/xapian_d_header.d",
@@ -36,7 +35,9 @@
         "../../veda/util/queue.d",
         "../../veda/util/container.d",
         "../../veda/util/tests_tools.d",
-        "../../veda/util/module_info.d"
+        "../../veda/util/module_info.d",
+	"../../veda/connector/connector.d",
+	"../../veda/connector/requestresponse.d"
 	],
 	"libs":["nanomsg"],
 	"configurations": [

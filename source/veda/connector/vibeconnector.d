@@ -1,22 +1,22 @@
-module veda.connector.connector;
+module veda.connector.vibeconnector;
 
 private
 {
     import std.stdio;
     import msgpack;
-    import std.socket;
     import veda.core.common.context;
+    import vibe.core.net;
     import veda.connector.requestresponse;
 }
 
-class Connector 
+class VibeConnector 
 {
     public static RequestResponse put(string addr, ushort port, bool need_auth, string user_uri, 
         string[] individuals)
     {
         RequestResponse request_response = new RequestResponse();
         Packer packer = Packer(false);
-        stderr.writeln("PACK PUT REQUEST");
+        stderr.writeln("VIBE PACK PUT REQUEST");
         packer.beginArray(individuals.length + 2);
         packer.pack(need_auth, user_uri);
         for (int i = 0; i < individuals.length; i++)
@@ -25,29 +25,32 @@ class Connector
         long request_size = packer.stream.data.length;
         stderr.writeln("DATA SIZE ", request_size);
 
-        byte[4] size_buf;
-        size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
-        size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
-        size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
-        size_buf[3] = cast(byte)(request_size & 0xFF);
+        ubyte[4] size_buf;
+        size_buf[0] = cast(ubyte)((request_size >> 24) & 0xFF);
+        size_buf[1] = cast(ubyte)((request_size >> 16) & 0xFF);
+        size_buf[2] = cast(ubyte)((request_size >> 8) & 0xFF);
+        size_buf[3] = cast(ubyte)(request_size & 0xFF);
 
-        TcpSocket s = new TcpSocket();
-        s.connect(new InternetAddress("127.0.0.1", 9999));
+        TCPConnection s = connectTCP(addr, port);
+        // TcpSocket s = new TcpSocket();
+        // s.connect(new InternetAddress("127.0.0.1", 9999));
 
-        s.send(size_buf);
-        s.send([ cast(byte)1 ]);
-        s.send(packer.stream.data);
+        s.write(size_buf);
+        s.write([ cast(ubyte)1 ]);
+        s.write(cast(ubyte[])packer.stream.data);
        
-        stderr.writeln("RECEIVE SIZE BUF ", 
-            s.receive(size_buf));
+        // stderr.writeln("RECEIVE SIZE BUF ", 
+            // s.read(size_buf));
+        s.read(size_buf);
         stderr.writeln("RESPONSE SIZE BUF ", size_buf);
         long response_size = 0;
         for (int i = 0; i < 4; i++) 
             response_size = (response_size << 8) + size_buf[i];       
         stderr.writeln("RESPONSE SIZE ", response_size);
         ubyte[] response = new ubyte[response_size];
-        stderr.writeln("RECEIVE RESPONSE ", 
-            s.receive(response));
+        // stderr.writeln("RECEIVE RESPONSE ", 
+            // s.read(response));
+        s.read(response);
         s.close();
         
 
@@ -79,38 +82,41 @@ class Connector
     {
         RequestResponse request_response = new RequestResponse();
         Packer packer = Packer(false);
-        stderr.writeln("PACK PUT REQUEST");
+        stderr.writeln("VIBE PACK GET REQUEST");
         packer.beginArray(uris.length + 2);
         packer.pack(need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[i]);
 
-        long request_size = packer.stream.data.length;
+                long request_size = packer.stream.data.length;
         stderr.writeln("DATA SIZE ", request_size);
 
-        byte[4] size_buf;
-        size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
-        size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
-        size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
-        size_buf[3] = cast(byte)(request_size & 0xFF);
+        ubyte[4] size_buf;
+        size_buf[0] = cast(ubyte)((request_size >> 24) & 0xFF);
+        size_buf[1] = cast(ubyte)((request_size >> 16) & 0xFF);
+        size_buf[2] = cast(ubyte)((request_size >> 8) & 0xFF);
+        size_buf[3] = cast(ubyte)(request_size & 0xFF);
 
-        TcpSocket s = new TcpSocket();
-        s.connect(new InternetAddress("127.0.0.1", 9999));
+        TCPConnection s = connectTCP(addr, port);
+        // TcpSocket s = new TcpSocket();
+        // s.connect(new InternetAddress("127.0.0.1", 9999));
 
-        s.send(size_buf);
-        s.send([ cast(byte)2 ]);
-        s.send(packer.stream.data);
+        s.write(size_buf);
+        s.write([ cast(ubyte)2 ]);
+        s.write(cast(ubyte[])packer.stream.data);
        
-        stderr.writeln("RECEIVE SIZE BUF ", 
-            s.receive(size_buf));
+        // stderr.writeln("RECEIVE SIZE BUF ", 
+            // s.read(size_buf));
+        s.read(size_buf);
         stderr.writeln("RESPONSE SIZE BUF ", size_buf);
         long response_size = 0;
         for (int i = 0; i < 4; i++) 
             response_size = (response_size << 8) + size_buf[i];       
         stderr.writeln("RESPONSE SIZE ", response_size);
         ubyte[] response = new ubyte[response_size];
-        stderr.writeln("RECEIVE RESPONSE ", 
-            s.receive(response));
+        // stderr.writeln("RECEIVE RESPONSE ", 
+            // s.read(response));
+        s.read(response);
         s.close();
         
 
@@ -137,5 +143,5 @@ class Connector
             stderr.writefln("@ERR ON UNPACKING RESPONSE");
             
         return request_response;
-    }     
+    }
 }

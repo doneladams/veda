@@ -23,7 +23,6 @@
             "../../veda/core/search",
             "../../veda/core/storage",
             "../../veda/core/common",
-            "../../veda/connector",
             "../../veda/ttlreader"
 	],
         "sourceFiles":[
@@ -35,7 +34,9 @@
 	"../../veda/core/util/utils.d",
         "../../veda/bind/libraptor_header.d",
             "../../veda/util/tests_tools.d",
-	"../../veda/util/raptor2individual.d"
+	"../../veda/util/raptor2individual.d",
+        "../../veda/connector/connector.d",
+	"../../veda/connector/requestresponse.d"
 	],
 	"configurations": [
 	{

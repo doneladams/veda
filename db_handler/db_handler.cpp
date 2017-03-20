@@ -131,7 +131,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
         cout << "USER ID " << user_id.ptr << endl;
 
     printf("NEED AUTH %d\n", need_auth);
-
+    pk.pack(OK);    
     for (int i = 2; i < obj_arr.size; i++) {
         int auth_result = 0;
         char res_buf[MAX_BUF_SIZE];

@@ -5,6 +5,7 @@ module veda.core.storage.tarantool_storage;
 
 import veda.core.common.context, veda.common.logger;
 import veda.connector.connector;
+import veda.connector.requestresponse;
 
 public class TarantoolStorage : Storage
 {

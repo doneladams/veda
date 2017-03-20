@@ -17,6 +17,7 @@ private
     import std.socket;
     import msgpack;
     import veda.connector.connector;
+    import veda.connector.requestresponse;
 }
 
 // ////// Logger ///////////////////////////////////////////
