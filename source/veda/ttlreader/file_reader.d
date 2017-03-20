@@ -69,7 +69,7 @@ void main(char[][] args)
 
     ubyte[] out_data;
 
-    Context context = new PThreadContext(process_name, "file_reader", individuals_db_path, log, parent_url);
+    Context context = new PThreadContext(process_name, "file_reader", log, parent_url);
     sticket = context.sys_ticket();
 
     string[] uris =
@@ -400,13 +400,13 @@ void processed(string[] changes, Context context, bool is_check_changes)
                         indv.removeResource("v-s:updateCounter");
                         indv.removeResource("v-s:previousVersion");
                         indv.removeResource("v-s:actualVersion");
-//                        log.trace("in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
+                        log.trace("in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
 
                         if (indv_in_storage == Individual.init || is_check_changes == false || indv.compare(indv_in_storage) == false)
                         {
                             if (indv.getResources("rdf:type").length > 0)
                             {
-                                if (trace_msg[ 33 ] == 1)
+                               // if (trace_msg[ 33 ] == 1)
                                     log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv),
                                               text(indv_in_storage));
 
@@ -444,7 +444,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 {
     try
     {
-        if (trace_msg[ 30 ] == 1)
+        //if (trace_msg[ 30 ] == 1)
             log.trace("[%s]ss_list.count=%d", filename, ss_list.length);
 
         Ticket     sticket = context.sys_ticket();
@@ -479,7 +479,8 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
         foreach (ss; ss_list)
         {
-            //log.trace ("prepare [%s] from file [%s], onto [%s]", ss.uri, filename, onto_name);
+        	writeln ("%1");
+            log.trace ("prepare [%s] from file [%s], onto [%s]", ss.uri, filename, onto_name);
 
             if (ss.isExists(rdf__type, owl__Ontology) && context !is null)
             {
@@ -498,6 +499,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
             Resources type = ss.getResources(rdf__type);
 
+        	writeln ("%2");
             if (type is Resources.init)
             {
                 log.trace("Skip invalid individual (not content type), [%s]", *ss);
@@ -512,6 +514,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
             long       pos_path_delimiter = indexOf(ss.uri, '/');
 
+        	writeln ("%3");
             Individual indv_in_storage = individuals.get(ss.uri, Individual.init);
 
             if (indv_in_storage !is Individual.init)
@@ -530,6 +533,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
                 log.trace("apply, uri=%s %s", ss.uri, ss1);
  */
         }
+        	writeln ("%4");
 
 //        if (context !is null)
 //            try
@@ -541,11 +545,14 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
         OpResult orc = context.put_individual(&sticket, indv_ttl_file.uri, indv_ttl_file, true, null, false, false);
 
         //context.reopen_ro_subject_storage_db ();
-        if (trace_msg[ 33 ] == 1)
+        //if (trace_msg[ 33 ] == 1)
             log.trace("[%s] prepare_list end", filename);
+        	writeln ("%5");
     }
     catch (Exception ex)
     {
+    	log.trace("file_reader:Exception! %s", ex);
         writeln("file_reader:Exception!", ex);
     }
+        	writeln ("%6");
 }

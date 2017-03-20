@@ -13,7 +13,7 @@ private
     import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json,
            veda.common.logger,
            veda.core.util.utils;
-    import veda.server.load_info, veda.server.acl_manager, veda.server.storage_manager, veda.server.nanomsg_channel;
+    import veda.server.load_info, veda.server.acl_manager, veda.server.storage_manager, veda.server.tt_storage_manager, veda.server.nanomsg_channel;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -65,7 +65,7 @@ void main(char[][] args)
     process_name = "server";
     string node_id = null;
 
-    tids[ P_MODULE.subject_manager ] = spawn(&individuals_manager, P_MODULE.subject_manager, individuals_db_path, node_id);
+    tids[ P_MODULE.subject_manager ] = spawn(&tt_individuals_manager, P_MODULE.subject_manager, "", node_id);
     if (wait_starting_thread(P_MODULE.subject_manager, tids) == false)
         return;
 
@@ -177,7 +177,7 @@ class VedaServer : WSClient
 
             Ticket     sticket;
 
-            core_context = new PThreadContext(node_id, "core_context-" ~ text(port), individuals_db_path, log);
+            core_context = new PThreadContext(node_id, "core_context-" ~ text(port), log);
             l_context    = core_context;
 
             sticket = core_context.sys_ticket();

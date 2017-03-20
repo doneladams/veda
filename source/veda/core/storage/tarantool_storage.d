@@ -3,10 +3,21 @@
  */
 module veda.core.storage.tarantool_storage;
 
-import veda.core.common.context;
+import veda.core.common.context, veda.common.logger;
 
-public class LmdbStorage : Storage
+public class TarantoolStorage : Storage
 {
+	string host;
+	int port;
+    Logger              log;
+    	
+    this(string _host, int _port, Logger _log)
+    {
+    	host = _host;
+    	port = _port;
+        log  = _log;
+    }	
+	
     public ResultCode put(string in_key, string in_value, long op_id)
     {
     	throw new Exception ("not implemented");
@@ -14,7 +25,7 @@ public class LmdbStorage : Storage
     
     public string find(string uri, bool return_value = true)
     {
-    	throw new Exception ("not implemented");    	
+    	return "";
     }
     
     public int get_of_cursor(bool delegate(string key, string value) prepare)
@@ -29,7 +40,7 @@ public class LmdbStorage : Storage
     
     public void reopen_db()
     {
-    	throw new Exception ("not implemented");    	
+    	//throw new Exception ("not implemented");    	
     }
     
     public void close_db()

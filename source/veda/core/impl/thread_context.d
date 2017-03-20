@@ -12,7 +12,7 @@ private
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context,
            veda.core.common.log_msg, veda.util.module_info;
-    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.lmdb_storage;
+    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.lmdb_storage, veda.core.storage.tarantool_storage;
     import veda.core.az.acl, veda.core.search.vql;
     import veda.util.module_info;
     import veda.common.logger;
@@ -187,7 +187,7 @@ class PThreadContext : Context
         return node_id;
     }
 
-    this(string _node_id, string context_name, string individuals_db_path, Logger _log, string _main_module_url = null, Authorization in_acl_indexes = null)
+    this(string _node_id, string context_name, Logger _log, string _main_module_url = null, Authorization in_acl_indexes = null)
     {
         log = _log;
 
@@ -207,7 +207,7 @@ class PThreadContext : Context
  */
         node_id = _node_id;
 
-        inividuals_storage_r = new LmdbStorage(individuals_db_path, DBMode.R, context_name ~ ":inividuals", this.log);
+        inividuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, this.log);
         tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", this.log);
 
         name = context_name;
@@ -244,7 +244,7 @@ class PThreadContext : Context
 
         version (isServer)
         {
-            res = storage_module.begin_transaction(P_MODULE.subject_manager);
+            //res = storage_module.begin_transaction(P_MODULE.subject_manager);
         }
 
         return res;
@@ -254,7 +254,7 @@ class PThreadContext : Context
     {
         version (isServer)
         {
-            storage_module.commit_transaction(P_MODULE.subject_manager, transaction_id);
+            //storage_module.commit_transaction(P_MODULE.subject_manager, transaction_id);
         }
     }
 
@@ -262,7 +262,7 @@ class PThreadContext : Context
     {
         version (isServer)
         {
-            storage_module.abort_transaction(P_MODULE.subject_manager, transaction_id);
+            //storage_module.abort_transaction(P_MODULE.subject_manager, transaction_id);
         }
     }
 
@@ -1179,7 +1179,7 @@ class PThreadContext : Context
                                       bool is_api_request)
     {
         //if (trace_msg[ T_API_230 ] == 1)
-        //log.trace("[%s] store_individual: %s %s", name, text(cmd), *indv);
+        log.trace("[%s] store_individual: %s %s", name, text(cmd), *indv);
 
         StopWatch sw; sw.start;
 
@@ -1198,11 +1198,11 @@ class PThreadContext : Context
                 return res;
             }
 
-            //log.trace ("context:store_individual #2 main_module_url=%s", main_module_url);
+            log.trace ("context:store_individual #2 main_module_url=%s", main_module_url);
 
             version (isModule)
             {
-                //log.trace("[%s] store_individual: isModule", name);
+                log.trace("[%s] store_individual: isModule", name);
 
                 string scmd;
 
@@ -1223,18 +1223,19 @@ class PThreadContext : Context
                 req_body[ "event_id" ]       = event_id;
                 req_body[ "transaction_id" ] = "";
 
-                //log.trace("[%s] store_individual: (isModule), req=(%s)", name, req_body.toString());
+                log.trace("[%s] store_individual: (isModule), req=(%s)", name, req_body.toString());
 
                 res = reqrep_2_main_module(req_body);
-                //log.trace("[%s] store_individual: (isModule), rep=(%s)", name, res);
+                log.trace("[%s] store_individual: (isModule), rep=(%s)", name, res);
             }
 
             //                  writeln("context:store_individual #5 ", process_name);
             version (isServer)
             {
-                //log.trace("[%s] store_individual: (isServer)", name);
+                log.trace("[%s] store_individual: (isServer)", name);
                 Tid       tid_subject_manager;
                 Tid       tid_acl;
+log.trace("*0.1");
 
                 Resources _types = indv.resources.get(rdf__type, Resources.init);
                 foreach (idx, rs; _types)
@@ -1242,6 +1243,7 @@ class PThreadContext : Context
                     _types[ idx ].info = NEW_TYPE;
                 }
 
+log.trace("*0.2");
                 MapResource rdfType;
                 setMapResources(_types, rdfType);
 
@@ -1249,11 +1251,14 @@ class PThreadContext : Context
 
                 string     prev_state;
                 Individual prev_indv;
+log.trace("*0.3");
 
                 try
                 {
+log.trace("*0.4");
                     prev_state = get_from_individual_storage_thread(indv.uri);
 
+log.trace("*0.5");
                     if ((prev_state is null ||
                          prev_state.length == 0) && (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM))
                         log.trace("ERR! store_individual, cmd=%s: not read prev_state uri=[%s]", text (cmd), indv.uri);
@@ -1263,6 +1268,8 @@ class PThreadContext : Context
                     log.trace("ERR! store_individual: not read prev_state uri=[%s], ex=%s", indv.uri, ex.msg);
                     return res;
                 }
+
+log.trace("*1");
 
                 if (prev_state !is null)
                 {
@@ -1297,6 +1304,7 @@ class PThreadContext : Context
                     }
                 }
 
+log.trace("*2");
                 if (is_api_request)
                 {
                     // для новых типов проверим доступность бита Create
@@ -1336,10 +1344,13 @@ class PThreadContext : Context
                     storage_module.put(P_MODULE.subject_manager, ticket.user_uri, _types, indv.uri, prev_state, new_state, update_counter, event_id,
                                        ignore_freeze,
                                        res.op_id);
-                //log.trace("res.result=%s", res.result);
+                    
+                log.trace("res.result=%s", res.result);
 
                 if (res.result != ResultCode.OK)
                     return res;
+
+log.trace("*3");
 
                 if (ev == EVENT.CREATE || ev == EVENT.UPDATE)
                 {
@@ -1357,6 +1368,8 @@ class PThreadContext : Context
                             send(tid_acl, CMD_PUT, ev, prev_state, new_state, res.op_id);
                         }
                     }
+
+log.trace("*4");
 
 /*
                         version (libV8)
@@ -1384,6 +1397,8 @@ class PThreadContext : Context
                     res.result = ResultCode.Internal_Server_Error;
                 }
             }
+log.trace("*e");
+
             return res;
         }
         finally

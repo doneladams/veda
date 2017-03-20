@@ -25,7 +25,7 @@ void nanomsg_channel(string thread_name)
         Context                      context;
 
         core.thread.Thread.getThis().name = thread_name;
-
+writeln ("#1");
         sock = nn_socket(AF_SP, NN_REP);
         if (sock < 0)
         {
@@ -38,20 +38,24 @@ void nanomsg_channel(string thread_name)
             return;
         }
         log.trace("success bind to %s", url);
+writeln ("#2");
 
         if (context is null)
-            context = new PThreadContext("cfg:standart_node", thread_name, individuals_db_path, log, null);
+            context = new PThreadContext("cfg:standart_node", thread_name, log, null);
+writeln ("#3");
 
         // SEND ready
         receive((Tid tid_response_reciever)
                 {
                     send(tid_response_reciever, true);
                 });
+writeln ("#4");
 
         while (true)
         {
             try
             {
+writeln ("#5");
                 char *buf  = cast(char *)0;
                 int  bytes = nn_recv(sock, &buf, NN_MSG, 0);
                 if (bytes >= 0)
@@ -72,9 +76,11 @@ void nanomsg_channel(string thread_name)
                 log.trace("ERR! MAIN LOOP", tr.info);
             }
         }
+                
     }
     finally
     {
         writeln("exit form thread ", thread_name);
     }
+    
 }

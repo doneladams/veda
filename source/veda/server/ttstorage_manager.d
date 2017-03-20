@@ -1,7 +1,7 @@
 /**
  * процесс отвечающий за хранение
  */
-module veda.server.storage_manager;
+module veda.server.tt_storage_manager;
 
 private
 {
@@ -16,7 +16,6 @@ private
     import veda.server.wslink;
     import std.socket;
     import msgpack;
-    import veda.connector.connector;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -233,7 +232,7 @@ public ResultCode remove(P_MODULE storage_id, string uri, bool ignore_freeze, ou
 }
 
 
-public void individuals_manager(P_MODULE _storage_id, string db_path, string node_id)
+public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string node_id)
 {
     Queue                        individual_queue;
 
@@ -242,15 +241,12 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
 
     core.thread.Thread.getThis().name = thread_name;
 
-    LmdbStorage                  storage              = new LmdbStorage(db_path, DBMode.RW, "individuals_manager", log);
     int                          size_bin_log         = 0;
     int                          max_size_bin_log     = 10_000_000;
     string                       bin_log_name         = get_new_binlog_name(db_path);
     long                         last_reopen_rw_op_id = 0;
-    int                          max_count_updates    = 10_000;
 
-    long                         op_id           = storage.last_op_id;
-    long                         committed_op_id = 0;
+    long                         op_id           = 0;
 
     string                       notify_channel_url = "tcp://127.0.0.1:9111\0";
     int                          sock;
@@ -259,6 +255,22 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
 
     try
     {
+        if (storage_id == P_MODULE.subject_manager)
+        {
+            individual_queue = new Queue("individuals-flow", Mode.RW, log);
+//            individual_queue.remove_lock();
+            individual_queue.open();
+
+            sock = nn_socket(AF_SP, NN_PUB);
+            if (sock >= 0)
+            {
+                if (nn_bind(sock, cast(char *)notify_channel_url) >= 0)
+                {
+                    already_notify_channel = true;
+                }
+            }
+        }
+
         string last_backup_id = "---";
 
         bool   is_freeze = false;
@@ -309,26 +321,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                         },
                         (byte cmd)
                         {
-                            if (cmd == CMD_COMMIT)
-                            {
-                                storage.flush(1);
-
-                                if (last_reopen_rw_op_id == 0)
-                                    last_reopen_rw_op_id = op_id;
-
-                                if (op_id - last_reopen_rw_op_id > max_count_updates)
-                                {
-                                    log.trace("REOPEN RW DATABASE, op_id=%d", op_id);
-                                    storage.close_db();
-                                    storage.open_db();
-                                    last_reopen_rw_op_id = op_id;
-                                }
-
-                                committed_op_id = op_id;
-                                module_info.put_info(op_id, committed_op_id);
-                                //log.trace ("FLUSH op_id=%d committed_op_id=%d", op_id, committed_op_id);
-                            }
-                            else if (cmd == CMD_UNFREEZE)
+                            if (cmd == CMD_UNFREEZE)
                             {
                                 log.trace("UNFREEZE");
                                 is_freeze = false;
@@ -336,27 +329,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                         },
                         (byte cmd, Tid tid_response_reciever)
                         {
-                            if (cmd == CMD_COMMIT)
-                            {
-                                committed_op_id = op_id;
-                                storage.flush(1);
-
-                                if (last_reopen_rw_op_id == 0)
-                                    last_reopen_rw_op_id = op_id;
-
-                                if (op_id - last_reopen_rw_op_id > max_count_updates)
-                                {
-                                    log.trace("REOPEN RW DATABASE, op_id=%d", op_id);
-                                    storage.close_db();
-                                    storage.open_db();
-                                    last_reopen_rw_op_id = op_id;
-                                }
-
-                                send(tid_response_reciever, true);
-                                module_info.put_info(op_id, committed_op_id);
-                                log.trace("FLUSH op_id=%d committed_op_id=%d", op_id, committed_op_id);
-                            }
-                            else if (cmd == CMD_FREEZE)
+                            if (cmd == CMD_FREEZE)
                             {
                                 log.trace("FREEZE");
                                 is_freeze = true;
@@ -378,19 +351,13 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                         {
                             if (cmd == CMD_PUT_KEY2SLOT)
                             {
-                                storage.put(key, msg, -1);
+                            	log.trace ("ERR! CMD_PUT_KEY2SLOT storage.put(key, msg, -1) not implemented ");
+                                //storage.put(key, msg, -1);
                             }
                         },
                         (byte cmd, string arg, Tid tid_response_reciever)
                         {
-                            if (cmd == CMD_FIND)
-                            {
-                                string res = storage.find(arg);
-                                //writeln("@FIND msg=", msg, ", $res = ", res);
-                                send(tid_response_reciever, arg, res, thisTid);
-                                return;
-                            }
-                            else if (cmd == CMD_UNLOAD)
+/*							if (cmd == CMD_UNLOAD)
                             {
                                 long count;
                                 Queue queue = new Queue(arg, Mode.RW, log);
@@ -411,7 +378,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                     writeln("store_thread:CMD_UNLOAD: not open queue");
 
                                 send(tid_response_reciever, count);
-                            }
+                            }*/
                         },
                         (INDV_OP cmd, string uri, bool ignore_freeze, Tid tid_response_reciever)
                         {
@@ -424,9 +391,9 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                             {
                                 if (cmd == INDV_OP.REMOVE)
                                 {
-                                    if (storage.remove(uri) == ResultCode.OK)
-                                        rc = ResultCode.OK;
-                                    else
+                                    //if (storage.remove(uri) == ResultCode.OK)
+                                    //    rc = ResultCode.OK;
+                                    //else
                                         rc = ResultCode.Fail_Store;
 
                                     send(tid_response_reciever, rc, thisTid);
@@ -453,34 +420,14 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                             {
                                 if (cmd == INDV_OP.PUT)
                                 {
-                                    string new_hash;
-                                    //log.trace ("storage_manager:PUT %s", indv_uri);
-                                    if (storage.update_or_create(indv_uri, new_state, op_id, new_hash) == 0)
+                                    //if (rc == ResultCode.OK)
                                     {
-                                        rc = ResultCode.OK;
-                                        op_id++;
-                                        set_subject_manager_op_id(op_id);
-                                    }
-                                    else
-                                    {
-                                        rc = ResultCode.Fail_Store;
-                                    }
-
-                                    send(tid_response_reciever, rc, thisTid);
-
-                                    if (rc == ResultCode.OK)
-                                    {
-                                        module_info.put_info(op_id, committed_op_id);
-
-                                        bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
-
                                         if (storage_id == P_MODULE.subject_manager)
                                         {
                                             Individual imm;
                                             imm.uri = text(op_id);
                                             imm.addResource("cmd", Resource(cmd));
                                             imm.addResource("uri", Resource(DataType.Uri, indv_uri));
-
 
                                             if (user_uri !is null && user_uri.length > 0)
                                                 imm.addResource("user_uri", Resource(DataType.Uri, user_uri));
@@ -496,17 +443,28 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
-                                            //writeln ("*imm=[", imm, "]");
+                                            log.trace ("SEND TO TT %s ", imm);
 
                                             string binobj = imm.serialize();
-                                            RequestResponse request_response = Connector.Put("127.0.0.1", 9999, false, "", [ binobj ]);
-                                            if (request_response.common_rc != ResultCode.OK)
-                                                stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
-                                            else if (request_response.op_rc[0] != ResultCode.OK)
-                                                stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
-                                            else 
-                                                stderr.writeln("@OK");
+                                            Packer packer = Packer(false);
+                                            //stderr.writeln("PACK PUT REQUEST");
+                                            packer.beginArray(3).pack(false, null, binobj);
+                                            long request_size = packer.stream.data.length;
+                                            //stderr.writeln("DATA SIZE ", request_size);
+                                            byte[4] size_buf;
+                                            
+                                            size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
+                                            size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
+                                            size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
+                                            size_buf[3] = cast(byte)(request_size & 0xFF);
 
+                                            TcpSocket s = new TcpSocket();
+                                            s.connect(new InternetAddress("127.0.0.1", 9999));
+
+                                            stderr.writeln("SEND SIZE BUF ", s.send(size_buf));
+                                            stderr.writeln("SEND OP ", s.send([ cast(byte)1 ]));
+                                            stderr.writeln("SEND MSGPACK ", s.send(packer.stream.data));
+                                            s.close();
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
@@ -522,6 +480,30 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //    send(tid_ccus_channel, msg_to_modules);
                                             //}
                                         }
+                                        
+                                    //string new_hash;
+                                    //log.trace ("storage_manager:PUT %s", indv_uri);
+                                    //if (storage.update_or_create(indv_uri, new_state, op_id, new_hash) == 0)
+                                    //{
+                                        rc = ResultCode.OK;
+                                        op_id++;
+                                        set_subject_manager_op_id(op_id);
+                                   // }
+                                   // else
+                                   // {
+                                   //     rc = ResultCode.Fail_Store;
+                                   // }
+
+                                    send(tid_response_reciever, rc, thisTid);
+                                        
+                                        
+                                    if (rc == ResultCode.OK)
+                                    {
+                                        module_info.put_info(op_id, op_id);
+                                        string new_hash = "0000";
+                                        bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);                                    	
+                                    }
+
                                     }
 
                                     return;
