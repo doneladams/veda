@@ -35,12 +35,22 @@ v-fs:AttributiveRequest
   rdf:type owl:Class ;
   rdfs:subClassOf v-s:SystemThing ;
   rdfs:label "Attributive request"@en ;
-  rdfs:label "Аттрибутивный запрос"@ru ;
+  rdfs:label "Атрибутивный запрос"@ru ;
 .
 v-fs:Search
   rdf:type v-fs:FunctionSearch ;
   rdfs:label "Find"@en ;
   rdfs:label "Найти"@ru ;
+.
+v-fs:Fulltext
+  rdf:type v-fs:FulltextRequest ;
+  rdfs:label "Полнотекстовый поиск"@ru ;
+  rdfs:label "Fulltext search"@en ;
+.
+v-fs:Attributive
+  rdf:type v-fs:AttributiveRequest ;
+  rdfs:label "Атрибутивный поиск"@ru ;
+  rdfs:label "Attributive search"@en ;
 .
 v-fs:fulltextQuery
   rdf:type owl:DatatypeProperty ;
@@ -148,12 +158,12 @@ v-fs:SavedRequests
   rdfs:label "Saved requests"@en ;
   rdfs:label "Сохраненные запросы"@ru ;
 .
-v-fs:Fulltext
+v-fs:FulltextBundle
   rdf:type v-s:Bundle ;
   rdfs:label "Fulltext"@en ;
   rdfs:label "Полнотекстовый"@ru ;
 .
-v-fs:Attributive
+v-fs:AttributiveBundle
   rdf:type v-s:Bundle ;
   rdfs:label "Attributive"@en ;
   rdfs:label "Атрибутивный"@ru ;
@@ -185,8 +195,8 @@ v-fs:Find
 .
 v-fs:Results
   rdf:type v-s:Bundle ;
-  rdfs:label "What we found"@en ;
-  rdfs:label "Что нашли"@ru ;
+  rdfs:label "Results"@en ;
+  rdfs:label "Результаты"@ru ;
 .
 v-fs:Empty
   rdf:type v-s:Bundle ;
@@ -246,8 +256,8 @@ v-fs:SearchTemplate
       <div class="col-md-2 col-sm-3">
         <h4></h4>
         <ul class="nav nav-pills nav-stacked" role="tablist" id="req-tabs">
-          <li role="presentation" class="active"><a href="#fulltext-search" about="v-fs:Fulltext" property="rdfs:label" aria-controls="fulltext-search" role="tab" data-toggle="tab"></a></li>
-          <li role="presentation"><a href="#attributive-search" about="v-fs:Attributive" property="rdfs:label" aria-controls="attributive-search" role="tab" data-toggle="tab"></a></li>
+          <li role="presentation" class="active"><a href="#fulltext-search" about="v-fs:FulltextBundle" property="rdfs:label" aria-controls="fulltext-search" role="tab" data-toggle="tab"></a></li>
+          <li role="presentation"><a href="#attributive-search" about="v-fs:AttributiveBundle" property="rdfs:label" aria-controls="attributive-search" role="tab" data-toggle="tab"></a></li>
         </ul>
         <hr>
         <h4 about="v-fs:SavedRequests" property="rdfs:label"></h4>
@@ -559,7 +569,7 @@ v-fs:FulltextRequestTemplate
           var container = $("<li>").appendTo(resultsList);
           var result = new veda.IndividualModel( self.result[i] );
           var tmpl = genericTemplate(result);
-          result.present(container, tmpl);
+          result.present(container, $(tmpl));
         }, 0);
       }(i));
     }
@@ -849,7 +859,7 @@ v-fs:AttributiveRequestTemplate
       head = gen_head(types[0]);
       genericHead.html(head);
       customHead.empty();
-      var placeholder = (new veda.IndividualModel("v-fs:DragColumns")).present(customHead, '<tr><td><em about="v-fs:DragColumns" property="rdfs:label"></em></td></tr>');
+      var placeholder = (new veda.IndividualModel("v-fs:DragColumns")).present(customHead, $('<tr><td><em about="v-fs:DragColumns" property="rdfs:label"></em></td></tr>'));
     }
     tHead.html( head.clone() );
 
@@ -991,9 +1001,9 @@ v-fs:AttributiveRequestTemplate
     for (var i = self.page * veda.user.displayedElements; i < (self.page + 1) * veda.user.displayedElements && i < self.count; i++) {
       (function (i) {
         setTimeout(function () {
-          var _tmpl = $(tmpl.replace("###", i+1));
+          var _tmpl = tmpl.replace("###", i+1);
           var result = new veda.IndividualModel( self.result[i] );
-          result.present(tBody, _tmpl);
+          result.present(tBody, $(_tmpl));
           _tmpl.dblclick(function (e) {
             riot.route("#/" + result.id);
           });
@@ -1039,9 +1049,9 @@ v-fs:AttributiveRequestTemplate
 
     for (var i = 0; i < self.count; i++) {
       (function (i) {
-        var _tmpl = $(tmpl.replace("###", i+1));
+        var _tmpl = tmpl.replace("###", i+1);
         var result = new veda.IndividualModel( self.result[i] );
-        result.present($("tbody", tbl), _tmpl);
+        result.present($("tbody", tbl), $(_tmpl));
       }(i));
     }
     setTimeout(function () {
@@ -1112,6 +1122,14 @@ v-fs:searchBlank
   rdfs:range v-fc:Blank ;
 .
 
+v-fs:searchOnLoad
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "Искать сразу"@ru ;
+  rdfs:label "Search on load"@en ;
+  rdfs:domain v-fs:AttributiveSearch ;
+  rdfs:range xsd:boolean ;
+.
+
 v-fs:AttributiveSearchModel
   rdf:type v-s:ClassModel ;
   v-ui:forClass v-fs:AttributiveSearch ;
@@ -1158,9 +1176,8 @@ v-fs:AttributiveSearchTemplate
   //# sourceURL=v-fs:AttributiveSearchTemplate_pre
 </script>
 <div class="container sheet">
-  <!--h2 about="@" property="rdfs:label"></h2-->
+  <h2 about="@" property="rdfs:label"></h2>
   <div id="params">
-    <h3 about="v-fs:Params" property="rdfs:label"></h3>
     <div id="search-form"></div>
     <br>
     <br>
@@ -1170,17 +1187,19 @@ v-fs:AttributiveSearchTemplate
   <br>
   <div id="results" class="hidden">
     <hr>
-    <h3><span about="v-fs:Results" property="rdfs:label"></span></h3>
-    <div id="stats-top" class="text-right margin-md">
-      <span about="v-fs:TotalFoundBundle" property="rdfs:label"></span>
-      <span class="total-found badge">0</span>&nbsp;&nbsp;
-      <span about="v-fs:TotalProcessedBundle" property="rdfs:label"></span>
-      <span class="total-processed badge">0</span>&nbsp;&nbsp;
-      <strong about="v-fs:TotalAuthorizedBundle" property="rdfs:label"></strong>
-      <span class="total-authorized badge">0</span>&nbsp;&nbsp;
-    </div>
+    <h3 class="clearfix">
+      <span class="pull-left" about="v-fs:Results" property="rdfs:label"></span>
+      <small class="stats-top pull-right" style="color:black">
+        <span about="v-fs:TotalFoundBundle" property="rdfs:label"></span>
+        <span class="total-found badge">0</span>&nbsp;&nbsp;
+        <span about="v-fs:TotalProcessedBundle" property="rdfs:label"></span>
+        <span class="total-processed badge">0</span>&nbsp;&nbsp;
+        <span about="v-fs:TotalAuthorizedBundle" property="rdfs:label"></span>
+        <span class="total-authorized badge">0</span>&nbsp;&nbsp;
+      </small>
+    </h3>
     <div id="search-result" class="search-result table-responsive"></div>
-    <div id="stats-bottom" class="text-right margin-md">
+    <div class="stats-bottom text-right margin-md">
       <span about="v-fs:TotalFoundBundle" property="rdfs:label"></span>
       <span class="total-found badge">0</span>&nbsp;&nbsp;
       <span about="v-fs:TotalProcessedBundle" property="rdfs:label"></span>
@@ -1217,7 +1236,8 @@ v-fs:AttributiveSearchTemplate
       totalFound = $(".total-found", template),
       totalProcessed = $(".total-processed", template),
       totalAuthorized = $(".total-authorized", template),
-      statsBottom = $("#stats-bottom", template);
+      statsTop = $(".stats-top", template),
+      statsBottom = $(".stats-bottom", template);
 
   self.cursor = self.cursor || 0;
   self.top = veda.user.displayedElements || 10;
@@ -1239,13 +1259,12 @@ v-fs:AttributiveSearchTemplate
     renderResult(self.result).then(function () {
       scrollTo(self.scroll);
     });
-  }
   // Search on load
-  /*else {
+  } else if ( individual.hasValue("v-fs:searchOnLoad", true) ) {
     search().then(function () {
       scrollTo( $("#results").offset().top );
     });
-  }*/
+  }
 
   // Remember scroll position
   template.one("remove", function () {
@@ -1491,7 +1510,7 @@ v-fs:AttributiveSearchTemplate
     for (var i = 0; i < self.result.length; i++) {
       var tmpl = resultTemplate.replace("###", i + 1);
       var result = new veda.IndividualModel( self.result[i] );
-      result.present($("tbody", tbl), tmpl);
+      result.present($("tbody", tbl), $(tmpl));
     }
     setTimeout(function () {
       tableToExcel(tbl[0], self["rdfs:label"].join(", "));
