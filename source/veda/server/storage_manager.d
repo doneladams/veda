@@ -499,7 +499,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            RequestResponse request_response = Connector.Put("127.0.0.1", 9999, false, "", [ binobj ]);
+                                            RequestResponse request_response = Connector.put("127.0.0.1", 9999, false, "", [ binobj ]);
                                             if (request_response.common_rc != ResultCode.OK)
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
                                             else if (request_response.op_rc[0] != ResultCode.OK)

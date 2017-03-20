@@ -756,7 +756,7 @@ class VedaStorageRest : VedaStorageRest_API
                 else
                 {
                     
-                    RequestResponse request_response = Connector.Get("127.0.0.1", 9999, true, 
+                    RequestResponse request_response = Connector.get("127.0.0.1", 9999, true, 
                         ticket.user_uri, [ uri ]);
                     if (request_response.common_rc != ResultCode.OK)
                         stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);

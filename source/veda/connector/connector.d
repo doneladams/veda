@@ -17,7 +17,7 @@ class RequestResponse
 
 class Connector 
 {
-    public static RequestResponse Put(string addr, ushort port, bool need_auth, string user_uri, 
+    public static RequestResponse put(string addr, ushort port, bool need_auth, string user_uri, 
         string[] individuals)
     {
         RequestResponse request_response = new RequestResponse();
@@ -80,16 +80,15 @@ class Connector
         return request_response;
     }
 
-    public static RequestResponse Get(string addr, ushort port, bool need_auth, string user_uri, 
-        string[] individuals)
+    public static RequestResponse get(string addr, ushort port, bool need_auth, string user_uri, string[] uris)
     {
         RequestResponse request_response = new RequestResponse();
         Packer packer = Packer(false);
         stderr.writeln("PACK PUT REQUEST");
-        packer.beginArray(individuals.length + 2);
+        packer.beginArray(uris.length + 2);
         packer.pack(need_auth, user_uri);
-        for (int i = 0; i < individuals.length; i++)
-            packer.pack(individuals[i]);
+        for (int i = 0; i < uris.length; i++)
+            packer.pack(uris[i]);
 
         long request_size = packer.stream.data.length;
         stderr.writeln("DATA SIZE ", request_size);
@@ -128,7 +127,7 @@ class Connector
             auto obj = unpacker.unpacked[0];
             request_response.common_rc = cast(ResultCode)(obj.via.uinteger);
             request_response.op_rc.length = unpacker.unpacked.length - 1;
-            request_response.msgpacks.length = individuals.length;
+            request_response.msgpacks.length = uris.length;
             
             stderr.writeln("OP RESULT = ", obj.via.uinteger);
             for (int i = 1; i < unpacker.unpacked.length; i += 2)

@@ -18,7 +18,8 @@
 	    "../../veda/core/az", 
 	    "../../veda/core/search", 
 	    "../../veda/core/storage",
-	    "../../veda/core/common"
+	    "../../veda/core/common",
+            "../../veda/connector"
 	],
         "sourceFiles":[
 	"../../veda/bind/xapian_d_header.d",

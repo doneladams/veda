@@ -23,6 +23,7 @@
             "../../veda/core/search",
             "../../veda/core/storage",
             "../../veda/core/common",
+            "../../veda/connector",
             "../../veda/ttlreader"
 	],
         "sourceFiles":[
