@@ -233,6 +233,8 @@ interface Script
  */
 interface Context
 {
+    void init (string _node_id, string context_name, Logger _log, string _main_module_url = null);
+
     string get_name();
 
     int[ string ] get_key2slot();

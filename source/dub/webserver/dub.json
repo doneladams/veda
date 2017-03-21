@@ -33,7 +33,7 @@
 	    "../../veda/core/search", 
 	    "../../veda/core/storage", 
 	    "../../veda/core/util",
-		"../../veda/connector"		
+	    "../../veda/connector"
 	],
 	"configurations": [
 	{

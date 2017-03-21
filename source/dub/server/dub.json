@@ -6,7 +6,7 @@
 		"backtrace-d": "0.1.2",
 		"msgpack-d": "1.0.0-beta.6"
 	},
-	"versions": ["isServer"],	
+	"versions": ["isServer", "std_socket"],	
         "libs": [
                     "websockets", "nanomsg"
         ],

@@ -26,7 +26,7 @@ socket = require('socket')
 require('db_handler')
 msgpack = require('msgpack')
 
-socket.tcp_server('0.0.0.0', 9999, function(s)
+socket.tcp_server('127.0.0.1', 9999, function(s)
         local size, op, msg, resp, resp_size, resp_size_str, msg_table, zero_count, zero_pos
         size  = 0
         for i=1, 4, 1 do

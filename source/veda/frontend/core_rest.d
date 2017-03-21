@@ -7,7 +7,7 @@ import properd, TrailDB;
 import veda.common.type, veda.core.common.context, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.log_msg;
 import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.onto.lang, veda.frontend.individual8vjson;
 import veda.frontend.msgpack8vjson;
-import veda.connector.vibeconnector;
+import veda.connector.connector;
 import veda.connector.requestresponse;
 
 // ////// Logger ///////////////////////////////////////////
@@ -756,33 +756,32 @@ class VedaStorageRest : VedaStorageRest_API
                 }
                 else
                 {
-                    
-                    RequestResponse request_response = VibeConnector.get("127.0.0.1", 9999, true, 
-                        ticket.user_uri, [ uri ]);
+                    RequestResponse request_response = Connector.get("127.0.0.1", 9999, true,
+                                                                     ticket.user_uri, [ uri ]);
                     if (request_response.common_rc != ResultCode.OK)
                         stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
-                    else if (request_response.op_rc[0] != ResultCode.OK)
-                        stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
-                    else 
+                    else if (request_response.op_rc[ 0 ] != ResultCode.OK)
+                        stderr.writeln("@ERR PUT! ", request_response.op_rc[ 0 ]);
+                    else
                     {
                         stderr.writeln("@OK");
                         res = Json.emptyObject;
-                        msgpack2vjson(&res, request_response.msgpacks[0]);
+                        msgpack2vjson(&res, request_response.msgpacks[ 0 ]);
                     }
-                    
+
                     /*if (reopen)
-                    {
+                       {
                         context.reopen_ro_acl_storage_db();
                         context.reopen_ro_subject_storage_db();
-                    }
+                       }
 
-                    string cb = context.get_individual_as_binobj(ticket, uri, rc);
+                       string cb = context.get_individual_as_binobj(ticket, uri, rc);
 
-                    if (rc == ResultCode.OK)
-                    {
+                       if (rc == ResultCode.OK)
+                       {
                         res = Json.emptyObject;
                         msgpack2vjson(&res, cb);
-                    }*/
+                       }*/
                 }
             }
             catch (Throwable ex)
@@ -981,8 +980,8 @@ void trail(string ticket_id, string user_id, string action, Json args, string re
 
             log.trace("open trail db");
 
-			string now = Clock.currTime().toISOExtString();
-		    now = now[ 0..indexOf(now, '.') + 4 ];
+            string now = Clock.currTime().toISOExtString();
+            now = now[ 0..indexOf(now, '.') + 4 ];
 
             tdb_cons =
                 new TrailDBConstructor(trails_path ~ "/rest_trails_" ~ now,

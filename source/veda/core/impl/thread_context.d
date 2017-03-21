@@ -187,14 +187,15 @@ class PThreadContext : Context
         return node_id;
     }
 
-    this(string _node_id, string context_name, Logger _log, string _main_module_url = null, Authorization in_acl_indexes = null)
+    void init (string _node_id, string context_name, Logger _log, string _main_module_url = null)
     {
+    	Authorization in_acl_indexes = null;
         log = _log;
 
         if (log is null)
             writefln("context_name [%s] log is null", context_name);
 
-log.trace ("@1");
+log.trace ("@1 CONTEXT CONSTRUCTOR");
 
         _acl_indexes = in_acl_indexes;
 

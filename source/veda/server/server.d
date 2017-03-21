@@ -177,7 +177,8 @@ class VedaServer : WSClient
 
             Ticket     sticket;
 
-            core_context = new PThreadContext(node_id, "core_context-" ~ text(port), log);
+            core_context = new PThreadContext();
+            core_context.init(node_id, "core_context-" ~ text(port), log);
             l_context    = core_context;
 
             sticket = core_context.sys_ticket();

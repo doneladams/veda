@@ -24,8 +24,24 @@ void nanomsg_channel(string thread_name)
     {
         Context                      context;
 
-        core.thread.Thread.getThis().name = thread_name;
+		log.trace ("#0");
+
+		try
+		{
+        if (context is null)
+        {
+            context = new PThreadContext();
+            context.init ("cfg:standart_node", thread_name, log, null);
+         }
+		}
+		catch (Throwable tr)
+		{
+		stderr.writefln ("#ERR %s %s", tr.msg, tr.info);			
+		}
+
 		log.trace ("#1");
+
+        core.thread.Thread.getThis().name = thread_name;
         sock = nn_socket(AF_SP, NN_REP);
         if (sock < 0)
         {
@@ -38,9 +54,6 @@ void nanomsg_channel(string thread_name)
             return;
         }
         log.trace("success bind to %s", url);
-
-        if (context is null)
-            context = new PThreadContext("cfg:standart_node", thread_name, log, null);
 
 		log.trace ("#2");
 

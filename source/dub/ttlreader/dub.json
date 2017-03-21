@@ -8,7 +8,7 @@
                 "libasync": "0.8.3",
                 "msgpack-d": "1.0.0-beta.6"
 	},
-        "versions": ["isModule"],
+        "versions": ["isModule", "std_socket"],
         "license": "LGPL v3",
         "libs": [
                 "raptor2"
