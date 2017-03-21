@@ -209,7 +209,7 @@ class PThreadContext : Context
  */
         ctx.node_id = _node_id;
 
-        ctx.inividuals_storage_r = new LmdbStorage(individuals_db_path, DBMode.R, context_name ~ ":inividuals", ctx.log);
+		ctx.inividuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
         ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
 
         ctx.name = context_name;
