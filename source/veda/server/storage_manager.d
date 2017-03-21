@@ -257,7 +257,8 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
     int                          sock;
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
-
+    Connector connector = new Connector();
+    connector.connect("127.0.0.1", 9999);
     try
     {
         string last_backup_id = "---";
@@ -284,7 +285,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                 {
                     send(tid_response_reciever, true);
                 });
-
+        
         while (is_exit == false)
         {
             try
@@ -500,7 +501,8 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                             //writeln ("*imm=[", imm, "]");
 
                                             string binobj = imm.serialize();
-                                            RequestResponse request_response = Connector.put("127.0.0.1", 9999, false, "", [ binobj ]);
+                                            // RequestResponse request_response = Connector.put("127.0.0.1", 9999, false, "", [ binobj ]);
+                                            RequestResponse request_response = connector.put(false, "", [ binobj ]);
                                             if (request_response.common_rc != ResultCode.OK)
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
                                             else if (request_response.op_rc[0] != ResultCode.OK)
@@ -595,6 +597,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
         }
     } finally
     {
+        connector.close();
         if (module_info !is null)
         {
             module_info.close();

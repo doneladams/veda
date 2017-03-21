@@ -19,10 +19,37 @@ version (WebServer)
 
 class Connector
 {
-    public static ubyte[] buf;
+    public ubyte[] buf;
+    version (std_socket)
+    {
+        public TcpSocket s;
+    }
 
-    public static RequestResponse put(string addr, ushort port, bool need_auth, string user_uri,
-                                      string[] individuals)
+    version (WebServer)
+    {
+        public TCPConnection s;
+    }
+
+    public void connect(string addr, ushort port)
+    {
+        version (WebServer)
+        {
+            stderr.writefln("CONNECT WEB SERVER %s %d", addr, port);                        
+            s = connectTCP(addr, port);
+            stderr.writeln("CONNECTED WEB SERVER");
+        }
+
+        version (std_socket)
+        {
+            stderr.writefln("CONNECT STD %s %d", addr, port);            
+            s = new TcpSocket();
+            s.connect(new InternetAddress(addr, port));
+            stderr.writeln("CONNECTED STD");
+        }
+    }
+
+
+    public RequestResponse put(bool need_auth, string user_uri, string[] individuals)
     {
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
@@ -44,16 +71,9 @@ class Connector
         buf[ 2 ] = cast(byte)((request_size >> 8) & 0xFF);
         buf[ 3 ] = cast(byte)(request_size & 0xFF);
 
-        version (WebServer)
-        {
-            TCPConnection s = connectTCP(addr, port);
-        }
+        
 
-        version (std_socket)
-        {
-            TcpSocket s = new TcpSocket();
-            s.connect(new InternetAddress("127.0.0.1", 9999));
-        }
+        
 
         version (WebServer)
         {
@@ -99,9 +119,6 @@ class Connector
         }
         stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
-        s.close();
-
-
         StreamingUnpacker unpacker =
             StreamingUnpacker(response);
 
@@ -126,13 +143,12 @@ class Connector
         return request_response;
     }
 
-    public static RequestResponse get(string addr, ushort port, bool need_auth, string user_uri,
-                                      string[] uris)
+    public RequestResponse get(bool need_auth, string user_uri, string[] uris)
     {
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        stderr.writefln("PACK GET REQUEST %s %d", addr, port);
+        stderr.writefln("PACK GET REQUEST");
         packer.beginArray(uris.length + 2);
         packer.pack(need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
@@ -150,18 +166,6 @@ class Connector
         buf[ 3 ] = cast(byte)(request_size & 0xFF);
 
         stderr.writeln("CONNECT");
-
-        version (WebServer)
-        {
-            TCPConnection s = connectTCP(addr, port);
-        }
-
-        version (std_socket)
-        {
-            TcpSocket s = new TcpSocket();
-            s.connect(new InternetAddress("127.0.0.1", 9999));
-        }
-
         stderr.writeln("SEND 1");
 
         version (WebServer)
@@ -207,9 +211,6 @@ class Connector
         }
         stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
-        s.close();
-
-
         StreamingUnpacker unpacker =
             StreamingUnpacker(response);
 
@@ -221,18 +222,23 @@ class Connector
             request_response.msgpacks.length = uris.length;
 
             stderr.writeln("OP RESULT = ", obj.via.uinteger);
-            for (int i = 1; i < unpacker.unpacked.length; i += 2)
+            for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 2, j++)
             {
                 obj                             = unpacker.unpacked[ i ];
-                request_response.op_rc[ i - 1 ] = cast(ResultCode)obj.via.uinteger;
-                if (request_response.op_rc[ i - 1 ] == ResultCode.OK)
-                    request_response.msgpacks[ i - 1 ] = cast(string)unpacker.unpacked[ i + 1 ].via.raw;
-                stderr.writeln("PUT RESULT = ", obj.via.uinteger);
+                request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
+                if (request_response.op_rc[ j ] == ResultCode.OK)
+                    request_response.msgpacks[ j ] = cast(string)unpacker.unpacked[ i + 1 ].via.raw;
+                stderr.writeln("GET RESULT = ", obj.via.uinteger);
             }
         }
         else
             stderr.writefln("@ERR ON UNPACKING RESPONSE");
 
         return request_response;
+    }
+    
+    void close()
+    {
+        s.close();
     }
 }

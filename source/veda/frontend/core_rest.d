@@ -744,6 +744,10 @@ class VedaStorageRest : VedaStorageRest_API
 
             try
             {
+                Connector connector = new Connector();
+                connector.connect("127.0.0.1", 9999);
+                ticket = context.get_ticket(_ticket);
+                rc     = ticket.result;
                 Individual[ string ] onto_individuals =
                     context.get_onto_as_map_individuals();
 
@@ -756,8 +760,8 @@ class VedaStorageRest : VedaStorageRest_API
                 }
                 else
                 {
-                    RequestResponse request_response = Connector.get("127.0.0.1", 9999, true,
-                                                                     ticket.user_uri, [ uri ]);
+                    RequestResponse request_response = connector.get(true, ticket.user_uri, 
+                        [ uri ]);
                     if (request_response.common_rc != ResultCode.OK)
                         stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
                     else if (request_response.op_rc[ 0 ] != ResultCode.OK)
@@ -768,6 +772,8 @@ class VedaStorageRest : VedaStorageRest_API
                         res = Json.emptyObject;
                         msgpack2vjson(&res, request_response.msgpacks[ 0 ]);
                     }
+                    connector.close();            
+                    
 
                     /*if (reopen)
                        {

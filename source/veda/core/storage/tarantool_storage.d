@@ -12,19 +12,22 @@ public class TarantoolStorage : Storage
     string host;
     ushort port;
     Logger log;
+    Connector connector;
 
     this(string _host, ushort _port, Logger _log)
     {
         host = _host;
         port = _port;
         log  = _log;
+        connector = new Connector();
+        connector.connect(this.host, this.port);
     	log.trace ("(0 create TarantoolStorage");    	
     }
 
     public ResultCode put(string in_key, string in_value, long op_id)
     {
-    	log.trace ("(put 1");    	
-        RequestResponse rr = Connector.put(host, port, false, null, [ in_value ]);
+    	log.trace ("(put 1");    
+        RequestResponse rr = connector.put(false, null, [ in_value ]);
     	log.trace ("(put 2");    	
 
         if (rr !is null)
@@ -36,7 +39,7 @@ public class TarantoolStorage : Storage
     public string find(string uri, bool return_value = true)
     {
     	log.trace ("(get 1");    	
-        RequestResponse rr = Connector.get(host, port, false, null, [ uri ]);
+        RequestResponse rr = connector.get(false, null, [ uri ]);
     	log.trace ("(get 2");    	
 
         if (rr !is null && rr.msgpacks.length > 0)

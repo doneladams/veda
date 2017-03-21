@@ -26,11 +26,21 @@ socket = require('socket')
 require('db_handler')
 msgpack = require('msgpack')
 
-socket.tcp_server('127.0.0.1', 9999, function(s)
-        local size, op, msg, resp, resp_size, resp_size_str, msg_table, zero_count, zero_pos
+function handle_request(s) 
+    while true do
+        local size_str, size, op, msg, resp, resp_size
+        local resp_size_str, msg_table, zero_count, zero_pos
+
+        s:readable()
+        size_str = s:read(4)
+        if size_str == "" or size_str == nil then
+            print('END CONNECTION')
+            break
+        end
+
         size  = 0
         for i=1, 4, 1 do
-            size = bit.lshift(size, 8) + string.byte(s:read(1))
+            size = bit.lshift(size, 8) + string.byte(size_str, i)
         end
         -- print('size='..size)
         
@@ -52,4 +62,7 @@ socket.tcp_server('127.0.0.1', 9999, function(s)
         print('resp_size_str='..resp_size_str)
         s:send(resp_size_str)
         s:send(resp)
-    end)    
+    end
+end
+
+socket.tcp_server('0.0.0.0', 9999, handle_request)    
