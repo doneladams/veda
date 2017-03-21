@@ -29,10 +29,7 @@ void nanomsg_channel(string thread_name)
 		try
 		{
         if (context is null)
-        {
-            context = new PThreadContext();
-            context.init ("cfg:standart_node", thread_name, log, null);
-         }
+            context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, null);
 		}
 		catch (Throwable tr)
 		{
@@ -55,7 +52,8 @@ void nanomsg_channel(string thread_name)
         }
         log.trace("success bind to %s", url);
 
-		log.trace ("#2");
+        if (context is null)
+            context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, null);
 
         // SEND ready
         receive((Tid tid_response_reciever)

@@ -187,19 +187,18 @@ class PThreadContext : Context
         return node_id;
     }
 
-    void init (string _node_id, string context_name, Logger _log, string _main_module_url = null)
-    {
-    	Authorization in_acl_indexes = null;
-        log = _log;
+    public static Context create_new (string _node_id, string context_name, string individuals_db_path, Logger _log, string _main_module_url = null, Authorization in_acl_indexes = null)
+    {    	
+    	PThreadContext ctx = new PThreadContext ();
+    	
+        ctx.log = _log;
 
-        if (log is null)
+        if (ctx.log is null)
             writefln("context_name [%s] log is null", context_name);
 
-log.trace ("@1 CONTEXT CONSTRUCTOR");
+        ctx._acl_indexes = in_acl_indexes;
 
-        _acl_indexes = in_acl_indexes;
-
-        main_module_url = _main_module_url;
+        ctx.main_module_url = _main_module_url;
 /*
         {
             import std.experimental.Logger;
@@ -208,42 +207,32 @@ log.trace ("@1 CONTEXT CONSTRUCTOR");
             std.experimental.Logger.core.globalLogLevel(LogLevel.info);
         }
  */
-        node_id = _node_id;
+        ctx.node_id = _node_id;
 
-log.trace ("@2");
-        inividuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, this.log);
-        
-log.trace ("@3 inividuals_storage_r=%s", inividuals_storage_r);
-        
-        tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", this.log);
+        ctx.inividuals_storage_r = new LmdbStorage(individuals_db_path, DBMode.R, context_name ~ ":inividuals", ctx.log);
+        ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
 
-        name = context_name;
-log.trace ("@4");
+        ctx.name = context_name;
 
-        is_traced_module[ P_MODULE.ticket_manager ]  = true;
-        is_traced_module[ P_MODULE.subject_manager ] = true;
+        ctx.is_traced_module[ P_MODULE.ticket_manager ]  = true;
+        ctx.is_traced_module[ P_MODULE.subject_manager ] = true;
 //        is_traced_module[ P_MODULE.acl_preparer ]      = true;
 //        is_traced_module[ P_MODULE.fulltext_indexer ] = true;
 //        is_traced_module[ P_MODULE.scripts ]          = true;
 
-log.trace ("@5");
+        ctx.get_configuration();
 
-        get_configuration();
-log.trace ("@6");
+        ctx._vql = new VQL(ctx);
 
-        _vql = new VQL(this);
-log.trace ("@7");
+        ctx.onto = new Onto(ctx);
+        ctx.onto.load();
 
-        onto = new Onto(this);
-log.trace ("@8");
-        onto.load();
-log.trace ("@9");
-
-        local_count_put = get_subject_manager_op_id();
+        ctx.local_count_put = get_subject_manager_op_id();
         //ft_local_count  = get_count_indexed();
-log.trace ("@10");
 
-        log.trace_log_and_console("NEW CONTEXT [%s]", context_name);
+        ctx.log.trace_log_and_console("NEW CONTEXT [%s]", context_name);
+        
+        return ctx;
     }
 
     ~this()
