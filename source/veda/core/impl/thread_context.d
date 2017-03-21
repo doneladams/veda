@@ -147,12 +147,12 @@ class PThreadContext : Context
                 int  bytes;
 
                 bytes = nn_send(sock, cast(char *)req, req.length + 1, 0);
-                //log.trace("N_CHANNEL send (%s)", req);
+                log.trace("N_CHANNEL send (%s)", req);
                 bytes = nn_recv(sock, &buf, NN_MSG, 0);
                 if (bytes > 0)
                 {
                     string rep = to!string(buf);
-                    //log.trace("N_CHANNEL recv (%s)", rep);
+                    log.trace("N_CHANNEL recv (%s)", rep);
 
                     JSONValue jres = parseJSON(rep);
 
@@ -194,6 +194,8 @@ class PThreadContext : Context
         if (log is null)
             writefln("context_name [%s] log is null", context_name);
 
+log.trace ("@1");
+
         _acl_indexes = in_acl_indexes;
 
         main_module_url = _main_module_url;
@@ -207,10 +209,15 @@ class PThreadContext : Context
  */
         node_id = _node_id;
 
+log.trace ("@2");
         inividuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, this.log);
+        
+log.trace ("@3 inividuals_storage_r=%s", inividuals_storage_r);
+        
         tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", this.log);
 
         name = context_name;
+log.trace ("@4");
 
         is_traced_module[ P_MODULE.ticket_manager ]  = true;
         is_traced_module[ P_MODULE.subject_manager ] = true;
@@ -218,15 +225,22 @@ class PThreadContext : Context
 //        is_traced_module[ P_MODULE.fulltext_indexer ] = true;
 //        is_traced_module[ P_MODULE.scripts ]          = true;
 
+log.trace ("@5");
+
         get_configuration();
+log.trace ("@6");
 
         _vql = new VQL(this);
+log.trace ("@7");
 
         onto = new Onto(this);
+log.trace ("@8");
         onto.load();
+log.trace ("@9");
 
         local_count_put = get_subject_manager_op_id();
         //ft_local_count  = get_count_indexed();
+log.trace ("@10");
 
         log.trace_log_and_console("NEW CONTEXT [%s]", context_name);
     }
@@ -280,31 +294,44 @@ class PThreadContext : Context
     @property
     public Ticket sys_ticket(bool is_new = false)
     {
+    	log.trace ("^1");
         Ticket ticket = get_global_systicket();
 
+    	log.trace ("^2");
         version (isModule)
         {
+    	log.trace ("^3");
             ticket = *get_systicket_from_storage();
+    	log.trace ("^4");
             set_global_systicket(ticket);
         }
 
+    	log.trace ("^5");
         version (WebServer)
         {
+    	log.trace ("^6");        	
             ticket = *get_systicket_from_storage();
+    	log.trace ("^7");            
             set_global_systicket(ticket);
         }
+    	log.trace ("^8");
 
         version (isServer)
         {
+    	log.trace ("^9");
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
             {
+    	log.trace ("^10");
+            	
                 try
                 {
                     ticket = create_new_ticket("cfg:VedaSystem", "400000");
+    	log.trace ("^11");
 
                     long op_id;
                     storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
                     log.trace("systicket [%s] was created", ticket.id);
+   	log.trace ("^12");
 
                     Individual sys_account_permission;
                     sys_account_permission.uri = "p:" ~ ticket.id;
@@ -312,7 +339,9 @@ class PThreadContext : Context
                     sys_account_permission.addResource("v-s:canCreate", Resource(DataType.Boolean, "true"));
                     sys_account_permission.addResource("v-s:permissionObject", Resource(DataType.Uri, "v-s:AllResourcesGroup"));
                     sys_account_permission.addResource("v-s:permissionSubject", Resource(DataType.Uri, "cfg:VedaSystem"));
-                    OpResult opres = this.put_individual(&ticket, sys_account_permission.uri, sys_account_permission, false, "srv", false, false);
+   	log.trace ("^13");
+                   OpResult opres = this.put_individual(&ticket, sys_account_permission.uri, sys_account_permission, false, "srv", false, false);
+   	log.trace ("^14");
 
                     if (opres.result == ResultCode.OK)
                         log.trace("permission [%s] was created", sys_account_permission);
@@ -322,6 +351,7 @@ class PThreadContext : Context
                     //printPrettyTrace(stderr);
                     log.trace("context.sys_ticket:EX!%s", ex.msg);
                 }
+    	log.trace ("^20");
 
                 if (ticket.user_uri == "")
                     ticket.user_uri = "cfg:VedaSystem";
@@ -334,14 +364,20 @@ class PThreadContext : Context
 
     public Individual get_configuration()
     {
+    	log.trace ("$1");
         if (node == Individual.init && node_id !is null)
         {
+    	log.trace ("$2");
             this.reopen_ro_subject_storage_db();
+    	log.trace ("$3");
             Ticket sticket = sys_ticket();
+    	log.trace ("$4");
 
             node = get_individual(&sticket, node_id);
+    	log.trace ("$5");
             if (node.getStatus() != ResultCode.OK)
                 node = Individual.init;
+    	log.trace ("$6");
         }
         return node;
     }
@@ -403,13 +439,26 @@ class PThreadContext : Context
 
     public string get_from_individual_storage(string uri)
     {
-        //writeln ("@ get_individual_as_binobj, uri=", uri);
+        log.trace ("@ get_individual_as_binobj, uri=%s", uri);
         string res;
 
+		log.trace ("*1");
+
         if (inividuals_storage_r !is null)
+        {
+		log.trace ("*2 inividuals_storage_r=%s", inividuals_storage_r);
             res = inividuals_storage_r.find(uri);
+            		log.trace ("*3");
+
+        }
         else
+        {
+		log.trace ("*4");
+        	
             res = get_from_individual_storage_thread(uri);
+            		log.trace ("*5");
+
+        }
 
         if (res !is null && res.length < 10)
             log.trace_log_and_console("ERR! get_individual_from_storage, found invalid BINOBJ, uri=%s", uri);
@@ -930,6 +979,7 @@ class PThreadContext : Context
 
     public Individual get_individual(Ticket *ticket, string uri)
     {
+    	log.trace ("&1");
         Individual individual = Individual.init;
 
         if (ticket is null)
@@ -937,8 +987,9 @@ class PThreadContext : Context
             log.trace("get_individual, uri=%s, ticket is null", uri);
             return individual;
         }
+    	log.trace ("&2");
 
-        if (trace_msg[ T_API_150 ] == 1)
+        //if (trace_msg[ T_API_150 ] == 1)
         {
             if (ticket !is null)
                 log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
@@ -946,11 +997,19 @@ class PThreadContext : Context
 
         try
         {
+    	log.trace ("&3");
+        	
             string individual_as_binobj = get_from_individual_storage(uri);
+    	log.trace ("&4");
+
             if (individual_as_binobj !is null && individual_as_binobj.length > 1)
             {
+    	log.trace ("&5");
+            	
                 if (acl_indexes.authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
                 {
+                	    	log.trace ("&6");
+
                     if (individual.deserialize(individual_as_binobj) > 0)
                         individual.setStatus(ResultCode.OK);
                     else
@@ -971,6 +1030,7 @@ class PThreadContext : Context
                 individual.setStatus(ResultCode.Unprocessable_Entity);
                 //writeln ("ERR!: empty binobj: [", individual_as_binobj, "] ", uri);
             }
+    	log.trace ("&e");
 
             return individual;
         }

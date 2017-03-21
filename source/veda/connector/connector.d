@@ -79,7 +79,7 @@ class Connector
     {
         RequestResponse request_response = new RequestResponse();
         Packer packer = Packer(false);
-        stderr.writeln("PACK PUT REQUEST");
+        stderr.writeln("PACK GET REQUEST");
         packer.beginArray(uris.length + 2);
         packer.pack(need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
@@ -97,9 +97,14 @@ class Connector
         TcpSocket s = new TcpSocket();
         s.connect(new InternetAddress("127.0.0.1", 9999));
 
+stderr.writeln("SEND 1");
+
         s.send(size_buf);
+stderr.writeln("SEND 2");
         s.send([ cast(byte)2 ]);
+stderr.writeln("SEND 3");
         s.send(packer.stream.data);
+stderr.writeln("SEND 4");
        
         stderr.writeln("RECEIVE SIZE BUF ", 
             s.receive(size_buf));

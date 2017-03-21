@@ -18,6 +18,7 @@ public class TarantoolStorage : Storage
         host = _host;
         port = _port;
         log  = _log;
+    	log.trace ("(0 create TarantoolStorage");    	
     }
 
     public ResultCode put(string in_key, string in_value, long op_id)
@@ -32,7 +33,9 @@ public class TarantoolStorage : Storage
 
     public string find(string uri, bool return_value = true)
     {
+    	log.trace ("(1");    	
         RequestResponse rr = Connector.get(host, port, false, null, [ uri ]);
+    	log.trace ("(2");    	
 
         if (rr !is null && rr.msgpacks.length > 0)
             return rr.msgpacks[ 0 ];

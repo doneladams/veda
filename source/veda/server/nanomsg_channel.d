@@ -25,7 +25,7 @@ void nanomsg_channel(string thread_name)
         Context                      context;
 
         core.thread.Thread.getThis().name = thread_name;
-writeln ("#1");
+		log.trace ("#1");
         sock = nn_socket(AF_SP, NN_REP);
         if (sock < 0)
         {
@@ -38,37 +38,37 @@ writeln ("#1");
             return;
         }
         log.trace("success bind to %s", url);
-writeln ("#2");
 
         if (context is null)
             context = new PThreadContext("cfg:standart_node", thread_name, log, null);
-writeln ("#3");
+
+		log.trace ("#2");
 
         // SEND ready
         receive((Tid tid_response_reciever)
                 {
                     send(tid_response_reciever, true);
                 });
-writeln ("#4");
+		log.trace ("#3");
 
         while (true)
         {
             try
             {
-writeln ("#5");
+				log.trace ("#5");
                 char *buf  = cast(char *)0;
                 int  bytes = nn_recv(sock, &buf, NN_MSG, 0);
                 if (bytes >= 0)
                 {
                     string req = to!string(buf);
-//                    log.trace("RECEIVED (%s)", req);
+                    log.trace("RECEIVED (%s)", req);
 
                     string rep = context.execute(req);
 
                     nn_freemsg(buf);
 
                     bytes = nn_send(sock, cast(char *)rep, rep.length + 1, 0);
-//                    log.trace("SENDING (%s) %d bytes", rep, bytes);
+                    log.trace("SENDING (%s) %d bytes", rep, bytes);
                 }
             }
             catch (Throwable tr)
