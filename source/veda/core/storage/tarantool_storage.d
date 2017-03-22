@@ -67,6 +67,7 @@ public class TarantoolStorage : Storage
 
     public void close_db()
     {
+        connector.close();
         //throw new Exception ("not implemented");
     }
 

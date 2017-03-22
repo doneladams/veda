@@ -6,6 +6,7 @@ private
     import msgpack;
     import veda.core.common.context;
     import veda.connector.requestresponse;
+    import core.thread;
 }
 
 version (std_socket)
@@ -34,16 +35,40 @@ class Connector
     {
         version (WebServer)
         {
-            stderr.writefln("CONNECT WEB SERVER %s %d", addr, port);                        
-            s = connectTCP(addr, port);
+            for (;;)
+            {
+                try
+                {
+                    stderr.writefln("CONNECT WEB SERVER %s %d", addr, port);                        
+                    s = connectTCP(addr, port);
+                }
+                catch (Exception e)
+                {
+                    Thread.sleep( dur!("seconds")( 3 ) );
+                    continue;
+                }   
+                break;
+            }
             stderr.writeln("CONNECTED WEB SERVER");
         }
 
         version (std_socket)
         {
-            stderr.writefln("CONNECT STD %s %d", addr, port);            
             s = new TcpSocket();
-            s.connect(new InternetAddress(addr, port));
+            for (;;)
+            {
+                try
+                {
+                    stderr.writefln("CONNECT STD %s %d", addr, port);                        
+                    s.connect(new InternetAddress(addr, port));                        
+                }
+                catch (Exception e)
+                {
+                    Thread.sleep( dur!("seconds")( 3 ) );
+                    continue;
+                }   
+                break;
+            }
             stderr.writeln("CONNECTED STD");
         }
     }

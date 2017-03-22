@@ -27,42 +27,52 @@ require('db_handler')
 msgpack = require('msgpack')
 
 function handle_request(s) 
+    -- print('connect nonblock=')
+    -- print(s:nonblock())
+    s:nonblock(true)
     while true do
         local size_str, size, op, msg, resp, resp_size
         local resp_size_str, msg_table, zero_count, zero_pos
+        local peer_info
 
         s:readable()
+        peer_info = s:peer()
+        print('CONNECTED')
+        print(peer_info) 
         size_str = s:read(4)
         if size_str == "" or size_str == nil then
             print('END CONNECTION')
+            print(peer_info) 
             break
         end
 
+        print(peer_info)         
         size  = 0
         for i=1, 4, 1 do
             size = bit.lshift(size, 8) + string.byte(size_str, i)
         end
-        -- print('size='..size)
+        print('\tsize='..size)
         
         op = string.byte(s:read(1))
-        -- print('op='..op)
+        print('\top='..op)
         
         msg = s:read(size)
-        print("lua msg="..msg)
+        print("\tlua msg="..msg)
         resp = db_handle_request(op, msg);
         resp_size = string.len(resp)
-        print('resp_len='..resp_size)
-        print('resp='..resp)
+        print('\tresp_len='..resp_size)
+        print('\tresp='..resp)
         -- obj = msgpack.decode(resp)
         -- print("obj ".. obj)
         resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
             string.char(bit.band(resp_size, 255))
-        print('resp_size_str='..resp_size_str)
+        print('\tresp_size_str='..resp_size_str)
         s:send(resp_size_str)
         s:send(resp)
     end
 end
 
 socket.tcp_server('0.0.0.0', 9999, handle_request)    
+print('ready')
