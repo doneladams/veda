@@ -148,7 +148,7 @@ class Connector
             }
             stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
-            if (receive_size == 0)
+            if (receive_size == 0 || receive_size < response.length)
             {
                 Thread.sleep(dur!("seconds")(1));                
                 stderr.writeln("@RECONNECT GET REQUEST");     
@@ -254,7 +254,7 @@ class Connector
             }
             stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
-            if (receive_size == 0)
+            if (receive_size == 0 || receive_size < response.length)
             {
                 Thread.sleep(dur!("seconds")(1));                
                 stderr.writeln("@RECONNECT GET REQUEST");     
