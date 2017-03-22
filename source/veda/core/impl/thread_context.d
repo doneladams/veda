@@ -19,7 +19,8 @@ private
 
     version (isServer)
     {
-        alias veda.server.storage_manager storage_module;
+        alias veda.server.storage_manager ticket_storage_module;
+        alias veda.server.storage_manager subject_storage_module;
         alias veda.server.acl_manager     acl_module;
         alias veda.server.load_info       load_info;
     }
@@ -248,7 +249,7 @@ class PThreadContext : Context
 
         version (isServer)
         {
-            //res = storage_module.begin_transaction(P_MODULE.subject_manager);
+            res = subject_storage_module.begin_transaction(P_MODULE.subject_manager);
         }
 
         return res;
@@ -258,7 +259,7 @@ class PThreadContext : Context
     {
         version (isServer)
         {
-            //storage_module.commit_transaction(P_MODULE.subject_manager, transaction_id);
+            subject_storage_module.commit_transaction(P_MODULE.subject_manager, transaction_id);
         }
     }
 
@@ -266,7 +267,7 @@ class PThreadContext : Context
     {
         version (isServer)
         {
-            //storage_module.abort_transaction(P_MODULE.subject_manager, transaction_id);
+            subject_storage_module.abort_transaction(P_MODULE.subject_manager, transaction_id);
         }
     }
 
@@ -315,11 +316,10 @@ class PThreadContext : Context
             	
                 try
                 {
-                    ticket = create_new_ticket("cfg:VedaSystem", "400000");
-    	log.trace ("^11");
+                    ticket = create_new_ticket("cfg:VedaSystem", "90000000");
 
                     long op_id;
-                    storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
+                    ticket_storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
                     log.trace("systicket [%s] was created", ticket.id);
    	log.trace ("^12");
 
@@ -579,13 +579,13 @@ class PThreadContext : Context
         new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
         new_ticket.resources[ ticket__duration ] ~= Resource(duration);
 
-        // store ticket
-        string ss_as_binobj = new_ticket.serialize();
-
         version (isServer)
         {
+        	// store ticket
+        	string ss_as_binobj = new_ticket.serialize();
+        	
             long       op_id;
-            ResultCode rc = storage_module.put(P_MODULE.ticket_manager, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, false, op_id);
+            ResultCode rc = ticket_storage_module.put(P_MODULE.ticket_manager, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, false, op_id);
             ticket.result = rc;
 
             if (rc == ResultCode.OK)
@@ -596,6 +596,12 @@ class PThreadContext : Context
 
             if (trace_msg[ T_API_50 ] == 1)
                 log.trace("create_new_ticket, new ticket=%s", ticket);
+        }
+
+        version (WebServer)
+        {
+                subject2Ticket(new_ticket, &ticket);
+                user_of_ticket[ ticket.id ] = new Ticket(ticket);
         }
 
         return ticket;
@@ -824,7 +830,7 @@ class PThreadContext : Context
 
                     if (ticket_id == "guest")
                     {
-                        Ticket guest_ticket = create_new_ticket("cfg:Guest", "4000000", "guest");
+                        Ticket guest_ticket = create_new_ticket("cfg:Guest", "900000000", "guest");
                         tt = &guest_ticket;
                     }
                     else
@@ -1171,7 +1177,7 @@ class PThreadContext : Context
 
                 if (oprc.result == ResultCode.OK)
                 {
-                    res.result = storage_module.remove(P_MODULE.subject_manager, uri, ignore_freeze, res.op_id);
+                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, uri, ignore_freeze, res.op_id);
                 }
                 else
                     res.result = oprc.result;
@@ -1204,22 +1210,32 @@ class PThreadContext : Context
     {
         version (isServer)
         {
-            storage_module.flush_int_module(P_MODULE.subject_manager, isWait);
+            subject_storage_module.flush_int_module(P_MODULE.subject_manager, isWait);
         }
     }
 
-    public long unload_subject_storage(string queue_id)
+    public long unload_subject_storage(string queue_id, bool only_ids)
     {
         long res = -1;
 
         version (isServer)
         {
-            res = storage_module.unload(P_MODULE.subject_manager, queue_id);
+            res = subject_storage_module.unload(P_MODULE.subject_manager, queue_id, only_ids);
         }
 
-        if (main_module_url !is null)
+		version (isModule)
         {
-            //writeln("context:store_individual #3 ", process_name);
+            version (isModule)
+            {
+                log.trace("[%s] unload_subject_storage: isModule", name);
+
+                JSONValue req_body;
+                req_body[ "function" ] = "unload";
+                req_body[ "queue_id" ] = queue_id;
+                req_body[ "only_ids" ] = only_ids;
+
+                reqrep_2_main_module(req_body);
+            }
         }
 
         return res;
@@ -1391,7 +1407,7 @@ log.trace("*2");
                 }
 
                 res.result =
-                    storage_module.put(P_MODULE.subject_manager, ticket.user_uri, _types, indv.uri, prev_state, new_state, update_counter, event_id,
+                    subject_storage_module.put(P_MODULE.subject_manager, ticket.user_uri, _types, indv.uri, prev_state, new_state, update_counter, event_id,
                                        ignore_freeze,
                                        res.op_id);
                     
@@ -1534,7 +1550,7 @@ log.trace("*e");
                 }
                 else
                 {
-                    backup_id = storage_module.backup(P_MODULE.subject_manager);
+                    backup_id = subject_storage_module.backup(P_MODULE.subject_manager);
 
                     if (backup_id != "")
                     {
@@ -1601,7 +1617,7 @@ log.trace("*e");
     {
         version (isServer)
         {
-            storage_module.freeze(P_MODULE.subject_manager);
+            subject_storage_module.freeze(P_MODULE.subject_manager);
         }
         version (isModule)
         {
@@ -1615,7 +1631,7 @@ log.trace("*e");
     {
         version (isServer)
         {
-            storage_module.unfreeze(P_MODULE.subject_manager);
+            subject_storage_module.unfreeze(P_MODULE.subject_manager);
         }
         version (isModule)
         {
@@ -1631,7 +1647,7 @@ log.trace("*e");
 
         version (isServer)
         {
-            res = storage_module.find(P_MODULE.subject_manager, uri);
+            res = subject_storage_module.find(P_MODULE.subject_manager, uri);
         }
         return res;
     }
@@ -1880,11 +1896,11 @@ log.trace("*e");
                 ResultCode rc;
 
                 if (f_module_id == P_MODULE.subject_manager)
-                    rc = storage_module.flush_int_module(P_MODULE.subject_manager, false);
+                    rc = subject_storage_module.flush_int_module(P_MODULE.subject_manager, false);
                 else if (f_module_id == P_MODULE.acl_preparer)
                     rc = acl_module.flush(false);
                 else if (f_module_id == P_MODULE.fulltext_indexer)
-                    storage_module.flush_ext_module(f_module_id, wait_op_id);
+                    subject_storage_module.flush_ext_module(f_module_id, wait_op_id);
 
                 res[ "type" ]   = "OpResult";
                 res[ "result" ] = ResultCode.OK;
@@ -1897,7 +1913,7 @@ log.trace("*e");
 
                 ResultCode rc;
 
-                storage_module.msg_to_module(f_module_id, msg, false);
+                subject_storage_module.msg_to_module(f_module_id, msg, false);
 
                 res[ "type" ]   = "OpResult";
                 res[ "result" ] = ResultCode.OK;
@@ -1910,6 +1926,20 @@ log.trace("*e");
 
                 res[ "type" ] = "OpResult";
                 if (rc == true)
+                    res[ "result" ] = ResultCode.OK;
+                else
+                    res[ "result" ] = ResultCode.Internal_Server_Error;
+                res[ "op_id" ] = -1;
+            }
+            else if (sfn == "unload")
+            {
+                string     queue_id         = jsn[ "queue_id" ].str;
+                bool only_ids = jsn[ "only_ids" ].type() == JSON_TYPE.TRUE;                
+                
+                long rc        = this.unload_subject_storage(queue_id, only_ids);
+
+                res[ "type" ] = "OpResult";
+                if (rc > 0)
                     res[ "result" ] = ResultCode.OK;
                 else
                     res[ "result" ] = ResultCode.Internal_Server_Error;
