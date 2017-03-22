@@ -31,7 +31,7 @@ function handle_request(s)
     -- print(s:nonblock())
     s:nonblock(true)
     while true do
-        local size_str, size, op, msg, resp, resp_size
+        local size_str, size, op, op_str, msg, resp, resp_size
         local resp_size_str, msg_table, zero_count, zero_pos
         local peer_info
 
@@ -40,7 +40,7 @@ function handle_request(s)
         print('CONNECTED')
         print(peer_info) 
         size_str = s:read(4)
-        if size_str == "" or size_str == nil then
+        if size_str == nil or size_str == "" or string.len(size_str) < 4 then
             print('END CONNECTION')
             print(peer_info) 
             break
@@ -53,10 +53,22 @@ function handle_request(s)
         end
         print('\tsize='..size)
         
-        op = string.byte(s:read(1))
+        op_str = s:read(1)
+        if op_str == "" or op_str == nil then
+            print('END CONNECTION')
+            print(peer_info) 
+            break
+        end
+        op = string.byte(op_str, 1)
         print('\top='..op)
         
         msg = s:read(size)
+        if msg == nil or msg == "" or string.len(msg) < size then
+            print('END CONNECTION')
+            print(peer_info) 
+            break
+        end
+        
         print("\tlua msg="..msg)
         resp = db_handle_request(op, msg);
         resp_size = string.len(resp)

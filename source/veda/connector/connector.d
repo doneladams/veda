@@ -21,6 +21,8 @@ version (WebServer)
 class Connector
 {
     public ubyte[] buf;
+    public string addr;
+    public ushort port;
     version (std_socket)
     {
         public TcpSocket s;
@@ -33,6 +35,9 @@ class Connector
 
     public void connect(string addr, ushort port)
     {
+        this.addr = addr;
+        this.port = port;
+
         version (WebServer)
         {
             for (;;)
@@ -44,7 +49,7 @@ class Connector
                 }
                 catch (Exception e)
                 {
-                    Thread.sleep( dur!("seconds")( 3 ) );
+                    Thread.sleep(dur!("seconds")(3));
                     continue;
                 }   
                 break;
@@ -64,7 +69,7 @@ class Connector
                 }
                 catch (Exception e)
                 {
-                    Thread.sleep( dur!("seconds")( 3 ) );
+                    Thread.sleep(dur!("seconds")(3));
                     continue;
                 }   
                 break;
@@ -76,6 +81,7 @@ class Connector
 
     public RequestResponse put(bool need_auth, string user_uri, string[] individuals)
     {
+        ubyte[] response;
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
@@ -90,59 +96,68 @@ class Connector
 
 		if (buf.length == 0)
 			buf = new ubyte [4];
-			
+
         buf[ 0 ] = cast(byte)((request_size >> 24) & 0xFF);
         buf[ 1 ] = cast(byte)((request_size >> 16) & 0xFF);
         buf[ 2 ] = cast(byte)((request_size >> 8) & 0xFF);
-        buf[ 3 ] = cast(byte)(request_size & 0xFF);
+        buf[ 3 ] = cast(byte)(request_size & 0xFF);  
 
-        
-
-        
-
-        version (WebServer)
+        for (;;)
         {
-            s.write(buf);
-            s.write([ cast(ubyte)1 ]);
-            s.write(cast(ubyte[])packer.stream.data);
-        }
-        version (std_socket)
-        {
-	        s.send(buf);
-	        s.send([ cast(byte)1 ]);
-	        s.send(packer.stream.data);
-        }
+            version (WebServer)
+            {
+                s.write(buf);
+                s.write([ cast(ubyte)1 ]);
+                s.write(cast(ubyte[])packer.stream.data);
+            }
+            version (std_socket)
+            {
+                s.send(buf);
+                s.send([ cast(byte)1 ]);
+                s.send(packer.stream.data);
+            }
 
-        version (WebServer)
-        {
-            s.read(buf);
-            long receive_size = buf.length;
-        }
+            version (WebServer)
+            {
+                s.read(buf);
+                long receive_size = buf.length;
+            }
 
-        version (std_socket)
-        {
-            long receive_size = s.receive(buf);
-        }
-        stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            version (std_socket)
+            {
+                long receive_size = s.receive(buf);
+            }
+            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
 
-        stderr.writeln("RESPONSE SIZE BUF ", buf);
-        long response_size = 0;
-        for (int i = 0; i < 4; i++)
-            response_size = (response_size << 8) + buf[ i ];
-        stderr.writeln("RESPONSE SIZE ", response_size);
-        ubyte[] response = new ubyte[ response_size ];
+            stderr.writeln("RESPONSE SIZE BUF ", buf);
+            long response_size = 0;
+            for (int i = 0; i < 4; i++)
+                response_size = (response_size << 8) + buf[ i ];
+            stderr.writeln("RESPONSE SIZE ", response_size);
+            response = new ubyte[ response_size ];
 
-        version (WebServer)
-        {
-            s.read(response);
-            receive_size = response.length;
+            version (WebServer)
+            {
+                s.read(response);
+                receive_size = response.length;
+            }
+            version (std_socket)
+            {
+                receive_size = s.receive(response);
+            }
+            stderr.writeln("RECEIVE RESPONSE ", receive_size);
+
+            if (receive_size == 0)
+            {
+                Thread.sleep(dur!("seconds")(1));                
+                stderr.writeln("@RECONNECT GET REQUEST");     
+                close();
+                connect(addr, port);   
+                continue;
+            }
+            break;
         }
-        version (std_socket)
-        {
-            receive_size = s.receive(response);
-        }
-        stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
         StreamingUnpacker unpacker =
             StreamingUnpacker(response);
@@ -170,6 +185,7 @@ class Connector
 
     public RequestResponse get(bool need_auth, string user_uri, string[] uris)
     {
+        ubyte[] response;
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
@@ -192,49 +208,63 @@ class Connector
 
         stderr.writeln("CONNECT");
         stderr.writeln("SEND 1");
+        
+        for (;;)
+        {
+            version (WebServer)
+            {
+                s.write(buf);
+                s.write([ cast(ubyte)2 ]);
+                s.write(cast(ubyte[])packer.stream.data);
+            }
+            version (std_socket)
+            {
+                s.send(buf);
+                s.send([ cast(byte)2 ]);
+                s.send(packer.stream.data);
+            }
 
-        version (WebServer)
-        {
-            s.write(buf);
-            s.write([ cast(ubyte)2 ]);
-            s.write(cast(ubyte[])packer.stream.data);
-        }
-        version (std_socket)
-        {
-            s.send(buf);
-            s.send([ cast(byte)2 ]);
-            s.send(packer.stream.data);
-        }
+            version (WebServer)
+            {
+                s.read(buf);
+                long receive_size = buf.length; 
+            }
 
-        version (WebServer)
-        {
-        	s.read(buf);
-            long receive_size = buf.length; 
-        }
+            version (std_socket)
+            {
+                long receive_size = s.receive(buf);
+            }
+            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
-        version (std_socket)
-        {
-            long receive_size = s.receive(buf);
-        }
-        stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            stderr.writeln("RESPONSE SIZE BUF ", buf);
+            long response_size = 0;
+            for (int i = 0; i < 4; i++)
+                response_size = (response_size << 8) + buf[ i ];
+            stderr.writeln("RESPONSE SIZE ", response_size);
+            response = new ubyte[ response_size ];
 
-        stderr.writeln("RESPONSE SIZE BUF ", buf);
-        long response_size = 0;
-        for (int i = 0; i < 4; i++)
-            response_size = (response_size << 8) + buf[ i ];
-        stderr.writeln("RESPONSE SIZE ", response_size);
-        ubyte[] response = new ubyte[ response_size ];
+            version (WebServer)
+            {
+                s.read(response);
+                receive_size = response.length; 
+            }
+            version (std_socket)
+            {
+                receive_size = s.receive(response);
+            }
+            stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
-        version (WebServer)
-        {
-            s.read(response);
-            receive_size = response.length; 
+            if (receive_size == 0)
+            {
+                Thread.sleep(dur!("seconds")(1));                
+                stderr.writeln("@RECONNECT GET REQUEST");     
+                close();
+                connect(addr, port);   
+                continue;
+            }
+            break;
         }
-        version (std_socket)
-        {
-            receive_size = s.receive(response);
-        }
-        stderr.writeln("RECEIVE RESPONSE ", receive_size);
+       
 
         StreamingUnpacker unpacker =
             StreamingUnpacker(response);

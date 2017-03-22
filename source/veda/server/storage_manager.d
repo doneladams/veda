@@ -511,6 +511,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                                 stderr.writeln("@OK");
 
 
+
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
                                             string msg_to_modules = format("#%s;%d;%d", indv_uri, update_counter, op_id);
