@@ -82,6 +82,11 @@ void main(char[][] args)
     tids[ P_MODULE.statistic_data_accumulator ] = spawn(&statistic_data_accumulator, text(P_MODULE.statistic_data_accumulator));
     wait_starting_thread(P_MODULE.statistic_data_accumulator, tids);
 
+    foreach (key, value; tids)
+    {
+        register(text(key), value);
+    }
+
     tids[ P_MODULE.n_channel ] = spawn(&nanomsg_channel, text(P_MODULE.n_channel));
     wait_starting_thread(P_MODULE.n_channel, tids);
 
@@ -90,7 +95,9 @@ void main(char[][] args)
     wait_starting_thread(P_MODULE.print_statistic, tids);
 
     foreach (key, value; tids)
+    {
         register(text(key), value);
+    }
 
     spawn(&ws_interface, cast(short)8091);
     //spawn (&ws_interface, cast(short)8092);
@@ -191,7 +198,7 @@ class VedaServer : WSClient
             string guest_ticket = core_context.get_ticket_from_storage("guest");
 
             if (guest_ticket is null)
-                core_context.create_new_ticket("cfg:Guest", "900000000", "guest");
+                core_context.create_new_ticket("cfg:Guest", "4000000", "guest");
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////
             if (node.getStatus() != ResultCode.OK)

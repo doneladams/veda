@@ -20,7 +20,7 @@ private
     version (isServer)
     {
         alias veda.server.storage_manager ticket_storage_module;
-        alias veda.server.storage_manager subject_storage_module;
+        alias veda.server.tt_storage_manager subject_storage_module;
         alias veda.server.acl_manager     acl_module;
         alias veda.server.load_info       load_info;
     }
@@ -1647,7 +1647,8 @@ log.trace("*e");
 
         version (isServer)
         {
-            res = subject_storage_module.find(P_MODULE.subject_manager, uri);
+            //res = subject_storage_module.find(P_MODULE.subject_manager, uri);
+            res = inividuals_storage_r.find(uri);
         }
         return res;
     }

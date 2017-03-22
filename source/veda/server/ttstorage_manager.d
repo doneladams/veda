@@ -93,21 +93,42 @@ public void unfreeze(P_MODULE storage_id)
 
 public string find(P_MODULE storage_id, string uri)
 {
+	log.trace ("##1");
     string res;
     Tid    tid_subject_manager = getTid(P_MODULE.subject_manager);
+	log.trace ("##2");
 
     if (tid_subject_manager !is Tid.init)
     {
+ 	log.trace ("##3");
+   	
         send(tid_subject_manager, CMD_FIND, uri, thisTid);
+	log.trace ("##4");
         receive((string key, string data, Tid tid)
                 {
+                		log.trace ("##5");
+
                     res = data;
                 });
     }
     else
         throw new Exception("find [" ~ uri ~ "], !!! NOT FOUND TID=" ~ text(P_MODULE.subject_manager));
+	log.trace ("##e");
 
     return res;
+}
+
+public long unload(P_MODULE storage_id, string queue_name, bool only_ids)
+{
+    Tid  tid   = getTid(storage_id);
+    long count = -1;
+
+    if (tid != Tid.init)
+    {
+        send(tid, CMD_UNLOAD, queue_name, only_ids, thisTid);
+        receive((long _count) { count = _count; });
+    }
+    return count;
 }
 
 public string backup(P_MODULE storage_id)
