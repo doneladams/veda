@@ -48,6 +48,11 @@ public class TarantoolStorage : Storage
         return null;
     }
 
+    public void unload_to_queue(string path, string queue_id, bool only_ids)
+    {
+    	
+    }
+
     public int get_of_cursor(bool delegate(string key, string value) prepare)
     {
         log.trace("ERR! get_of_cursor not implemented");

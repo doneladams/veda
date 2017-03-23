@@ -256,7 +256,8 @@ public ResultCode remove(P_MODULE storage_id, string uri, bool ignore_freeze, ou
 public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string node_id)
 {
     Queue                        individual_queue;
-
+	Queue 						 uris_queue;
+	
     P_MODULE                     storage_id  = _storage_id;
     string                       thread_name = text(storage_id);
 
@@ -278,9 +279,11 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
     {
         if (storage_id == P_MODULE.subject_manager)
         {
-            individual_queue = new Queue("individuals-flow", Mode.RW, log);
-//            individual_queue.remove_lock();
+            individual_queue = new Queue(queue_db_path, "individuals-flow", Mode.RW, log);
             individual_queue.open();
+
+			uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW, log);
+			uris_queue.open();
 
             sock = nn_socket(AF_SP, NN_PUB);
             if (sock >= 0)
@@ -457,7 +460,9 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
 
                                             if (prev_state !is null && prev_state.length > 0)
                                                 imm.addResource("prev_state", Resource(DataType.String, prev_state));
-
+											else    
+												uris_queue.push(indv_uri);
+												
                                             if (event_id !is null && event_id.length > 0)
                                                 imm.addResource("event_id", Resource(DataType.String, event_id));
 
@@ -608,6 +613,12 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
             individual_queue.close();
             individual_queue = null;
         }
+        
+        if (uris_queue !is null)
+        {
+            uris_queue.close();
+            uris_queue = null;
+		}        
     }
 }
 
