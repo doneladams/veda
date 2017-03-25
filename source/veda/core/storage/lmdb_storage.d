@@ -866,7 +866,7 @@ public class LmdbStorage : Storage
     }
 
 
-    public int get_of_cursor(bool delegate(string key, string value) prepare)
+    public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_id)
     {
         MDB_cursor *cursor;
         MDB_txn    *txn_r;
@@ -947,8 +947,12 @@ public class LmdbStorage : Storage
 
                     if (rc == 0)
                     {
-                        string str_key  = cast(string)(key.mv_data[ 0..key.mv_size ]).dup;
-                        string str_data = cast(string)(data.mv_data[ 0..data.mv_size ]).dup;
+                        string str_key  = cast(string)(key.mv_data[ 0..key.mv_size ]).dup;                        
+                        string str_data;
+                        
+                        if (only_id == false)
+	                        str_data = cast(string)(data.mv_data[ 0..data.mv_size ]).dup;
+	                        
                         if (prepare(str_key, str_data) == false)
                             break;
                     }
@@ -980,23 +984,23 @@ public class LmdbStorage : Storage
         {
             bool add_to_queue(string key, string value)
             {
-                queue.push(value);
+                queue.push(value, false);
                 count++;
                 return true;
             }
 
             bool add_id_to_queue(string key, string value)
             {
-                queue.push(key);
+                queue.push(key, false);
                 count++;
                 return true;
             }
 
             if (only_ids)
-                get_of_cursor(&add_id_to_queue);
+                get_of_cursor(&add_id_to_queue, only_ids);
             else
-                get_of_cursor(&add_to_queue);
-
+                get_of_cursor(&add_to_queue, only_ids);
+			
             queue.close();
         }
         else
