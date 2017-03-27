@@ -1,4 +1,6 @@
-box.cfg{listen=3309, work_dir='./data/tarantool', slab_alloc_arena=10.0, slab_alloc_maximal=67108864}
+box.cfg{listen=3309, work_dir='./data/tarantool', slab_alloc_arena=10.0, slab_alloc_maximal=67108864, log_level=5, logger='./tarantool.log'}
+log = require('log')
+
 if box.space.individuals == nil then
     box.schema.space.create('individuals', {engine='vinyl'})
     box.space.individuals:create_index('primary', {parts={1, 'string'}})
@@ -37,52 +39,49 @@ function handle_request(s)
 
         s:readable()
         peer_info = s:peer()
-        print('CONNECTED')
-        print(peer_info) 
+        log.info('START')
         size_str = s:read(4)
         if size_str == nil or size_str == "" or string.len(size_str) < 4 then
-            print('END CONNECTION')
-            print(peer_info) 
+            log.info('BREAK')
             break
         end
 
-        print(peer_info)         
         size  = 0
         for i=1, 4, 1 do
             size = bit.lshift(size, 8) + string.byte(size_str, i)
         end
-        print('\tsize='..size)
+        log.info('size=%d', size)
         
         op_str = s:read(1)
         if op_str == "" or op_str == nil then
-            print('END CONNECTION')
-            print(peer_info) 
+            log.info('BREAK ')
             break
         end
+        log.info('#1')
         op = string.byte(op_str, 1)
-        print('\top='..op)
+        log.info('op=%d', op)
         
         msg = s:read(size)
         if msg == nil or msg == "" or string.len(msg) < size then
-            print('END CONNECTION')
-            print(peer_info) 
+            log.info('BREAK ')
             break
         end
         
-        print("\tlua msg="..msg)
+        log.info('lua msg=%s', msg)
         resp = db_handle_request(op, msg);
         resp_size = string.len(resp)
-        print('\tresp_len='..resp_size)
-        print('\tresp='..resp)
+        log.info('resp_len=%d', resp_size)
+        log.info('resp=%s', resp)
         -- obj = msgpack.decode(resp)
         -- print("obj ".. obj)
         resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
             string.char(bit.band(resp_size, 255))
-        print('\tresp_size_str='..resp_size_str)
+        log.info('resp_size_str=%s', resp_size_str)
         s:send(resp_size_str)
         s:send(resp)
+        log.info('END')
     end
 end
 
