@@ -53,7 +53,7 @@ public class TarantoolStorage : Storage
     	
     }
 
-    public int get_of_cursor(bool delegate(string key, string value) prepare)
+    public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_ids)
     {
         log.trace("ERR! get_of_cursor not implemented");
         throw new Exception("not implemented");
