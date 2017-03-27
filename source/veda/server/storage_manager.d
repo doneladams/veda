@@ -16,8 +16,6 @@ private
     import veda.server.wslink;
     import std.socket;
     import msgpack;
-    import veda.connector.connector;
-    import veda.connector.requestresponse;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -245,8 +243,6 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
     int                          sock;
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
-    Connector connector = new Connector();
-    connector.connect("127.0.0.1", 9999);
     try
     {
         string last_backup_id = "---";
@@ -273,7 +269,7 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                 {
                     send(tid_response_reciever, true);
                 });
-        
+
         while (is_exit == false)
         {
             try
@@ -441,59 +437,6 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
                                         module_info.put_info(op_id, committed_op_id);
 
                                         bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
-
-                                        if (storage_id == P_MODULE.subject_manager)
-                                        {
-                                            Individual imm;
-                                            imm.uri = text(op_id);
-                                            imm.addResource("cmd", Resource(cmd));
-                                            imm.addResource("uri", Resource(DataType.Uri, indv_uri));
-
-
-                                            if (user_uri !is null && user_uri.length > 0)
-                                                imm.addResource("user_uri", Resource(DataType.Uri, user_uri));
-
-                                            imm.addResource("new_state", Resource(DataType.String, new_state));
-
-                                            if (prev_state !is null && prev_state.length > 0)
-                                                imm.addResource("prev_state", Resource(DataType.String, prev_state));
-                                            else    
-	                                            uris_queue.push(indv_uri);
-
-                                            if (event_id !is null && event_id.length > 0)
-                                                imm.addResource("event_id", Resource(DataType.String, event_id));
-
-                                            imm.addResource("op_id", Resource(op_id));
-                                            imm.addResource("u_count", Resource(update_counter));
-
-                                            //writeln ("*imm=[", imm, "]");
-
-                                            string binobj = imm.serialize();
-                                            // RequestResponse request_response = Connector.put("127.0.0.1", 9999, false, "", [ binobj ]);
-                                            RequestResponse request_response = connector.put(false, "", [ binobj ]);
-                                            if (request_response.common_rc != ResultCode.OK)
-                                                stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
-                                            else if (request_response.op_rc[0] != ResultCode.OK)
-                                                stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
-                                            else 
-                                                stderr.writeln("@OK");
-
-
-
-                                            individual_queue.push(binobj);
-//                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
-                                            string msg_to_modules = format("#%s;%d;%d", indv_uri, update_counter, op_id);
-
-                                            int bytes = nn_send(sock, cast(char *)msg_to_modules, msg_to_modules.length, 0);
-//                                          log.trace("SEND %d bytes UPDATE SIGNAL TO %s", bytes, notify_channel_url);
-
-                                            //Tid tid_ccus_channel = getTid(P_MODULE.ccus_channel);
-                                            //if (tid_ccus_channel !is Tid.init)
-                                            //{
-                                            //    //log.trace("SEND SIGNAL TO CCUS %s", msg_to_modules);
-                                            //    send(tid_ccus_channel, msg_to_modules);
-                                            //}
-                                        }
                                     }
 
                                     return;
@@ -566,7 +509,6 @@ public void individuals_manager(P_MODULE _storage_id, string db_path, string nod
         }
     } finally
     {
-        connector.close();
         if (module_info !is null)
         {
             module_info.close();

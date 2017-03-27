@@ -14,8 +14,9 @@ private
     import kaleidic.nanomsg.nano;
     import veda.bind.libwebsocketd;
     import veda.server.wslink;
-    import std.socket;
     import msgpack;
+    import veda.connector.connector;
+    import veda.connector.requestresponse;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -93,27 +94,19 @@ public void unfreeze(P_MODULE storage_id)
 
 public string find(P_MODULE storage_id, string uri)
 {
-	log.trace ("##1");
     string res;
     Tid    tid_subject_manager = getTid(P_MODULE.subject_manager);
-	log.trace ("##2");
 
     if (tid_subject_manager !is Tid.init)
     {
- 	log.trace ("##3");
-   	
         send(tid_subject_manager, CMD_FIND, uri, thisTid);
-	log.trace ("##4");
         receive((string key, string data, Tid tid)
                 {
-                		log.trace ("##5");
-
                     res = data;
                 });
     }
     else
         throw new Exception("find [" ~ uri ~ "], !!! NOT FOUND TID=" ~ text(P_MODULE.subject_manager));
-	log.trace ("##e");
 
     return res;
 }
@@ -253,11 +246,11 @@ public ResultCode remove(P_MODULE storage_id, string uri, bool ignore_freeze, ou
 }
 
 
-public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string node_id)
+public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string node_id)
 {
     Queue                        individual_queue;
-	Queue 						 uris_queue;
-	
+    Queue                        uris_queue;
+
     P_MODULE                     storage_id  = _storage_id;
     string                       thread_name = text(storage_id);
 
@@ -268,7 +261,7 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
     string                       bin_log_name         = get_new_binlog_name(db_path);
     long                         last_reopen_rw_op_id = 0;
 
-    long                         op_id           = 0;
+    long                         op_id = 0;
 
     string                       notify_channel_url = "tcp://127.0.0.1:9111\0";
     int                          sock;
@@ -280,10 +273,12 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
         if (storage_id == P_MODULE.subject_manager)
         {
             individual_queue = new Queue(queue_db_path, "individuals-flow", Mode.RW, log);
+            log.trace("open queue [%s]", individual_queue);
             individual_queue.open();
 
-			uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW, log);
-			uris_queue.open();
+            uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW, log);
+            log.trace("open queue [%s]", uris_queue);
+            uris_queue.open();
 
             sock = nn_socket(AF_SP, NN_PUB);
             if (sock >= 0)
@@ -319,6 +314,9 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
                 {
                     send(tid_response_reciever, true);
                 });
+
+    Connector connector = new Connector();
+    connector.connect("127.0.0.1", 9999);
 
         while (is_exit == false)
         {
@@ -375,7 +373,7 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
                         {
                             if (cmd == CMD_PUT_KEY2SLOT)
                             {
-                            	log.trace ("ERR! CMD_PUT_KEY2SLOT storage.put(key, msg, -1) not implemented ");
+                                log.trace("ERR! CMD_PUT_KEY2SLOT storage.put(key, msg, -1) not implemented ");
                                 //storage.put(key, msg, -1);
                             }
                         },
@@ -418,7 +416,7 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
                                     //if (storage.remove(uri) == ResultCode.OK)
                                     //    rc = ResultCode.OK;
                                     //else
-                                        rc = ResultCode.Fail_Store;
+                                    rc = ResultCode.Fail_Store;
 
                                     send(tid_response_reciever, rc, thisTid);
 
@@ -460,37 +458,26 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
 
                                             if (prev_state !is null && prev_state.length > 0)
                                                 imm.addResource("prev_state", Resource(DataType.String, prev_state));
-											else    
-												uris_queue.push(indv_uri);
-												
+                                            else
+                                                uris_queue.push(indv_uri);
+
                                             if (event_id !is null && event_id.length > 0)
                                                 imm.addResource("event_id", Resource(DataType.String, event_id));
 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
-                                            log.trace ("SEND TO TT %s ", imm);
+                                            log.trace("SEND TO TT %s ", imm);
 
                                             string binobj = imm.serialize();
-                                            Packer packer = Packer(false);
-                                            //stderr.writeln("PACK PUT REQUEST");
-                                            packer.beginArray(3).pack(false, null, binobj);
-                                            long request_size = packer.stream.data.length;
-                                            //stderr.writeln("DATA SIZE ", request_size);
-                                            byte[4] size_buf;
                                             
-                                            size_buf[0] = cast(byte)((request_size >> 24) & 0xFF);
-                                            size_buf[1] = cast(byte)((request_size >> 16) & 0xFF);
-                                            size_buf[2] = cast(byte)((request_size >> 8) & 0xFF);
-                                            size_buf[3] = cast(byte)(request_size & 0xFF);
-
-                                            TcpSocket s = new TcpSocket();
-                                            s.connect(new InternetAddress("127.0.0.1", 9999));
-
-                                            stderr.writeln("SEND SIZE BUF ", s.send(size_buf));
-                                            stderr.writeln("SEND OP ", s.send([ cast(byte)1 ]));
-                                            stderr.writeln("SEND MSGPACK ", s.send(packer.stream.data));
-                                            s.close();
+					                        RequestResponse request_response = connector.put(false, "", [ binobj ]);
+                                            if (request_response.common_rc != ResultCode.OK)
+                                                stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
+                                            else if (request_response.op_rc[0] != ResultCode.OK)
+                                                stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
+                                            else 
+                                                stderr.writeln("@OK");
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
@@ -506,30 +493,29 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
                                             //    send(tid_ccus_channel, msg_to_modules);
                                             //}
                                         }
-                                        
-                                    //string new_hash;
-                                    //log.trace ("storage_manager:PUT %s", indv_uri);
-                                    //if (storage.update_or_create(indv_uri, new_state, op_id, new_hash) == 0)
-                                    //{
+
+                                        //string new_hash;
+                                        //log.trace ("storage_manager:PUT %s", indv_uri);
+                                        //if (storage.update_or_create(indv_uri, new_state, op_id, new_hash) == 0)
+                                        //{
                                         rc = ResultCode.OK;
                                         op_id++;
                                         set_subject_manager_op_id(op_id);
-                                   // }
-                                   // else
-                                   // {
-                                   //     rc = ResultCode.Fail_Store;
-                                   // }
+                                        // }
+                                        // else
+                                        // {
+                                        //     rc = ResultCode.Fail_Store;
+                                        // }
 
-                                    send(tid_response_reciever, rc, thisTid);
-                                        
-                                        
-                                    if (rc == ResultCode.OK)
-                                    {
-                                        module_info.put_info(op_id, op_id);
-                                        string new_hash = "0000";
-                                        bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);                                    	
-                                    }
+                                        send(tid_response_reciever, rc, thisTid);
 
+
+                                        if (rc == ResultCode.OK)
+                                        {
+                                            module_info.put_info(op_id, op_id);
+                                            string new_hash = "0000";
+                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
+                                        }
                                     }
 
                                     return;
@@ -602,6 +588,8 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
         }
     } finally
     {
+    	connector.close();
+    	
         if (module_info !is null)
         {
             module_info.close();
@@ -613,12 +601,12 @@ public void tt_individuals_manager(P_MODULE _storage_id,  string db_path, string
             individual_queue.close();
             individual_queue = null;
         }
-        
+
         if (uris_queue !is null)
         {
             uris_queue.close();
             uris_queue = null;
-		}        
+        }
     }
 }
 

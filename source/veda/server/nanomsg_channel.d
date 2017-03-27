@@ -22,21 +22,17 @@ void nanomsg_channel(string thread_name)
 
     try
     {
-        Context                      context;
+        Context context;
 
-		log.trace ("#0");
-
-		try
-		{
-        if (context is null)
-            context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, null);
-		}
-		catch (Throwable tr)
-		{
-		stderr.writefln ("#ERR %s %s", tr.msg, tr.info);			
-		}
-
-		log.trace ("#1");
+        try
+        {
+            if (context is null)
+                context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, null);
+        }
+        catch (Throwable tr)
+        {
+            stderr.writefln("#ERR %s %s", tr.msg, tr.info);
+        }
 
         core.thread.Thread.getThis().name = thread_name;
         sock = nn_socket(AF_SP, NN_REP);
@@ -57,13 +53,10 @@ void nanomsg_channel(string thread_name)
                 {
                     send(tid_response_reciever, true);
                 });
-		log.trace ("#3");
-
         while (true)
         {
             try
             {
-				log.trace ("#5");
                 char *buf  = cast(char *)0;
                 int  bytes = nn_recv(sock, &buf, NN_MSG, 0);
                 if (bytes >= 0)
@@ -84,11 +77,9 @@ void nanomsg_channel(string thread_name)
                 log.trace("ERR! MAIN LOOP", tr.info);
             }
         }
-                
     }
     finally
     {
         writeln("exit form thread ", thread_name);
     }
-    
 }

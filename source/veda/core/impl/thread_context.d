@@ -285,34 +285,26 @@ class PThreadContext : Context
     @property
     public Ticket sys_ticket(bool is_new = false)
     {
-    	log.trace ("^1");
         Ticket ticket = get_global_systicket();
 
-    	log.trace ("^2");
+    	
         version (isModule)
         {
-    	log.trace ("^3");
             ticket = *get_systicket_from_storage();
-    	log.trace ("^4");
             set_global_systicket(ticket);
         }
 
-    	log.trace ("^5");
+    	
         version (WebServer)
         {
-    	log.trace ("^6");        	
             ticket = *get_systicket_from_storage();
-    	log.trace ("^7");            
             set_global_systicket(ticket);
         }
-    	log.trace ("^8");
 
         version (isServer)
         {
-    	log.trace ("^9");
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
             {
-    	log.trace ("^10");
             	
                 try
                 {
@@ -321,7 +313,6 @@ class PThreadContext : Context
                     long op_id;
                     ticket_storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
                     log.trace("systicket [%s] was created", ticket.id);
-   	log.trace ("^12");
 
                     Individual sys_account_permission;
                     sys_account_permission.uri = "p:" ~ ticket.id;
@@ -329,9 +320,8 @@ class PThreadContext : Context
                     sys_account_permission.addResource("v-s:canCreate", Resource(DataType.Boolean, "true"));
                     sys_account_permission.addResource("v-s:permissionObject", Resource(DataType.Uri, "v-s:AllResourcesGroup"));
                     sys_account_permission.addResource("v-s:permissionSubject", Resource(DataType.Uri, "cfg:VedaSystem"));
-   	log.trace ("^13");
+                    
                    OpResult opres = this.put_individual(&ticket, sys_account_permission.uri, sys_account_permission, false, "srv", false, false);
-   	log.trace ("^14");
 
                     if (opres.result == ResultCode.OK)
                         log.trace("permission [%s] was created", sys_account_permission);
@@ -341,7 +331,6 @@ class PThreadContext : Context
                     //printPrettyTrace(stderr);
                     log.trace("context.sys_ticket:EX!%s", ex.msg);
                 }
-    	log.trace ("^20");
 
                 if (ticket.user_uri == "")
                     ticket.user_uri = "cfg:VedaSystem";
@@ -1274,7 +1263,6 @@ class PThreadContext : Context
                 log.trace("[%s] store_individual: (isServer)", name);
                 Tid       tid_subject_manager;
                 Tid       tid_acl;
-log.trace("*0.1");
 
                 Resources _types = indv.resources.get(rdf__type, Resources.init);
                 foreach (idx, rs; _types)
@@ -1282,7 +1270,6 @@ log.trace("*0.1");
                     _types[ idx ].info = NEW_TYPE;
                 }
 
-log.trace("*0.2");
                 MapResource rdfType;
                 setMapResources(_types, rdfType);
 
@@ -1290,14 +1277,11 @@ log.trace("*0.2");
 
                 string     prev_state;
                 Individual prev_indv;
-log.trace("*0.3");
 
                 try
                 {
-log.trace("*0.4");
                     prev_state = get_from_individual_storage_thread(indv.uri);
 
-log.trace("*0.5");
                     if ((prev_state is null ||
                          prev_state.length == 0) && (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM))
                         log.trace("ERR! store_individual, cmd=%s: not read prev_state uri=[%s]", text (cmd), indv.uri);
@@ -1307,8 +1291,6 @@ log.trace("*0.5");
                     log.trace("ERR! store_individual: not read prev_state uri=[%s], ex=%s", indv.uri, ex.msg);
                     return res;
                 }
-
-log.trace("*1");
 
                 if (prev_state !is null)
                 {
@@ -1343,7 +1325,6 @@ log.trace("*1");
                     }
                 }
 
-log.trace("*2");
                 if (is_api_request)
                 {
                     // для новых типов проверим доступность бита Create
@@ -1389,8 +1370,6 @@ log.trace("*2");
                 if (res.result != ResultCode.OK)
                     return res;
 
-log.trace("*3");
-
                 if (ev == EVENT.CREATE || ev == EVENT.UPDATE)
                 {
                     if (rdfType.anyExists(owl_tags) == true && new_state != prev_state)
@@ -1407,8 +1386,6 @@ log.trace("*3");
                             send(tid_acl, CMD_PUT, ev, prev_state, new_state, res.op_id);
                         }
                     }
-
-log.trace("*4");
 
 /*
                         version (libV8)
@@ -1436,7 +1413,6 @@ log.trace("*4");
                     res.result = ResultCode.Internal_Server_Error;
                 }
             }
-log.trace("*e");
 
             return res;
         }

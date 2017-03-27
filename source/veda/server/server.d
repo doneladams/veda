@@ -10,9 +10,8 @@ private
     import backtrace.backtrace, Backtrace = backtrace.backtrace;
     import veda.bind.libwebsocketd, veda.server.wslink;
     import veda.core.common.context, veda.core.common.know_predicates, veda.core.common.log_msg, veda.core.impl.thread_context;
-    import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json,
-           veda.common.logger,
-           veda.core.util.utils;
+    import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json;
+    import veda.common.logger, veda.core.util.utils, veda.server.ticket;
     import veda.server.load_info, veda.server.acl_manager, veda.server.storage_manager, veda.server.tt_storage_manager, veda.server.nanomsg_channel;
 }
 
@@ -65,6 +64,8 @@ void main(char[][] args)
     process_name = "server";
     string node_id = null;
 
+    create_folder_struct();
+
     tids[ P_MODULE.subject_manager ] = spawn(&tt_individuals_manager, P_MODULE.subject_manager, "", node_id);
     if (wait_starting_thread(P_MODULE.subject_manager, tids) == false)
         return;
@@ -86,6 +87,12 @@ void main(char[][] args)
     {
         register(text(key), value);
     }
+
+    Ticket ticket = create_new_ticket("cfg:VedaSystem", "90000000", null);
+
+    long   op_id;
+    ticket_storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
+    log.trace("systicket [%s] was created", ticket.id);
 
     tids[ P_MODULE.n_channel ] = spawn(&nanomsg_channel, text(P_MODULE.n_channel));
     wait_starting_thread(P_MODULE.n_channel, tids);
