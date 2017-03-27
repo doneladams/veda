@@ -62,14 +62,14 @@ void nanomsg_channel(string thread_name)
                 if (bytes >= 0)
                 {
                     string req = to!string(buf);
-                    log.trace("RECEIVED (%s)", req);
+                    //log.trace("#1 RECEIVED (%s)", req);
 
                     string rep = context.execute(req);
 
                     nn_freemsg(buf);
 
                     bytes = nn_send(sock, cast(char *)rep, rep.length + 1, 0);
-                    log.trace("SENDING (%s) %d bytes", rep, bytes);
+                    //log.trace("#2 SENDING (%s) %d bytes", rep, bytes);
                 }
             }
             catch (Throwable tr)

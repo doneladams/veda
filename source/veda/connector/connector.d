@@ -174,7 +174,7 @@ class Connector
             {
                 obj                             = unpacker.unpacked[ i ];
                 request_response.op_rc[ i - 1 ] = cast(ResultCode)obj.via.uinteger;
-                stderr.writeln("PUT RESULT = ", obj.via.uinteger);
+                //stderr.writeln("PUT RESULT = ", obj.via.uinteger);
             }
         }
         else

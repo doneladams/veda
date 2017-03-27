@@ -412,25 +412,16 @@ class PThreadContext : Context
 
     public string get_from_individual_storage(string uri)
     {
-        log.trace ("@ get_individual_as_binobj, uri=%s", uri);
+//        log.trace ("@ get_individual_as_binobj, uri=%s", uri);
         string res;
-
-		log.trace ("*1");
 
         if (inividuals_storage_r !is null)
         {
-		log.trace ("*2 inividuals_storage_r=%s", inividuals_storage_r);
             res = inividuals_storage_r.find(uri);
-            		log.trace ("*3");
-
         }
         else
         {
-		log.trace ("*4");
-        	
             res = get_from_individual_storage_thread(uri);
-            		log.trace ("*5");
-
         }
 
         if (res !is null && res.length < 10)

@@ -467,7 +467,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
-                                            log.trace("SEND TO TT %s ", imm);
+                                            //log.trace("SEND TO TT %s ", imm);
 
                                             string binobj = imm.serialize();
                                             
@@ -476,8 +476,8 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
                                             else if (request_response.op_rc[0] != ResultCode.OK)
                                                 stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
-                                            else 
-                                                stderr.writeln("@OK");
+                                            //else 
+                                            //    stderr.writeln("@OK");
 
                                             individual_queue.push(binobj);
 //                                          string msg_to_modules = indv_uri ~ ";" ~ text(update_counter) ~ ";" ~ text (op_id) ~ "\0";
