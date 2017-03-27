@@ -245,7 +245,6 @@ public ResultCode remove(P_MODULE storage_id, string uri, bool ignore_freeze, ou
     return rc;
 }
 
-
 public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string node_id)
 {
     Queue                        individual_queue;
@@ -267,6 +266,8 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
     int                          sock;
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
+
+	Connector connector = new Connector();
 
     try
     {
@@ -315,7 +316,6 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                     send(tid_response_reciever, true);
                 });
 
-    Connector connector = new Connector();
     connector.connect("127.0.0.1", 9999);
 
         while (is_exit == false)

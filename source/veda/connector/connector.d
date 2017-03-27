@@ -189,14 +189,14 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        stderr.writefln("PACK GET REQUEST");
+        //stderr.writefln("PACK GET REQUEST");
         packer.beginArray(uris.length + 2);
         packer.pack(need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[ i ]);
 
         long request_size = packer.stream.data.length;
-        stderr.writeln("DATA SIZE ", request_size);
+        //stderr.writeln("DATA SIZE ", request_size);
 
 		if (buf.length == 0)
 			buf = new ubyte [4];
@@ -206,8 +206,8 @@ class Connector
         buf[ 2 ] = cast(byte)((request_size >> 8) & 0xFF);
         buf[ 3 ] = cast(byte)(request_size & 0xFF);
 
-        stderr.writeln("CONNECT");
-        stderr.writeln("SEND 1");
+        //stderr.writeln("CONNECT");
+        //stderr.writeln("SEND 1");
         
         for (;;)
         {
@@ -234,13 +234,13 @@ class Connector
             {
                 long receive_size = s.receive(buf);
             }
-            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            //stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
-            stderr.writeln("RESPONSE SIZE BUF ", buf);
+            //stderr.writeln("RESPONSE SIZE BUF ", buf);
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
-            stderr.writeln("RESPONSE SIZE ", response_size);
+            //stderr.writeln("RESPONSE SIZE ", response_size);
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -252,7 +252,7 @@ class Connector
             {
                 receive_size = s.receive(response);
             }
-            stderr.writeln("RECEIVE RESPONSE ", receive_size);
+            //stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {
@@ -276,14 +276,14 @@ class Connector
             request_response.op_rc.length    = unpacker.unpacked.length - 1;
             request_response.msgpacks.length = uris.length;
 
-            stderr.writeln("OP RESULT = ", obj.via.uinteger);
+            //stderr.writeln("OP RESULT = ", obj.via.uinteger);
             for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 2, j++)
             {
                 obj                             = unpacker.unpacked[ i ];
                 request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
                 if (request_response.op_rc[ j ] == ResultCode.OK)
                     request_response.msgpacks[ j ] = cast(string)unpacker.unpacked[ i + 1 ].via.raw;
-                stderr.writeln("GET RESULT = ", obj.via.uinteger);
+                //stderr.writeln("GET RESULT = ", obj.via.uinteger);
             }
         }
         else

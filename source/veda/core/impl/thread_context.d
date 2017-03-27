@@ -343,20 +343,14 @@ class PThreadContext : Context
 
     public Individual get_configuration()
     {
-    	log.trace ("$1");
         if (node == Individual.init && node_id !is null)
         {
-    	log.trace ("$2");
             this.reopen_ro_subject_storage_db();
-    	log.trace ("$3");
             Ticket sticket = sys_ticket();
-    	log.trace ("$4");
 
             node = get_individual(&sticket, node_id);
-    	log.trace ("$5");
             if (node.getStatus() != ResultCode.OK)
                 node = Individual.init;
-    	log.trace ("$6");
         }
         return node;
     }
@@ -964,7 +958,6 @@ class PThreadContext : Context
 
     public Individual get_individual(Ticket *ticket, string uri)
     {
-    	log.trace ("&1");
         Individual individual = Individual.init;
 
         if (ticket is null)
@@ -972,7 +965,6 @@ class PThreadContext : Context
             log.trace("get_individual, uri=%s, ticket is null", uri);
             return individual;
         }
-    	log.trace ("&2");
 
         //if (trace_msg[ T_API_150 ] == 1)
         {
@@ -982,19 +974,13 @@ class PThreadContext : Context
 
         try
         {
-    	log.trace ("&3");
-        	
             string individual_as_binobj = get_from_individual_storage(uri);
-    	log.trace ("&4");
 
             if (individual_as_binobj !is null && individual_as_binobj.length > 1)
             {
-    	log.trace ("&5");
             	
                 if (acl_indexes.authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
                 {
-                	    	log.trace ("&6");
-
                     if (individual.deserialize(individual_as_binobj) > 0)
                         individual.setStatus(ResultCode.OK);
                     else
@@ -1015,7 +1001,6 @@ class PThreadContext : Context
                 individual.setStatus(ResultCode.Unprocessable_Entity);
                 //writeln ("ERR!: empty binobj: [", individual_as_binobj, "] ", uri);
             }
-    	log.trace ("&e");
 
             return individual;
         }
