@@ -66,7 +66,7 @@ void main(char[][] args)
 
     create_folder_struct();
 
-    tids[ P_MODULE.subject_manager ] = spawn(&tt_individuals_manager, P_MODULE.subject_manager, "", node_id);
+    tids[ P_MODULE.subject_manager ] = spawn(&tt_individuals_manager, P_MODULE.subject_manager, individuals_db_path, node_id);
     if (wait_starting_thread(P_MODULE.subject_manager, tids) == false)
         return;
 

@@ -479,7 +479,6 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
         foreach (ss; ss_list)
         {
-        	writeln ("%1");
             log.trace ("prepare [%s] from file [%s], onto [%s]", ss.uri, filename, onto_name);
 
             if (ss.isExists(rdf__type, owl__Ontology) && context !is null)
@@ -499,7 +498,6 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
             Resources type = ss.getResources(rdf__type);
 
-        	writeln ("%2");
             if (type is Resources.init)
             {
                 log.trace("Skip invalid individual (not content type), [%s]", *ss);
@@ -514,7 +512,6 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
             long       pos_path_delimiter = indexOf(ss.uri, '/');
 
-        	writeln ("%3");
             Individual indv_in_storage = individuals.get(ss.uri, Individual.init);
 
             if (indv_in_storage !is Individual.init)
