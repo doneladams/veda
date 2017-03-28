@@ -150,7 +150,7 @@ class Connector
             if (receive_size == 0 || receive_size < response.length)
             {
                 Thread.sleep(dur!("seconds")(1));                
-                stderr.writeln("@RECONNECT GET REQUEST");     
+                stderr.writeln("@RECONNECT PUT REQUEST");     
                 close();
                 connect(addr, port);   
                 continue;
@@ -175,6 +175,7 @@ class Connector
                 request_response.op_rc[ i - 1 ] = cast(ResultCode)obj.via.uinteger;
                 stderr.writeln("PUT RESULT = ", obj.via.uinteger);
             }
+            stderr.writeln("OP_RC ", request_response.op_rc);
         }
         else
             stderr.writefln("@ERR ON UNPACKING RESPONSE");

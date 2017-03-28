@@ -61,7 +61,7 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     bool need_auth;
     msgpack::object_str user_id;
 
-    pk.pack_array(obj_arr.size - 3);
+    pk.pack_array(obj_arr.size - 3 + 1);
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
     cout << "MSG " << msg << endl;
@@ -71,11 +71,13 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     printf("NEED AUTH %d\n", need_auth);
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
+        int put_result;
         msgpack::object_str indiv_msgpack;
         // printf("size=%u i=%u\n", obj_arr.size, i);
         indiv_msgpack = obj_arr.ptr[i].via.str;
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
-        pk.pack(db_put(indiv_msgpack, user_id, need_auth));
+        put_result = db_put(indiv_msgpack, user_id, need_auth);
+        pk.pack(put_result);
     }
 }
 
@@ -86,7 +88,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     bool need_auth;
     msgpack::object_str user_id;
     
-    pk.pack_array((obj_arr.size - 3) * 2);
+    pk.pack_array((obj_arr.size - 3) * 2 + 1);
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
     if (need_auth)
