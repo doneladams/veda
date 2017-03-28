@@ -103,7 +103,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        printf("RES URI %s\n", res_uri.ptr);
+        printf("RES URI %*.s\n", (int)res_uri.size, res_uri.ptr);
         res_size = get_if_exists(res_uri, res_buf);
         if (res_size > 0) {
             cout << "EXISTS" << endl;
@@ -206,13 +206,13 @@ db_handle_request(lua_State *L)
         case GET: {
             printf("GET=%d %s\n", op, msg);
             handle_get_request(msg, msg_size, pk, obj_arr);
-            printf("GET RESP szie=%zu %s\n", buffer.size(), buffer.data());
+            printf("GET RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case PUT: {
             printf("PUT=%d %s\n", op, msg);
             handle_put_request(msg, msg_size, pk, obj_arr);
-            printf("PUT RESP szie=%zu %s\n", buffer.size(), buffer.data());
+            printf("PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
     }
