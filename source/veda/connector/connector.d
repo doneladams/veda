@@ -7,6 +7,7 @@ private
     import veda.core.common.context;
     import veda.connector.requestresponse;
     import core.thread;
+    import veda.common.type;
 }
 
 version (std_socket)
@@ -86,34 +87,35 @@ class Connector
         Packer          packer           = Packer(false);
 
         //stderr.writeln("PACK PUT REQUEST");
-        packer.beginArray(individuals.length + 2);
-        packer.pack(need_auth, user_uri);
-        for (int i = 0; i < individuals.length; i++)
+        packer.beginArray(individuals.length + 3);
+        packer.pack(INDV_OP.PUT, need_auth, user_uri);
+        for ( int i = 0; i < individuals.length; i++)
             packer.pack(individuals[ i ]);
 
         long request_size = packer.stream.data.length;
         //stderr.writeln("DATA SIZE ", request_size);
 
 		if (buf.length == 0)
-			buf = new ubyte [4];
+			buf = new ubyte [4 + request_size];
 
         buf[ 0 ] = cast(byte)((request_size >> 24) & 0xFF);
         buf[ 1 ] = cast(byte)((request_size >> 16) & 0xFF);
         buf[ 2 ] = cast(byte)((request_size >> 8) & 0xFF);
         buf[ 3 ] = cast(byte)(request_size & 0xFF);  
+        buf[4 .. buf.length]  = packer.stream.data;
 
         for (;;)
         {
             version (WebServer)
             {
                 s.write(buf);
-                s.write([ cast(ubyte)1 ]);
+                // s.write([ cast(ubyte)1 ]);
                 s.write(cast(ubyte[])packer.stream.data);
             }
             version (std_socket)
             {
                 s.send(buf);
-                s.send([ cast(byte)1 ]);
+                // s.send([ cast(byte)1 ]);
                 s.send(packer.stream.data);
             }
 
@@ -190,8 +192,8 @@ class Connector
         Packer          packer           = Packer(false);
 
         //stderr.writefln("PACK GET REQUEST");
-        packer.beginArray(uris.length + 2);
-        packer.pack(need_auth, user_uri);
+        packer.beginArray(uris.length + 3);
+        packer.pack(INDV_OP.GET, need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[ i ]);
 
@@ -199,12 +201,13 @@ class Connector
         //stderr.writeln("DATA SIZE ", request_size);
 
 		if (buf.length == 0)
-			buf = new ubyte [4];
+			buf = new ubyte [4 + request_size];
 
         buf[ 0 ] = cast(byte)((request_size >> 24) & 0xFF);
         buf[ 1 ] = cast(byte)((request_size >> 16) & 0xFF);
         buf[ 2 ] = cast(byte)((request_size >> 8) & 0xFF);
-        buf[ 3 ] = cast(byte)(request_size & 0xFF);
+        buf[ 3 ] = cast(byte)(request_size & 0xFF);  
+        buf[4 .. buf.length]  = packer.stream.data;
 
         //stderr.writeln("CONNECT");
         //stderr.writeln("SEND 1");
@@ -214,13 +217,13 @@ class Connector
             version (WebServer)
             {
                 s.write(buf);
-                s.write([ cast(ubyte)2 ]);
+                // s.write([ cast(ubyte)2 ]);
                 s.write(cast(ubyte[])packer.stream.data);
             }
             version (std_socket)
             {
                 s.send(buf);
-                s.send([ cast(byte)2 ]);
+                // s.send([ cast(byte)2 ]);
                 s.send(packer.stream.data);
             }
 

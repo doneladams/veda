@@ -55,42 +55,22 @@ get_if_exists(msgpack::object_str &key, char *out_buf)
 }
 
 void
-handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk)
+handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk,
+    msgpack::object_array &obj_arr)
 {
     bool need_auth;
-    msgpack::unpacker unpk; 
-    msgpack::object glob_obj;
-    msgpack::object_array obj_arr; 
-    msgpack::object_handle result;
     msgpack::object_str user_id;
 
-     
-    unpk.reserve_buffer(msg_size);
-    memcpy(unpk.buffer(), msg, msg_size);
-    unpk.buffer_consumed(msg_size);
-    unpk.next(result);
-    glob_obj = msgpack::object(result.get()); 
-    obj_arr = glob_obj.via.array;
-    
-
-    if (obj_arr.size < 3) {
-        cerr << "Error dbserver: msg arr size less than 2" << endl;
-        pk.pack_array(1);
-        pk.pack(BAD_REQUEST);
-        return;
-    }
-    printf("OBJ ARR SIZE=%u\n", obj_arr.size);
-
     pk.pack_array(obj_arr.size - 1);
-    need_auth = obj_arr.ptr[0].via.boolean;    
-    user_id = obj_arr.ptr[1].via.str;
+    need_auth = obj_arr.ptr[1].via.boolean;    
+    user_id = obj_arr.ptr[2].via.str;
     cout << "MSG " << msg << endl;
     if (need_auth)
         cout << "USER ID " << user_id.ptr << endl;
 
     printf("NEED AUTH %d\n", need_auth);
     pk.pack(OK);
-    for (uint32_t i = 2; i < obj_arr.size; i++) {
+    for (uint32_t i = 3; i < obj_arr.size; i++) {
         msgpack::object_str indiv_msgpack;
         // printf("size=%u i=%u\n", obj_arr.size, i);
         indiv_msgpack = obj_arr.ptr[i].via.str;
@@ -100,39 +80,21 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 }
 
 void
-handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk)
+handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, 
+    msgpack::object_array &obj_arr)
 {
     bool need_auth;
-    msgpack::unpacker unpk; 
-    msgpack::object glob_obj;
-    msgpack::object_array obj_arr; 
-    msgpack::object_handle result;
     msgpack::object_str user_id;
-
-    unpk.reserve_buffer(msg_size);
-    memcpy(unpk.buffer(), msg, msg_size);
-    unpk.buffer_consumed(msg_size);
-    unpk.next(result);
-    glob_obj = msgpack::object(result.get()); 
-    obj_arr = glob_obj.via.array;
     
-
-    if (obj_arr.size < 3) {
-        cerr << "Error dbserver: msg arr size less than 2" << endl;
-        pk.pack_array(1);
-        pk.pack(BAD_REQUEST);
-        return;
-    }
-
     pk.pack_array((obj_arr.size - 2) * 2 + 1);
-    need_auth = obj_arr.ptr[0].via.boolean;    
-    user_id = obj_arr.ptr[1].via.str;
+    need_auth = obj_arr.ptr[1].via.boolean;    
+    user_id = obj_arr.ptr[2].via.str;
     if (need_auth)
         cout << "USER ID " << user_id.ptr << endl;
 
     printf("NEED AUTH %d\n", need_auth);
     pk.pack(OK);    
-    for (int i = 2; i < obj_arr.size; i++) {
+    for (int i = 3; i < obj_arr.size; i++) {
         int auth_result = 0;
         char res_buf[MAX_BUF_SIZE];
         size_t res_size;
@@ -169,9 +131,13 @@ db_handle_request(lua_State *L)
     const  char *msg;
     msgpack::sbuffer buffer;
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
+    msgpack::unpacker unpk; 
+    msgpack::object glob_obj;
+    msgpack::object_array obj_arr; 
+    msgpack::object_handle result;
 
         
-    op = lua_tointeger(L, -2);
+    
     msg = lua_tolstring(L, -1, &msg_size);
     printf("@HANDLE REQUEST\n");
     printf("@SIZE %zu\n", msg_size);
@@ -213,23 +179,39 @@ db_handle_request(lua_State *L)
         return 0;
     }
     
-    cout << "START MSG " << msg << endl;
+    // cout << "START MSG " << msg << endl;
+    unpk.reserve_buffer(msg_size);
+    memcpy(unpk.buffer(), msg, msg_size);
+    unpk.buffer_consumed(msg_size);
+    unpk.next(result);
+    glob_obj = msgpack::object(result.get()); 
+    obj_arr = glob_obj.via.array;
+    
+    if (obj_arr.size < 4) {
+        cerr << "Error dbserver: msg arr size less than 4" << endl;
+        pk.pack_array(1);
+        pk.pack(BAD_REQUEST);
+        lua_pushlstring(L, buffer.data(), buffer.size());
+        return 1;
+    }
+
+    op = (uint8_t)obj_arr.ptr[0].via.u64;
+    cout << "OP " << (int)op << endl;
     switch (op) {
         case GET: {
             printf("GET=%d %s\n", op, msg);
-            handle_get_request(msg, msg_size, pk);
-            lua_pushlstring(L, buffer.data(), buffer.size());
+            handle_get_request(msg, msg_size, pk, obj_arr);
             break;
         }
         case PUT: {
             printf("PUT=%d %s\n", op, msg);
-            handle_put_request(msg, msg_size, pk);
+            handle_put_request(msg, msg_size, pk, obj_arr);
             printf("PUT RESP szie=%zu %s\n", buffer.size(), buffer.data());
-            lua_pushlstring(L, buffer.data(), buffer.size());
             break;
         }
     }
 
+    lua_pushlstring(L, buffer.data(), buffer.size());    
     return 1;
 }
 

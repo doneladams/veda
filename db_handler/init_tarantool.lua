@@ -52,14 +52,14 @@ function handle_request(s)
         end
         log.info('size=%d', size)
         
-        op_str = s:read(1)
+        --[[op_str = s:read(1)
         if op_str == "" or op_str == nil then
             log.info('BREAK ')
             break
         end
         log.info('#1')
         op = string.byte(op_str, 1)
-        log.info('op=%d', op)
+        log.info('op=%d', op)]]
         
         msg = s:read(size)
         if msg == nil or msg == "" or string.len(msg) < size then
@@ -68,7 +68,7 @@ function handle_request(s)
         end
         
         log.info('lua msg=%s', msg)
-        resp = db_handle_request(op, msg);
+        resp = db_handle_request(msg);
         resp_size = string.len(resp)
         log.info('resp_len=%d', resp_size)
         log.info('resp=%s', resp)
