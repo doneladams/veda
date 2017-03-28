@@ -61,7 +61,7 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     bool need_auth;
     msgpack::object_str user_id;
 
-    pk.pack_array(obj_arr.size - 1);
+    pk.pack_array(obj_arr.size - 3);
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
     cout << "MSG " << msg << endl;
@@ -86,7 +86,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     bool need_auth;
     msgpack::object_str user_id;
     
-    pk.pack_array((obj_arr.size - 2) * 2 + 1);
+    pk.pack_array((obj_arr.size - 3) * 2);
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
     if (need_auth)
@@ -112,13 +112,16 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
                 pk.pack(OK);
                 pk.pack_str(res_size);
                 pk.pack_str_body(res_buf, res_size);
+                cout << "GET OK" << endl;
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
+                cout << "GET AUTH FAILED" << endl;
             }
         } else  {
             pk.pack(NOT_FOUND);
             pk.pack_nil();
+            cout << "GET NOT FOUND" << endl;            
         }
     }
 }
@@ -201,6 +204,7 @@ db_handle_request(lua_State *L)
         case GET: {
             printf("GET=%d %s\n", op, msg);
             handle_get_request(msg, msg_size, pk, obj_arr);
+            printf("GET RESP szie=%zu %s\n", buffer.size(), buffer.data());
             break;
         }
         case PUT: {

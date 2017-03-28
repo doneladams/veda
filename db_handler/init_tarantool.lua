@@ -79,8 +79,8 @@ function handle_request(s)
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
             string.char(bit.band(resp_size, 255))
         log.info('resp_size_str=%s', resp_size_str)
-        s:send(resp_size_str)
-        s:send(resp)
+        s:send(resp_size_str..resp)
+        -- s:send(resp)
         log.info('END')
     end
 end

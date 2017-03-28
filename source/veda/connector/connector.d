@@ -86,17 +86,16 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        //stderr.writeln("PACK PUT REQUEST");
+        stderr.writeln("PACK PUT REQUEST");
         packer.beginArray(individuals.length + 3);
         packer.pack(INDV_OP.PUT, need_auth, user_uri);
         for ( int i = 0; i < individuals.length; i++)
             packer.pack(individuals[ i ]);
 
         long request_size = packer.stream.data.length;
-        //stderr.writeln("DATA SIZE ", request_size);
+        stderr.writeln("DATA SIZE ", request_size);
 
-		if (buf.length == 0)
-			buf = new ubyte [4 + request_size];
+		buf = new ubyte [4 + request_size];
 
         buf[ 0 ] = cast(byte)((request_size >> 24) & 0xFF);
         buf[ 1 ] = cast(byte)((request_size >> 16) & 0xFF);
@@ -109,34 +108,32 @@ class Connector
             version (WebServer)
             {
                 s.write(buf);
-                // s.write([ cast(ubyte)1 ]);
-                s.write(cast(ubyte[])packer.stream.data);
             }
             version (std_socket)
             {
                 s.send(buf);
-                // s.send([ cast(byte)1 ]);
-                s.send(packer.stream.data);
             }
 
             version (WebServer)
             {
+                buf.length = 4;
                 s.read(buf);
-                long receive_size = buf.length;
+                long receive_size = buf.length; 
             }
 
             version (std_socket)
             {
+                buf.length = 4;
                 long receive_size = s.receive(buf);
             }
-            //stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
 
-            //stderr.writeln("RESPONSE SIZE BUF ", buf);
+            stderr.writeln("RESPONSE SIZE BUF ", buf);
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
-            //stderr.writeln("RESPONSE SIZE ", response_size);
+            stderr.writeln("RESPONSE SIZE ", response_size);
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -148,7 +145,7 @@ class Connector
             {
                 receive_size = s.receive(response);
             }
-            //stderr.writeln("RECEIVE RESPONSE ", receive_size);
+            stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {
@@ -191,17 +188,16 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        //stderr.writefln("PACK GET REQUEST");
+        stderr.writefln("PACK GET REQUEST");
         packer.beginArray(uris.length + 3);
         packer.pack(INDV_OP.GET, need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[ i ]);
 
         long request_size = packer.stream.data.length;
-        //stderr.writeln("DATA SIZE ", request_size);
+        stderr.writeln("DATA SIZE ", request_size);
 
-		if (buf.length == 0)
-			buf = new ubyte [4 + request_size];
+		buf = new ubyte [4 + request_size];
 
         buf[ 0 ] = cast(byte)((request_size >> 24) & 0xFF);
         buf[ 1 ] = cast(byte)((request_size >> 16) & 0xFF);
@@ -217,33 +213,31 @@ class Connector
             version (WebServer)
             {
                 s.write(buf);
-                // s.write([ cast(ubyte)2 ]);
-                s.write(cast(ubyte[])packer.stream.data);
             }
             version (std_socket)
             {
                 s.send(buf);
-                // s.send([ cast(byte)2 ]);
-                s.send(packer.stream.data);
             }
 
             version (WebServer)
             {
+                buf.length = 4;
                 s.read(buf);
                 long receive_size = buf.length; 
             }
 
             version (std_socket)
             {
+                buf.length = 4;
                 long receive_size = s.receive(buf);
             }
-            //stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
-            //stderr.writeln("RESPONSE SIZE BUF ", buf);
+            stderr.writeln("RESPONSE SIZE BUF ", buf);
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
-            //stderr.writeln("RESPONSE SIZE ", response_size);
+            stderr.writeln("RESPONSE SIZE ", response_size);
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -255,7 +249,7 @@ class Connector
             {
                 receive_size = s.receive(response);
             }
-            //stderr.writeln("RECEIVE RESPONSE ", receive_size);
+            stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {
