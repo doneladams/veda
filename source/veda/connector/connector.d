@@ -168,12 +168,12 @@ class Connector
             request_response.op_rc.length    = unpacker.unpacked.length - 1;
             request_response.msgpacks.length = 0;
 
-            //stderr.writeln("OP RESULT = ", obj.via.uinteger);
+            stderr.writeln("OP RESULT = ", obj.via.uinteger);
             for (int i = 1; i < unpacker.unpacked.length; i++)
             {
                 obj                             = unpacker.unpacked[ i ];
                 request_response.op_rc[ i - 1 ] = cast(ResultCode)obj.via.uinteger;
-                //stderr.writeln("PUT RESULT = ", obj.via.uinteger);
+                stderr.writeln("PUT RESULT = ", obj.via.uinteger);
             }
         }
         else
