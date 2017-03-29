@@ -432,7 +432,7 @@ void put_rdf_types(string &key, vector<Resource> &rdf_types)
     
     for (int i = 0; i < rdf_types.size(); i++)
         pk.pack(rdf_types[i].str_data);
-    printf("PUT RDF TYPES %*.s\n", (int)buffer.size(),  buffer.data());
+    //printf("PUT RDF TYPES %*.s\n", (int)buffer.size(),  buffer.data());
     if (box_replace(rdf_types_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0) 
         cerr << "@ERR REST! ERR ON REPLACING RDF TYPES" << endl;
 }

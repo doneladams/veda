@@ -86,14 +86,14 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        stderr.writeln("PACK PUT REQUEST");
+        //stderr.writeln("PACK PUT REQUEST");
         packer.beginArray(individuals.length + 3);
         packer.pack(INDV_OP.PUT, need_auth, user_uri);
         for ( int i = 0; i < individuals.length; i++)
             packer.pack(individuals[ i ]);
 
         long request_size = packer.stream.data.length;
-        stderr.writeln("DATA SIZE ", request_size);
+        //stderr.writeln("DATA SIZE ", request_size);
 
 		buf = new ubyte [4 + request_size];
 
@@ -126,14 +126,14 @@ class Connector
                 buf.length = 4;
                 long receive_size = s.receive(buf);
             }
-            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            //stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
 
-            stderr.writeln("RESPONSE SIZE BUF ", buf);
+            //stderr.writeln("RESPONSE SIZE BUF ", buf);
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
-            stderr.writeln("RESPONSE SIZE ", response_size);
+            //stderr.writeln("RESPONSE SIZE ", response_size);
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -145,7 +145,7 @@ class Connector
             {
                 receive_size = s.receive(response);
             }
-            stderr.writeln("RECEIVE RESPONSE ", receive_size);
+            //stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {
@@ -168,14 +168,14 @@ class Connector
             request_response.op_rc.length    = unpacker.unpacked.length - 1;
             request_response.msgpacks.length = 0;
 
-            stderr.writeln("OP RESULT = ", obj.via.uinteger);
+            //stderr.writeln("OP RESULT = ", obj.via.uinteger);
             for (int i = 1; i < unpacker.unpacked.length; i++)
             {
                 obj                             = unpacker.unpacked[ i ];
                 request_response.op_rc[ i - 1 ] = cast(ResultCode)obj.via.uinteger;
-                stderr.writeln("PUT RESULT = ", obj.via.uinteger);
+                //stderr.writeln("PUT RESULT = ", obj.via.uinteger);
             }
-            stderr.writeln("OP_RC ", request_response.op_rc);
+            //stderr.writeln("OP_RC ", request_response.op_rc);
         }
         else
             stderr.writefln("@ERR ON UNPACKING RESPONSE");
@@ -189,14 +189,14 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
-        stderr.writefln("PACK GET REQUEST");
+        //stderr.writefln("PACK GET REQUEST");
         packer.beginArray(uris.length + 3);
         packer.pack(INDV_OP.GET, need_auth, user_uri);
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[ i ]);
 
         long request_size = packer.stream.data.length;
-        stderr.writeln("DATA SIZE ", request_size);
+        //stderr.writeln("DATA SIZE ", request_size);
 
 		buf = new ubyte [4 + request_size];
 
@@ -232,13 +232,13 @@ class Connector
                 buf.length = 4;
                 long receive_size = s.receive(buf);
             }
-            stderr.writeln("RECEIVE SIZE BUF ", receive_size);
+            //stderr.writeln("RECEIVE SIZE BUF ", receive_size);
 
-            stderr.writeln("RESPONSE SIZE BUF ", buf);
+            //stderr.writeln("RESPONSE SIZE BUF ", buf);
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
-            stderr.writeln("RESPONSE SIZE ", response_size);
+            //stderr.writeln("RESPONSE SIZE ", response_size);
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -250,7 +250,7 @@ class Connector
             {
                 receive_size = s.receive(response);
             }
-            stderr.writeln("RECEIVE RESPONSE ", receive_size);
+            //stderr.writeln("RECEIVE RESPONSE ", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {

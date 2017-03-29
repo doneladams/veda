@@ -67,11 +67,11 @@ function handle_request(s)
             break
         end
         
-        log.info('lua msg=%s', msg)
+        log.info('lua msg=[%s]', msg)
         resp = db_handle_request(msg);
         resp_size = string.len(resp)
         log.info('resp_len=%d', resp_size)
-        log.info('resp=%s', resp)
+        log.info('resp=[%s]', resp)
         -- obj = msgpack.decode(resp)
         -- print("obj ".. obj)
         resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
