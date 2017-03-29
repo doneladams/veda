@@ -103,10 +103,7 @@ private void ltrs_thread(string parent_url)
 
     vars_for_codelet_script =
         "var user_uri = get_env_str_var ('$user');"
-        ~ "var execute_script = get_individual (ticket, '$execute_script');"
-        ~ "var prev_state = get_individual (ticket, '$prev_state');"
-        ~ "var super_classes = get_env_str_var ('$super_classes');"
-        ~ "var _event_id = document['@'] + '+' + _script_id;";
+        ~ "var execute_script = get_individual (ticket, '$execute_script');";
 
     vql = new VQL(context);
 
@@ -150,7 +147,10 @@ private void ltrs_thread(string parent_url)
                                    Queue queue = new Queue(uris_db_path, queue_id, Mode.R, log);
                                    if (queue.open())
                                    {
-                                       Consumer cs = new Consumer(queue, tmp_path, "consumer-ltr-scripts", log);
+                                       UUID new_id = randomUUID();
+                                       string consumer_id = "consumer-uris-" ~ new_id.toString();
+
+                                       Consumer cs = new Consumer(queue, tmp_path, consumer_id, log);
 
                                        if (cs.open())
                                        {
@@ -209,13 +209,13 @@ private void ltrs_thread(string parent_url)
                         if (uri !is null)
                         {
                             ResultCode rs;
-                            string     data = context.get_individual_as_binobj(&sticket, uri, rs);
+                            string     data = ""; //context.get_individual_as_binobj(&sticket, uri, rs);
                             execute_script(sticket.user_uri, data, task.codelet_id, task.executed_script_binobj);
 
                             bool res = task.consumer.commit_and_next(true);
                             if (res == false)
                             {
-                                writeln("Queue commit fail !!!!");
+                                log.trace("ERR! [%s] commit fail", task.consumer);
                                 break;
                             }
                         }
@@ -228,7 +228,6 @@ private void ltrs_thread(string parent_url)
                                 tasks_2_priority.remove(priority);
 
                             //task.consumer.remove();
-                            //task.consumer.queue.remove();
                         }
                     }
                 }
@@ -291,7 +290,7 @@ ResultCode execute_script(string user_uri, string msg, string script_uri, string
     if (script is ScriptInfo.init)
     {
         Individual codelet = context.get_individual(&sticket, script_uri);
-        prepare_script(codelet_scripts, codelet_scripts_order, codelet, script_vm, vars_for_codelet_script, false);
+        prepare_script(codelet_scripts, codelet_scripts_order, codelet, script_vm, "", vars_for_codelet_script, "", false);
     }
 
     if (script.compiled_script !is null)
@@ -358,9 +357,10 @@ class ScriptProcess : VedaModule
         if (new_indv.getFirstBoolean("v-s:isSuccess") == true)
             return ResultCode.OK;
 
-        string queue_id = "uris-tmp";
-        context.get_subject_storage_db().unload_to_queue(tmp_path, queue_id, true);
+        //string queue_id = "uris-tmp";
+        //context.get_subject_storage_db().unload_to_queue(tmp_path, queue_id, true);
 
+        string queue_id = "uris-db";
         start_script(new_bin, queue_id);
 
         return ResultCode.OK;
