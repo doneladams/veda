@@ -42,7 +42,7 @@ function handle_request(s)
         --log.info('START')
         size_str = s:read(4)
         if size_str == nil or size_str == "" or string.len(size_str) < 4 then
-            log.info('BREAK')
+            log.info('BREAK: size_str == nil or size_str == "" or string.len(size_str) < 4, size_str=[%s]', size_str)
             break
         end
 
@@ -63,7 +63,7 @@ function handle_request(s)
         
         msg = s:read(size)
         if msg == nil or msg == "" or string.len(msg) < size then
-            log.info('BREAK ')
+            log.info('BREAK: msg == nil or msg == "" or string.len(msg) < size, msg=[%s]', msg)
             break
         end
         

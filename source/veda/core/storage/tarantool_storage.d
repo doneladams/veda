@@ -19,7 +19,7 @@ public class TarantoolStorage : Storage
         host = _host;
         port = _port;
         log  = _log;
-        connector = new Connector();
+        connector = new Connector(log);
         connector.connect(this.host, this.port);
     	log.trace ("create TarantoolStorage connector");    	
     }
@@ -36,7 +36,7 @@ public class TarantoolStorage : Storage
 
     public string find(string uri, bool return_value = true)
     {
-        RequestResponse rr = connector.get(false, null, [ uri ]);
+        RequestResponse rr = connector.get(false, null, [ uri ], false);
 
         if (rr !is null && rr.msgpacks.length > 0)
             return rr.msgpacks[ 0 ];

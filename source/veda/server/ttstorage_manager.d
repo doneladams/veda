@@ -267,7 +267,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
 
-	Connector connector = new Connector();
+	Connector connector = new Connector(log);
 
     try
     {
