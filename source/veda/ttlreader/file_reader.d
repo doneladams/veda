@@ -400,17 +400,16 @@ void processed(string[] changes, Context context, bool is_check_changes)
                         indv.removeResource("v-s:updateCounter");
                         indv.removeResource("v-s:previousVersion");
                         indv.removeResource("v-s:actualVersion");
-                        log.trace("in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
+                        //log.trace("look in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
 
                         if (indv_in_storage == Individual.init || is_check_changes == false || indv.compare(indv_in_storage) == false)
                         {
                             if (indv.getResources("rdf:type").length > 0)
                             {
                                // if (trace_msg[ 33 ] == 1)
-                                    log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv),
-                                              text(indv_in_storage));
+                                //log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv), text(indv_in_storage));
 
-								string bin = indv.serialize ();
+				string bin = indv.serialize ();
 
                                 ResultCode res = context.put_individual(&sticket, indv.uri, indv, true, null, false, false).result;
                                 if (trace_msg[ 33 ] == 1)

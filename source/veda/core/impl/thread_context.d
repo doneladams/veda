@@ -148,12 +148,12 @@ class PThreadContext : Context
                 int  bytes;
 
                 bytes = nn_send(sock, cast(char *)req, req.length + 1, 0);
-                log.trace("N_CHANNEL send (%s)", req);
+                //log.trace("N_CHANNEL send (%s)", req);
                 bytes = nn_recv(sock, &buf, NN_MSG, 0);
                 if (bytes > 0)
                 {
                     string rep = to!string(buf);
-                    log.trace("N_CHANNEL recv (%s)", rep);
+                    //log.trace("N_CHANNEL recv (%s)", rep);
 
                     JSONValue jres = parseJSON(rep);
 
@@ -959,8 +959,8 @@ class PThreadContext : Context
 
         //if (trace_msg[ T_API_150 ] == 1)
         {
-            if (ticket !is null)
-                log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
+            //if (ticket !is null)
+            //    log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
         }
 
         try
@@ -1183,7 +1183,7 @@ class PThreadContext : Context
                                       bool is_api_request)
     {
         //if (trace_msg[ T_API_230 ] == 1)
-        log.trace("[%s] store_individual: %s %s", name, text(cmd), *indv);
+        //log.trace("[%s] store_individual: %s %s", name, text(cmd), *indv);
 
         StopWatch sw; sw.start;
 
@@ -1202,11 +1202,11 @@ class PThreadContext : Context
                 return res;
             }
 
-            log.trace ("context:store_individual #2 main_module_url=%s", main_module_url);
+            //log.trace ("context:store_individual #2 main_module_url=%s", main_module_url);
 
             version (isModule)
             {
-                log.trace("[%s] store_individual: isModule", name);
+                //log.trace("[%s] store_individual: isModule", name);
 
                 string scmd;
 
@@ -1227,16 +1227,16 @@ class PThreadContext : Context
                 req_body[ "event_id" ]       = event_id;
                 req_body[ "transaction_id" ] = "";
 
-                log.trace("[%s] store_individual: (isModule), req=(%s)", name, req_body.toString());
+                //log.trace("[%s] store_individual: (isModule), req=(%s)", name, req_body.toString());
 
                 res = reqrep_2_main_module(req_body);
-                log.trace("[%s] store_individual: (isModule), rep=(%s)", name, res);
+                //log.trace("[%s] store_individual: (isModule), rep=(%s)", name, res);
             }
 
             //                  writeln("context:store_individual #5 ", process_name);
             version (isServer)
             {
-                log.trace("[%s] store_individual: (isServer)", name);
+                //log.trace("[%s] store_individual: (isServer)", name);
                 Tid       tid_subject_manager;
                 Tid       tid_acl;
 
@@ -1341,7 +1341,7 @@ class PThreadContext : Context
                                        ignore_freeze,
                                        res.op_id);
                     
-                log.trace("res.result=%s", res.result);
+                //log.trace("res.result=%s", res.result);
 
                 if (res.result != ResultCode.OK)
                     return res;

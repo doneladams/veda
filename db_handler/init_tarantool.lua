@@ -39,7 +39,7 @@ function handle_request(s)
 
         s:readable()
         peer_info = s:peer()
-        log.info('START')
+        --log.info('START')
         size_str = s:read(4)
         if size_str == nil or size_str == "" or string.len(size_str) < 4 then
             log.info('BREAK')
@@ -50,7 +50,7 @@ function handle_request(s)
         for i=1, 4, 1 do
             size = bit.lshift(size, 8) + string.byte(size_str, i)
         end
-        log.info('size=%d', size)
+        --log.info('size=%d', size)
         
         --[[op_str = s:read(1)
         if op_str == "" or op_str == nil then
@@ -67,21 +67,21 @@ function handle_request(s)
             break
         end
         
-        log.info('lua msg=[%s]', msg)
+        --log.info('lua msg=[%s]', msg)
         resp = db_handle_request(msg);
         resp_size = string.len(resp)
-        log.info('resp_len=%d', resp_size)
-        log.info('resp=[%s]', resp)
+        --log.info('resp_len=%d', resp_size)
+        --log.info('resp=[%s]', resp)
         -- obj = msgpack.decode(resp)
         -- print("obj ".. obj)
         resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
             string.char(bit.band(resp_size, 255))
-        log.info('resp_size_str=%s', resp_size_str)
+        --log.info('resp_size_str=%s', resp_size_str)
         s:send(resp_size_str..resp)
         -- s:send(resp)
-        log.info('END')
+        --log.info('END')
     end
 end
 
