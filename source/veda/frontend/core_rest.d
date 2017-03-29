@@ -173,6 +173,7 @@ class VedaStorageRest : VedaStorageRest_API
 //    string[ string ] properties;
     int             last_used_tid = 0;
     void function(int sig) shutdown;
+    Connector connector;
 
     this(Context _local_context, void function(int sig) _shutdown)
     {
@@ -181,6 +182,11 @@ class VedaStorageRest : VedaStorageRest_API
         context  = _local_context;
     }
 
+	public void init ()
+	{
+	    connector = new Connector(log);
+        connector.connect("127.0.0.1", 9999);		
+	}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void fileManager(HTTPServerRequest req, HTTPServerResponse res)
@@ -751,8 +757,6 @@ class VedaStorageRest : VedaStorageRest_API
 
             try
             {
-                Connector connector = new Connector(log);
-                connector.connect("127.0.0.1", 9999);
                 ticket = context.get_ticket(_ticket);
                 rc     = ticket.result;
                 Individual[ string ] onto_individuals =
@@ -779,7 +783,7 @@ class VedaStorageRest : VedaStorageRest_API
                         res = Json.emptyObject;
                         msgpack2vjson(&res, request_response.msgpacks[ 0 ]);
                     }
-                    connector.close();            
+                    //connector.close();            
                     
 
                     /*if (reopen)

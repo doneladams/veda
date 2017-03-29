@@ -196,6 +196,8 @@ class Connector
         RequestResponse request_response = new RequestResponse();
         Packer          packer           = Packer(false);
 
+		need_auth = false;
+
         if (trace)
             log.trace("connector.get PACK GET REQUEST need_auth=%b, user_uri=%s, uris=%s", need_auth, user_uri, uris);
 

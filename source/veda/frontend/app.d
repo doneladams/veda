@@ -255,6 +255,7 @@ bool start_http_listener(Context context, ushort http_port)
     try
     {
         VedaStorageRest vsr = new VedaStorageRest(context, &shutdown);
+		vsr.init ();	
 
         auto            settings = new HTTPServerSettings;
 
