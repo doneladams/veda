@@ -96,7 +96,7 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
 
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (!it->second.is_deleted) { 
-            pk.pack(it->second.id + (char)it->second.access);
+            pk.pack(it->second.id + (char)(it->second.access + 1));
             count++;
         }
 

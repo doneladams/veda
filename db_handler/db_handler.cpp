@@ -118,12 +118,14 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
-    		printf("GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+    		    printf("GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+                printf("\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
+                    auth_result);
             }
         } else  {
             pk.pack(NOT_FOUND);
             pk.pack_nil();
-	    printf("GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+	        printf("GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
         }
     }
 }

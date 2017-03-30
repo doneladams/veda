@@ -221,19 +221,21 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 			perm_obj_uri[0] = MEMBERSHIP_PREFIX;
 			perm_access = (perm_obj_uri[len] - 1);
 			perm_obj_uri[len] = '\0';
-			// printf("\t%s %d\n", perm_obj_uri, perm_access);
+			printf("\t%s %d %d\n", perm_obj_uri, perm_access, object_access);
 			
 			idx = subject_search(subject_rights, subject_rights_count, perm_obj_uri);
 
 			if (idx >= 0) {
-				// printf("\t+%s\n", perm_obj_uri);
+				printf("\t\t+%s\n", perm_obj_uri);
 				for (k = 0; k < ACCESS_NUMBER; k++) {
 					if ((desired_access & access_arr[k] & object_access) > 0) {
 						uint8_t set_bit;
-
+						
 						set_bit = access_arr[k] & perm_access;
-						if (set_bit > 0)
+						if (set_bit > 0) {
 							result_access |= set_bit;
+							printf("\t\t\tadd access=%d\n", access_arr[k]);	
+						}
 					}
 				}
 			}			
@@ -284,16 +286,16 @@ db_auth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res
 	subject_rights_count = get_groups(subject, DEFAULT_ACCESS, subject_rights);
 	object_rights_count = get_groups(object, DEFAULT_ACCESS, object_rights);
 	object_rights[object_rights_count++] = extra_membership;
+
+	printf("\n\n\nURI MEMBERSHIPS\n");
+	for (int i = 0; i < object_rights_count; i++)
+		printf("\t%s %d\n", object_rights[i].id, object_rights[i].access);
+	printf("USER MEMBERSHIPS\n");
+	for (int i = 0; i < subject_rights_count; i++)
+		printf("\t%s %d\n", subject_rights[i].id, subject_rights[i].access);
+	printf("\n\n");
+
 	return get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
 		DEFAULT_ACCESS);
-	
-/*		printf("\n\n\nURI MEMBERSHIPS\n");
-		for (i = 0; i < object_rights_count; i++)
-			printf("\t%s %d\n", object_rights[i].id, object_rights[i].access);
-		printf("USER MEMBERSHIPS\n");
-		for (i = 0; i < subject_rights_count; i++)
-			printf("\t%s %d\n", subject_rights[i].id, subject_rights[i].access);
-		printf("\n\n");*/
-		
-	return 1;
+
 }
