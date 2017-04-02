@@ -52,4 +52,7 @@ struct Individual {
     map < string, vector <Resource> > resources;
 };
 
+int32_t 
+msgpack_to_individual(Individual *individual, const char *ptr, uint32_t len);
+
 #endif

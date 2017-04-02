@@ -1,15 +1,10 @@
-#include <arpa/inet.h>
 #include <errno.h>
 #include <strings.h>
-#include <signal.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/pair.h>
 #include <tarantool/module.h>
-#include <unistd.h>
-#include <sys/time.h>
 
 #define MP_SOURCE 1
 
+#include "db_globals.h"
 #include "msgpuck.h"
 
 #define MAX_URI_LEN 		4096
@@ -43,7 +38,6 @@ struct Right {
 int cache_size = 0;
 
 int socket_fd, client_socket_fd;
-uint32_t main_space_id, main_index_id, cache_space_id, cache_index_id;
 uint32_t access_arr[] = { ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	ACCESS_CAN_DELETE };
 
@@ -66,7 +60,7 @@ get_tuple(const char *key, int32_t key_len, char *outbuf)
 		box_tuple_to_buf(result, outbuf, tuple_size);
 		return 1;
 	} else {
-		box_index_get(main_space_id, main_index_id, key_start, key_end, &result);
+		box_index_get(acl_space_id, acl_index_id, key_start, key_end, &result);
 		if (result == NULL) {
 			key_end = key_start;
 			key_end = mp_encode_array(key_end, 1);
@@ -252,20 +246,6 @@ db_auth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res
 	struct Right object_rights[MAX_RIGHTS], subject_rights[MAX_RIGHTS], extra_membership;
 	int32_t object_rights_count, subject_rights_count;
     char subject[MAX_URI_LEN], object[MAX_URI_LEN];
-
-	
-
-	if ((main_space_id = box_space_id_by_name("acl", strlen("acl"))) == BOX_ID_NIL) {
-		fprintf(stderr, "No such space");
-		return 0;
-	}
-	main_index_id = box_index_id_by_name(main_space_id, "primary", strlen("primary"));
-
-	if ((cache_space_id = box_space_id_by_name("acl_cache", strlen("acl_cache"))) == BOX_ID_NIL) {
-		fprintf(stderr, "No such space");
-		return 0;
-	}
-	cache_index_id = box_index_id_by_name(cache_space_id, "primary", strlen("primary"));
 	
 
 	memcpy(extra_membership.id, "Mv-s:AllResourcesGroup", 22);
@@ -295,6 +275,7 @@ db_auth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res
 		printf("\t%s %d\n", subject_rights[i].id, subject_rights[i].access);
 	printf("\n\n");
 
+	
 	return get_rights(object_rights, object_rights_count, subject_rights, subject_rights_count, 
 		DEFAULT_ACCESS);
 

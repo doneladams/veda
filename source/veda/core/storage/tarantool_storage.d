@@ -80,7 +80,10 @@ public class TarantoolStorage : Storage
 
     public ResultCode remove(string in_key)
     {
-        log.trace("ERR! remove not implemented");
-        throw new Exception("not implemented");
+        RequestResponse rr = connector.remove(false, null, [ in_key ], false);
+        if (rr !is null)
+            return rr.common_rc;
+
+        return ResultCode.Fail_Store;
     }
 }

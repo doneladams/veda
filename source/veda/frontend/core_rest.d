@@ -859,6 +859,13 @@ class VedaStorageRest : VedaStorageRest_API
             if (rc != ResultCode.OK)
                 throw new HTTPStatusException(rc, text(rc));
 
+            RequestResponse request_response = connector.remove(true, ticket.user_uri, [ uri ], 
+                true);
+            if (request_response.common_rc != ResultCode.OK)
+                log.trace("@remove_individual: ERR COMMON REMOVE! ", request_response.common_rc);
+            else if (request_response.op_rc[ 0 ] != ResultCode.OK)
+                log.trace("@get_individual: ERR REMOVE! ", request_response.op_rc[ 0 ]);
+
             return op_res;
         }
         finally

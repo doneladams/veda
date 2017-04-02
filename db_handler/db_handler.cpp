@@ -5,12 +5,15 @@
 
 #include "db_auth.h"
 #include "db_codes.h"
+#include "db_remove.h"
+#include "db_get.h"
 #include "db_put.h"
 
 using namespace std;
 
-#define PUT 1
-#define GET 2
+#define PUT     1
+#define GET     2
+#define REMOVE  51
 
 #define ACCESS_CAN_CREATE 	(1U << 0)
 #define ACCESS_CAN_READ 	(1U << 1)
@@ -27,32 +30,8 @@ extern "C" {
 
 
 uint32_t individuals_space_id, individuals_index_id;
-uint32_t acl_space_id, acl_index_id;
 uint32_t rdf_types_space_id, rdf_types_index_id;
-
-size_t
-get_if_exists(msgpack::object_str &key, char *out_buf)
-{
-    box_tuple_t *tuple;
-    msgpack::sbuffer buffer;
-    msgpack::packer<msgpack::sbuffer> pk(&buffer);;
-    size_t tuple_size;
-
-    pk.pack_array(1);
-    pk.pack_str(key.size);
-    pk.pack_str_body(key.ptr, key.size);
-
-    box_index_get(individuals_space_id, individuals_index_id, buffer.data(), buffer.data() 
-        + buffer.size(), &tuple);
-
-    if (tuple == NULL)
-        return 0;
-
-    tuple_size = box_tuple_bsize(tuple);
-    box_tuple_to_buf(tuple, out_buf, tuple_size);
-
-    return tuple_size;
-}
+uint32_t acl_space_id, acl_index_id, cache_space_id, cache_index_id;
 
 void
 handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk,
@@ -82,6 +61,34 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 }
 
 void
+handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, 
+    msgpack::object_array &obj_arr)
+{
+    bool need_auth;
+    msgpack::object_str user_id;
+
+    pk.pack_array(obj_arr.size - 3 + 1);
+    need_auth = obj_arr.ptr[1].via.boolean;    
+    user_id = obj_arr.ptr[2].via.str;
+    //cout << "MSG " << msg << endl;
+    //if (need_auth)
+    //    cout << "USER ID " << user_id.ptr << endl;
+
+    //printf("NEED AUTH %d\n", need_auth);
+    pk.pack(OK);
+    for (uint32_t i = 3; i < obj_arr.size; i++) {
+        int delete_result;
+        msgpack::object_str res_uri;
+        printf("DELETE RES URI %*.s\n", (int)res_uri.size, res_uri.ptr);        
+        // printf("size=%u i=%u\n", obj_arr.size, i);
+        res_uri = obj_arr.ptr[i].via.str;
+        // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
+        delete_result = db_remove(res_uri, user_id, need_auth);
+        pk.pack(delete_result);
+    }
+}
+
+void
 handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, 
     msgpack::object_array &obj_arr)
 {
@@ -103,8 +110,8 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        //printf("RES URI %*.s\n", (int)res_uri.size, res_uri.ptr);
-        res_size = get_if_exists(res_uri, res_buf);
+        // printf("RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        res_size = db_get(res_uri, res_buf);
         if (res_size > 0) {
             //cout << "EXISTS" << endl;
             if (need_auth) 
@@ -158,7 +165,7 @@ db_handle_request(lua_State *L)
 
     if ((individuals_index_id = box_index_id_by_name(individuals_space_id, "primary", 
         strlen("primary"))) == BOX_ID_NIL) {    
-        cerr << "@ERR LISTENER! NO SUCH INDEX: primary" << endl;   
+        cerr << "@ERR LISTENER! NO SUCH INDIVIDUAL INDEX: primary" << endl;   
         return 0;
     }
 
@@ -168,9 +175,21 @@ db_handle_request(lua_State *L)
 		return 0;
 	}
 
-    if ((acl_index_id = box_index_id_by_name(individuals_space_id, "primary", 
+    if ((acl_index_id = box_index_id_by_name(acl_space_id, "primary", 
         strlen("primary"))) == BOX_ID_NIL) {
-        cerr << "@ERR LISTENER! NO SUCH INDEX: primary" << endl;   
+        cerr << "@ERR LISTENER! NO SUCH ACL INDEX: primary" << endl;   
+        return 0;
+    }
+
+    if ((cache_space_id = box_space_id_by_name("acl_cache",  
+        strlen("acl"))) == BOX_ID_NIL) {
+		cerr << "@ERR LISTENER! NO SUCH SPACE: acl_cache" << endl;
+		return 0;
+	}
+
+    if ((cache_index_id = box_index_id_by_name(cache_space_id, "primary", 
+        strlen("primary"))) == BOX_ID_NIL) {
+        cerr << "@ERR LISTENER! NO SUCH ACL INDEX: primary" << endl;   
         return 0;
     }
 
@@ -182,7 +201,7 @@ db_handle_request(lua_State *L)
 
     if ((rdf_types_index_id = box_index_id_by_name(rdf_types_space_id, "primary", 
         strlen("primary"))) == BOX_ID_NIL) {
-        cerr << "@ERR LISTENER! NO SUCH INDEX: primary" << endl;   
+        cerr << "@ERR LISTENER! NO SUCH RDF_TYPES INDEX: primary" << endl;   
         return 0;
     }
     
@@ -217,8 +236,17 @@ db_handle_request(lua_State *L)
             //printf("PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
-    }
+        case REMOVE: {
+            handle_remove_request(msg, msg_size, pk, obj_arr);
+        }
 
+        default: {
+            printf("@ERR! UNKNOWN REQUEST!\n");
+            pk.pack_array(1);
+            pk.pack(BAD_REQUEST);
+        }
+    }
+    
     lua_pushlstring(L, buffer.data(), buffer.size());    
     return 1;
 }
