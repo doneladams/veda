@@ -1399,7 +1399,7 @@ class PThreadContext : Context
                           indv !is null ? text(*indv) : "null",
                           text(res.result), ticket !is null ? text(*ticket) : "null");
 
-            if (trace_msg[ T_API_240 ] == 1)
+            //if (trace_msg[ T_API_240 ] == 1)
                 log.trace("[%s] store_individual [%s] = %s", name, indv.uri, res);
 
             stat(CMD_PUT, sw);

@@ -413,12 +413,13 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.REMOVE)
                                 {
-                                    //if (storage.remove(uri) == ResultCode.OK)
-                                    //    rc = ResultCode.OK;
-                                    //else
-                                    rc = ResultCode.Fail_Store;
+			                        RequestResponse request_response = connector.remove(false, "", [ uri ], false);
+                                    if (request_response.common_rc != ResultCode.OK)
+	                                    stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);
+                                    else if (request_response.op_rc[0] != ResultCode.OK)
+	                                    stderr.writeln("@ERR REMOVE! ", request_response.op_rc[0]);
 
-                                    send(tid_response_reciever, rc, thisTid);
+                                    send(tid_response_reciever, request_response.common_rc, thisTid);
 
                                     return;
                                 }
@@ -442,8 +443,6 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.PUT)
                                 {
-                                    //if (rc == ResultCode.OK)
-                                    {
                                         if (storage_id == P_MODULE.subject_manager)
                                         {
                                             Individual imm;
@@ -467,16 +466,19 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
-                                            //log.trace("SEND TO TT %s ", imm);
+                                            log.trace("SEND TO TT %s ", imm);
 
                                             string binobj = imm.serialize();
                                             
 					                        RequestResponse request_response = connector.put(false, "", [ binobj ]);
+												
                                             if (request_response.common_rc != ResultCode.OK)
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
                                             else if (request_response.op_rc[0] != ResultCode.OK)
                                                 stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
-                                            //else 
+											else 
+											{                                            
+                                             rc = request_response.op_rc[0];
                                             //    stderr.writeln("@OK");
 
                                             individual_queue.push(binobj);
@@ -492,30 +494,19 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             //    //log.trace("SEND SIGNAL TO CCUS %s", msg_to_modules);
                                             //    send(tid_ccus_channel, msg_to_modules);
                                             //}
-                                        }
 
-                                        //string new_hash;
-                                        //log.trace ("storage_manager:PUT %s", indv_uri);
-                                        //if (storage.update_or_create(indv_uri, new_state, op_id, new_hash) == 0)
-                                        //{
-                                        rc = ResultCode.OK;
-                                        op_id++;
-                                        set_subject_manager_op_id(op_id);
-                                        // }
-                                        // else
-                                        // {
-                                        //     rc = ResultCode.Fail_Store;
-                                        // }
+	                                        send(tid_response_reciever, rc, thisTid);
 
-                                        send(tid_response_reciever, rc, thisTid);
+	                                            module_info.put_info(op_id, op_id);
+	                                            string new_hash = "0000";
+	                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
 
+											set_subject_manager_op_id(op_id);
+	                                        op_id++;
 
-                                        if (rc == ResultCode.OK)
-                                        {
-                                            module_info.put_info(op_id, op_id);
-                                            string new_hash = "0000";
-                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
-                                        }
+											}
+											
+											
                                     }
 
                                     return;
