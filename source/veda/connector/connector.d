@@ -91,6 +91,18 @@ class Connector
     {
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
+
+		if (user_uri is null || user_uri.length < 3)
+		{
+			request_response.common_rc = ResultCode.Not_Authorized;
+			return request_response;
+		}	
+		if (individuals.length == 0)
+		{
+			request_response.common_rc = ResultCode.No_Content;
+			return request_response;
+		}	
+				
         Packer          packer           = Packer(false);
 
         //stderr.writeln("PACK PUT REQUEST");
@@ -194,6 +206,18 @@ class Connector
     {
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
+
+		if (user_uri is null || user_uri.length < 3)
+		{
+			request_response.common_rc = ResultCode.Not_Authorized;
+			return request_response;
+		}	
+		if (uris.length == 0)
+		{
+			request_response.common_rc = ResultCode.No_Content;
+			return request_response;
+		}	
+
         Packer          packer           = Packer(false);
 
 		//need_auth = false;
@@ -319,6 +343,18 @@ class Connector
     {
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
+
+		if (user_uri is null || user_uri.length < 3)
+		{
+			request_response.common_rc = ResultCode.Not_Authorized;
+			return request_response;
+		}	
+		if (uris.length == 0)
+		{
+			request_response.common_rc = ResultCode.No_Content;
+			return request_response;
+		}	
+
         Packer          packer           = Packer(false);
 
 		//need_auth = false;
