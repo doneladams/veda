@@ -151,7 +151,7 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
 	vector <Resource> new_resource, new_in_set, prev_resource, prev_in_set, delta;
     map< string, vector<Resource> >::iterator it; 
 
-    it = new_state->resources.find("v-d:deleted");
+    it = new_state->resources.find("v-s:deleted");
     if (it != new_state->resources.end()) {
         it->second = it->second;
         is_deleted = it->second[0].bool_data;
