@@ -24,9 +24,9 @@ public class TarantoolStorage : Storage
     	log.trace ("create TarantoolStorage connector");    	
     }
 
-    public ResultCode put(string in_key, string in_value, long op_id)
+    public ResultCode put(string user_uri, string in_key, string in_value, long op_id)
     {
-        RequestResponse rr = connector.put(false, null, [ in_value ]);
+        RequestResponse rr = connector.put(false, user_uri, [ in_value ]);
 
         if (rr !is null)
             return rr.common_rc;
@@ -34,9 +34,9 @@ public class TarantoolStorage : Storage
         return ResultCode.Fail_Store;
     }
 
-    public ResultCode remove(string in_key)
+    public ResultCode remove(string user_uri, string in_key)
     {
-        RequestResponse rr = connector.remove(false, null, [ in_key ], false);
+        RequestResponse rr = connector.remove(false, user_uri, [ in_key ], false);
         if (rr !is null)
             return rr.common_rc;
 
@@ -45,7 +45,7 @@ public class TarantoolStorage : Storage
 
     public string find(string user_uri, string uri, bool return_value = true)
     {
-        RequestResponse rr = connector.get(false, null, [ uri ], false);
+        RequestResponse rr = connector.get(false, user_uri, [ uri ], false);
 
         if (rr !is null && rr.msgpacks.length > 0)
             return rr.msgpacks[ 0 ];

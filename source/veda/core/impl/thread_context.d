@@ -420,7 +420,7 @@ class PThreadContext : Context
             res = inividuals_storage_r.find(user_id, uri);
         else
         {
-            res = get_from_individual_storage_thread(uri);
+            res = get_from_individual_storage_thread(user_id, uri);
         }
 
         if (res !is null && res.length < 10)
@@ -1113,7 +1113,7 @@ class PThreadContext : Context
             Individual indv;
             Individual prev_indv;
 
-            prev_state = get_from_individual_storage_thread(uri);
+            prev_state = get_from_individual_storage_thread(ticket.user_uri, uri);
             if (prev_state !is null)
             {
                 int code = prev_indv.deserialize(prev_state);
@@ -1260,7 +1260,7 @@ class PThreadContext : Context
 
                 try
                 {
-                    prev_state = get_from_individual_storage_thread(indv.uri);
+                    prev_state = get_from_individual_storage_thread(ticket.user_uri, indv.uri);
 
                     if ((prev_state is null ||
                          prev_state.length == 0) && (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM))
@@ -1570,14 +1570,14 @@ class PThreadContext : Context
         }
     }
 
-    private string get_from_individual_storage_thread(string uri)
+    private string get_from_individual_storage_thread(string user_uri, string uri)
     {
         string res;
 
         version (isServer)
         {
             //res = subject_storage_module.find(P_MODULE.subject_manager, uri);
-            res = inividuals_storage_r.find(uri);
+            res = inividuals_storage_r.find(user_uri, uri);
         }
         return res;
     }
