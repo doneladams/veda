@@ -30,7 +30,7 @@ remove_right_set(vector<Resource> &resource, string prefix)
 int
 db_remove(msgpack::object_str &key, msgpack::object_str &user_id, bool need_auth)
 {
-    return OK;
+    //return OK;
 
     box_tuple_t *tuple;
     msgpack::sbuffer buffer;
