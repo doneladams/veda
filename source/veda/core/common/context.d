@@ -162,9 +162,11 @@ public struct Ticket
 
     /// Код результата, если тикет не валидный != ResultCode.Ok
     ResultCode result;
-//    string[] parentUnitIds = new string[ 0 ];
 
-    /// Время жизни тикета в миллисекундах
+    /// Дата начала действия тикета 
+    long start_time;
+
+    /// Дата окончания действия тикета 
     long end_time;
 
     /// Конструктор
@@ -208,15 +210,15 @@ public enum Result
 
 interface Storage
 {
-    public ResultCode put(string in_key, string in_value, long op_id);    
-    public string find(string uri, bool return_value = true);
+    public ResultCode put(string user_id, string in_key, string in_value, long op_id);    
+    public string find(string user_id, string uri, bool return_value = true);
+    public ResultCode remove(string user_id, string in_key);
     public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_ids);
 	public void unload_to_queue (string path, string queue_id, bool only_ids);    
     public long count_entries();
     public void reopen_db();
     public void close_db();
     public long dump_to_binlog();
-    public ResultCode remove(string in_key);
 }
 
 interface ScriptVM
@@ -239,7 +241,7 @@ interface Context
     int[ string ] get_key2slot();
 
     bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload);
-    string get_from_individual_storage(string uri);
+    string get_from_individual_storage(string user_uri, string uri);
     Onto get_onto();
 
     public string get_ticket_from_storage(string ticket_id);
