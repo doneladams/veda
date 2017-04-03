@@ -203,7 +203,7 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 		nperms = mp_decode_array(&perm_buf);
 		nperms--;
 		mp_decode_str(&perm_buf, &len);
-		
+		fprintf(stderr, "%s\n", object_rights[i].id);
 		for (j = 0; j < nperms; j++) {	
 			char perm_obj_uri[MAX_URI_LEN];
 			const char *tmp;

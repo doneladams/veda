@@ -216,9 +216,17 @@ db_handle_request(lua_State *L)
     obj_arr = glob_obj.via.array;
     
     if (obj_arr.size < 4) {
-        cerr << "Error dbserver: msg arr size less than 4" << endl;
+        cerr << "@ERR! MSGPACK ARR SIZE SMALLER THEN 4!" << endl;
         pk.pack_array(1);
         pk.pack(BAD_REQUEST);
+        lua_pushlstring(L, buffer.data(), buffer.size());
+        return 1;
+    }
+
+    if (obj_arr.ptr[2].type == msgpack::type::NIL) {
+        cerr << "@ERR! NIL USER ID!" << endl;
+        pk.pack_array(1);
+        pk.pack(INTERNAL_SERVER_ERROR);
         lua_pushlstring(L, buffer.data(), buffer.size());
         return 1;
     }

@@ -74,7 +74,7 @@ peek_from_tarantool(string key, map<string, Right> &new_right_set)
 
         obj = right_obj_arr.ptr[i];
         right.id = string(obj.via.str.ptr, obj.via.str.size - 1);
-        right.access = obj.via.str.ptr[obj.via.str.size - 1];
+        right.access = obj.via.str.ptr[obj.via.str.size - 1] - 1;
         
         // cout << "RIGHT ID " << right.id << " ACCESS " << right.access << endl;
         new_right_set[right.id] = right;
