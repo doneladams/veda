@@ -33,15 +33,13 @@ uint32_t individuals_space_id, individuals_index_id;
 uint32_t rdf_types_space_id, rdf_types_index_id;
 uint32_t acl_space_id, acl_index_id, cache_space_id, cache_index_id;
 
-void
-handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk,
-    msgpack::object_array &obj_arr)
+void handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, msgpack::object_array &obj_arr)
 {
     bool need_auth;
     msgpack::object_str user_id;
 
     pk.pack_array(obj_arr.size - 3 + 1);
-    need_auth = obj_arr.ptr[1].via.boolean;    
+    need_auth = obj_arr.ptr[1].via.boolean;
     user_id = obj_arr.ptr[2].via.str;
     //cout << "MSG " << msg << endl;
     //if (need_auth)
@@ -60,16 +58,18 @@ handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     }
 }
 
-void
-handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, 
-    msgpack::object_array &obj_arr)
+void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sbuffer> &pk, msgpack::object_array &obj_arr)
 {
     bool need_auth;
     msgpack::object_str user_id;
 
+//    printf("REMOVE:obj_arr.size=%d\n", obj_arr.size);
+
     pk.pack_array(obj_arr.size - 3 + 1);
-    need_auth = obj_arr.ptr[1].via.boolean;    
+    need_auth = obj_arr.ptr[1].via.boolean;
     user_id = obj_arr.ptr[2].via.str;
+    printf("REMOVE:user_id.length=%d\n", (int)user_id.size);
+    //printf("REMOVE:USER URI(%d) [%*.s]\n", (int)user_id.size, (int)user_id.size, user_id.ptr);
     //cout << "MSG " << msg << endl;
     //if (need_auth)
     //    cout << "USER ID " << user_id.ptr << endl;
@@ -79,12 +79,14 @@ handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msgpack:
     for (uint32_t i = 3; i < obj_arr.size; i++) {
         int delete_result;
         msgpack::object_str res_uri;
-        printf("DELETE RES URI %*.s\n", (int)res_uri.size, res_uri.ptr);        
         // printf("size=%u i=%u\n", obj_arr.size, i);
         res_uri = obj_arr.ptr[i].via.str;
+//        printf("REMOVE:DELETE RES URI [%*.s]\n", (int)res_uri.size, res_uri.ptr);
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
         delete_result = db_remove(res_uri, user_id, need_auth);
+//        printf("REMOVE #1\n");
         pk.pack(delete_result);
+        printf("REMOVE #E\n");
     }
 }
 
@@ -238,6 +240,7 @@ db_handle_request(lua_State *L)
         }
         case REMOVE: {
             handle_remove_request(msg, msg_size, pk, obj_arr);
+            break;
         }
 
         default: {

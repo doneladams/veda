@@ -34,7 +34,16 @@ public class TarantoolStorage : Storage
         return ResultCode.Fail_Store;
     }
 
-    public string find(string uri, bool return_value = true)
+    public ResultCode remove(string in_key)
+    {
+        RequestResponse rr = connector.remove(false, null, [ in_key ], false);
+        if (rr !is null)
+            return rr.common_rc;
+
+        return ResultCode.Fail_Store;
+    }
+
+    public string find(string user_uri, string uri, bool return_value = true)
     {
         RequestResponse rr = connector.get(false, null, [ uri ], false);
 
@@ -76,14 +85,5 @@ public class TarantoolStorage : Storage
     {
         log.trace("ERR! dump_to_binlog not implemented");
         throw new Exception("not implemented");
-    }
-
-    public ResultCode remove(string in_key)
-    {
-        RequestResponse rr = connector.remove(false, null, [ in_key ], false);
-        if (rr !is null)
-            return rr.common_rc;
-
-        return ResultCode.Fail_Store;
     }
 }
