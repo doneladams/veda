@@ -1146,7 +1146,7 @@ class PThreadContext : Context
 
                 if (oprc.result == ResultCode.OK)
                 {
-                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, uri, ignore_freeze, res.op_id);
+                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, ticket.user_uri, uri, ignore_freeze, res.op_id);
                 }
                 else
                     res.result = oprc.result;

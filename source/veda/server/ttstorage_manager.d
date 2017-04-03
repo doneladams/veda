@@ -25,7 +25,7 @@ Logger _log;
 Logger log()
 {
     if (_log is null)
-        _log = new Logger("veda-core-server", "log", "STORAGE-MANAGER");
+        _log = new Logger("veda-core-server", "log", "TT-STORAGE-MNGR");
     return _log;
 }
 
@@ -225,14 +225,14 @@ public ResultCode put(P_MODULE storage_id, string user_uri, Resources type, stri
     return rc;
 }
 
-public ResultCode remove(P_MODULE storage_id, string uri, bool ignore_freeze, out long op_id)
+public ResultCode remove(P_MODULE storage_id, string user_uri, string uri, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
 
     if (tid != Tid.init)
     {
-        send(tid, INDV_OP.REMOVE, uri, ignore_freeze, thisTid);
+        send(tid, INDV_OP.REMOVE, user_uri, uri, ignore_freeze, thisTid);
 
         receive((ResultCode _rc, Tid from)
                 {
@@ -402,7 +402,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 send(tid_response_reciever, count);
                             }*/
                         },
-                        (INDV_OP cmd, string uri, bool ignore_freeze, Tid tid_response_reciever)
+                        (INDV_OP cmd, string user_uri, string uri, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
 
@@ -413,7 +413,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.REMOVE)
                                 {
-			                        RequestResponse request_response = connector.remove(false, "", [ uri ], false);
+			                        RequestResponse request_response = connector.remove(false, user_uri, [ uri ], false);
                                     if (request_response.common_rc != ResultCode.OK)
 	                                    stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);
                                     else if (request_response.op_rc[0] != ResultCode.OK)
@@ -470,7 +470,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
                                             string binobj = imm.serialize();
                                             
-					                        RequestResponse request_response = connector.put(false, "", [ binobj ]);
+					                        RequestResponse request_response = connector.put(false, user_uri, [ binobj ]);
 												
                                             if (request_response.common_rc != ResultCode.OK)
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);

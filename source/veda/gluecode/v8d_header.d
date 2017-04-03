@@ -509,7 +509,7 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
 {
     try
     {
-        string uri = cast(string)_uri[ 0.._uri_length ];
+        string uri = cast(string)_uri[ 0.._uri_length ];        
 
         //writeln("@p:v8d read_individual, uri=[", uri, "],  ticket=[", _ticket[ 0.._ticket_length ], "]");
 
@@ -545,8 +545,6 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
                 return &tmp_individual;
             }
 
-            string ticket = cast(string)_ticket[ 0.._ticket_length ];
-
             if (g_context !is null)
             {
                 string icb;
@@ -560,7 +558,11 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
                 }
 
                 if (icb is null)
-                    icb = g_context.get_from_individual_storage(null, uri);
+                {
+		            string ticket_id = cast(string)_ticket[ 0.._ticket_length ];
+                	Ticket* ticket = g_context.get_ticket(ticket_id, false);  
+                    icb = g_context.get_from_individual_storage(ticket.user_uri, uri);
+                }    
 
                 if (icb !is null)
                 {
