@@ -253,7 +253,7 @@ void put_rdf_types(string &key, vector<Resource> &rdf_types)
     
     for (int i = 0; i < rdf_types.size(); i++)
         pk.pack(rdf_types[i].str_data);
-    //printf("PUT RDF TYPES %*.s\n", (int)buffer.size(),  buffer.data());
+    //fprintf (stderr, "PUT RDF TYPES %*.s\n", (int)buffer.size(),  buffer.data());
     if (box_replace(rdf_types_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0) 
         cerr << "@ERR REST! ERR ON REPLACING RDF TYPES" << endl;
 }
@@ -293,7 +293,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         
         it = new_state->resources.find("rdf:type");
         if (it == new_state->resources.end()) {
-            printf("@ERR REST! NO RDF TYPE FOUND!\n");
+            fprintf (stderr, "@ERR REST! NO RDF TYPE FOUND!\n");
             cerr << "@ERR REST! NO RDF TYPE FOUND!" << endl;
             return BAD_REQUEST;
         }
@@ -304,7 +304,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
 
         res = get_rdf_types(new_state->uri, tnt_rdf_types);
         if (res < 0) {
-            printf("@ERR REST! GET RDF TYPES ERR!\n");
+            fprintf (stderr, "@ERR REST! GET RDF TYPES ERR!\n");
             cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
             return INTERNAL_SERVER_ERROR;
         } else if (res > 0 && need_auth) {

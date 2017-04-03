@@ -45,12 +45,12 @@ void handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpac
     //if (need_auth)
     //    cout << "USER ID " << user_id.ptr << endl;
 
-    //printf("NEED AUTH %d\n", need_auth);
+    //fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
         int put_result;
         msgpack::object_str indiv_msgpack;
-        // printf("size=%u i=%u\n", obj_arr.size, i);
+        // fprintf (stderr, "size=%u i=%u\n", obj_arr.size, i);
         indiv_msgpack = obj_arr.ptr[i].via.str;
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
         put_result = db_put(indiv_msgpack, user_id, need_auth);
@@ -63,30 +63,30 @@ void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msg
     bool need_auth;
     msgpack::object_str user_id;
 
-//    printf("REMOVE:obj_arr.size=%d\n", obj_arr.size);
+//    fprintf (stderr, "REMOVE:obj_arr.size=%d\n", obj_arr.size);
 
     pk.pack_array(obj_arr.size - 3 + 1);
     need_auth = obj_arr.ptr[1].via.boolean;
     user_id = obj_arr.ptr[2].via.str;
-    printf("REMOVE:user_id.length=%d\n", (int)user_id.size);
-    //printf("REMOVE:USER URI(%d) [%*.s]\n", (int)user_id.size, (int)user_id.size, user_id.ptr);
+    fprintf (stderr, "REMOVE:user_id.length=%d\n", (int)user_id.size);
+    //fprintf (stderr, "REMOVE:USER URI(%d) [%*.s]\n", (int)user_id.size, (int)user_id.size, user_id.ptr);
     //cout << "MSG " << msg << endl;
     //if (need_auth)
     //    cout << "USER ID " << user_id.ptr << endl;
 
-    //printf("NEED AUTH %d\n", need_auth);
+    //fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
         int delete_result;
         msgpack::object_str res_uri;
-        // printf("size=%u i=%u\n", obj_arr.size, i);
+        // fprintf (stderr, "size=%u i=%u\n", obj_arr.size, i);
         res_uri = obj_arr.ptr[i].via.str;
-//        printf("REMOVE:DELETE RES URI [%*.s]\n", (int)res_uri.size, res_uri.ptr);
+//        fprintf (stderr, "REMOVE:DELETE RES URI [%*.s]\n", (int)res_uri.size, res_uri.ptr);
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
         delete_result = db_remove(res_uri, user_id, need_auth);
-//        printf("REMOVE #1\n");
+//        fprintf (stderr, "REMOVE #1\n");
         pk.pack(delete_result);
-        printf("REMOVE #E\n");
+        fprintf (stderr, "REMOVE #E\n");
     }
 }
 
@@ -103,7 +103,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     //if (need_auth)
     //    cout << "USER ID " << user_id.ptr << endl;
 
-    //printf("NEED AUTH %d\n", need_auth);
+    //fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);    
     for (int i = 3; i < obj_arr.size; i++) {
         int auth_result = 0;
@@ -112,7 +112,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        // printf("RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        // fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
         res_size = db_get(res_uri, res_buf);
         if (res_size > 0) {
             //cout << "EXISTS" << endl;
@@ -127,14 +127,14 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
-    		    printf("GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
-                printf("\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
+    		    fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+                fprintf (stderr, "\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
                     auth_result);
             }
         } else  {
             pk.pack(NOT_FOUND);
             pk.pack_nil();
-	        printf("GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+	        fprintf (stderr, "GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
         }
     }
 }
@@ -155,9 +155,9 @@ db_handle_request(lua_State *L)
         
     
     msg = lua_tolstring(L, -1, &msg_size);
-    //printf("@HANDLE REQUEST\n");
-    //printf("@SIZE %zu\n", msg_size);
-    // printf("@MSG %s\n", msg);
+    fprintf (stderr, "@HANDLE REQUEST\n");
+    //fprintf (stderr, "@SIZE %zu\n", msg_size);
+    // fprintf (stderr, "@MSG %s\n", msg);
 
 	if ((individuals_space_id = box_space_id_by_name("individuals",  
         strlen("individuals"))) == BOX_ID_NIL) {
@@ -227,24 +227,31 @@ db_handle_request(lua_State *L)
     //cout << "OP " << (int)op << endl;
     switch (op) {
         case GET: {
-            //printf("GET=%d %s\n", op, msg);
+            //fprintf (stderr, "GET=%d %s\n", op, msg);
+	    fprintf (stderr, "-------- GET ----------\n");
             handle_get_request(msg, msg_size, pk, obj_arr);
-            //printf("GET RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
+	    fprintf (stderr, "--------\n");
+//            fprintf (stderr, "GET RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case PUT: {
-            //printf("PUT=%d %s\n", op, msg);
+	    fprintf (stderr, "-------- PUT ----------\n");
+            //fprintf (stderr, "PUT=%d %s\n", op, msg);
             handle_put_request(msg, msg_size, pk, obj_arr);
-            //printf("PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
+	    fprintf (stderr, "--------\n");
+//            fprintf (stderr, "PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case REMOVE: {
+	    fprintf (stderr, "-------- REMOVE ----------\n");
             handle_remove_request(msg, msg_size, pk, obj_arr);
+	    fprintf (stderr, "--------\n");
+//            fprintf (stderr, "REMOVE RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
 
         default: {
-            printf("@ERR! UNKNOWN REQUEST!\n");
+            fprintf (stderr, "@ERR! UNKNOWN REQUEST!\n");
             pk.pack_array(1);
             pk.pack(BAD_REQUEST);
         }
