@@ -9,7 +9,7 @@
 #include "right.h"
 
 size_t
-db_get(msgpack::object_str &key, char *out_buf)
+db_get(msgpack::object_str &key, char **out_buf)
 {
     box_tuple_t *tuple;
     msgpack::sbuffer buffer;
@@ -23,11 +23,16 @@ db_get(msgpack::object_str &key, char *out_buf)
     box_index_get(individuals_space_id, individuals_index_id, buffer.data(), buffer.data() 
         + buffer.size(), &tuple);
 
-    if (tuple == NULL)
+    if (tuple == NULL) {
+        *out_buf = NULL;
         return 0;
-    
+    }
+        
     tuple_size = box_tuple_bsize(tuple);
-    box_tuple_to_buf(tuple, out_buf, tuple_size);
+    *out_buf = new char[tuple_size];
+    fprintf(stderr, "COPY BYTES %zu\n", tuple_size);
+    box_tuple_to_buf(tuple, *out_buf, tuple_size);
+    fprintf(stderr, "COPIED\n");
 
     return tuple_size;
 }

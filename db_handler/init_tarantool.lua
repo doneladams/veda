@@ -1,4 +1,4 @@
-box.cfg{listen=3309, work_dir='./data/tarantool', slab_alloc_arena=10.0, slab_alloc_maximal=67108864, log_level=5, logger='./tarantool.log'}
+box.cfg{listen=3309, work_dir='./data/tarantool', slab_alloc_arena=12.0, slab_alloc_maximal=67108864, log_level=5, logger='./tarantool.log'}
 log = require('log')
 
 if box.space.individuals == nil then

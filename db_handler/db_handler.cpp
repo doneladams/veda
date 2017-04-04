@@ -20,7 +20,7 @@ using namespace std;
 #define ACCESS_CAN_UPDATE 	(1U << 2)
 #define ACCESS_CAN_DELETE 	(1U << 3)
 
-#define MAX_BUF_SIZE 8129 
+// #define MAX_BUF_SIZE 16384
 
 
 extern "C" {
@@ -96,34 +96,37 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 {
     bool need_auth;
     msgpack::object_str user_id;
+    // char res_buf[MAX_BUF_SIZE];
+    char *res_buf;
+    
     
     pk.pack_array((obj_arr.size - 3) * 2 + 1);
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
-    //if (need_auth)
-    //    cout << "USER ID " << user_id.ptr << endl;
-
-    //fprintf (stderr, "NEED AUTH %d\n", need_auth);
+    
+    fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);    
     for (int i = 3; i < obj_arr.size; i++) {
         int auth_result = 0;
-        char res_buf[MAX_BUF_SIZE];
         size_t res_size;
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        // fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
-        res_size = db_get(res_uri, res_buf);
+        fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        res_size = db_get(res_uri, &res_buf);
         if (res_size > 0) {
-            //cout << "EXISTS" << endl;
+            cerr << "EXISTS" << endl;
             if (need_auth) 
                 auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
-            //cout << "AUTH " << auth_result << endl;
+            cerr << "AUTH " << auth_result << endl;
             if ((auth_result & ACCESS_CAN_READ) || !need_auth) {
                 pk.pack(OK);
+                cerr << "TRY PACK SIZE" << endl;
                 pk.pack_str(res_size);
+                cerr << "TRY PACK BODY" << endl;
                 pk.pack_str_body(res_buf, res_size);
-                //cout << "GET OK" << endl;
+                cout << "PACKED" << endl;
+                delete res_buf;
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
@@ -265,7 +268,9 @@ db_handle_request(lua_State *L)
         }
     }
     
+    fprintf(stderr, "PUSH ANSWER BACK\n");
     lua_pushlstring(L, buffer.data(), buffer.size());    
+    fprintf(stderr, "PUSH RETURNING\n");    
     return 1;
 }
 
