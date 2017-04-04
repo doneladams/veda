@@ -84,21 +84,24 @@ peek_from_tarantool(string key, map<string, Right> &new_right_set)
 void 
 push_into_tarantool(string in_key, map<string, Right> new_right_set)
 {
-    int count = 0;
     map<string, Right>::iterator it;
     msgpack::sbuffer buffer;
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
+    size_t arr_size;
 
-    pk.pack_array(new_right_set.size() + 1);
-    pk.pack(in_key);
-
+    arr_size = new_right_set.size() + 1;
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
-        if (!it->second.is_deleted) { 
-            pk.pack(it->second.id + (char)(it->second.access + 1));
-            count++;
-        }
+        if (it->second.is_deleted)
+            arr_size--;
 
-    if (count > 0) {
+    pk.pack_array(arr_size);
+    pk.pack(in_key);
+    cerr << "KEY" << in_key << arr_size << endl;
+    for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
+        if (!it->second.is_deleted)
+            pk.pack(it->second.id + (char)(it->second.access + 1));
+
+    if (arr_size > 1) {
         if (box_replace(acl_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
             cerr << "LISTENER: Error on inserting acl msgpack " << buffer.data() << endl;
     } else if (box_delete(acl_space_id, acl_index_id, buffer.data(), 

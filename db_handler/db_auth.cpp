@@ -90,6 +90,7 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 	rights[curr].nchildren = 0;
 	rights[curr].id_len =  strlen(uri);
 	
+	fprintf(stderr, "REQUEST URI %s\n", uri);
 	if (get_tuple(uri, rights[curr].id_len, (char *)rights[curr].buf) == 0) {
 		memcpy(rights[curr].id, uri, rights[curr].id_len);
 		rights[curr].id[rights[curr].id_len]  = '\0';
@@ -104,14 +105,15 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 		uint32_t len;
 		const char *tmp;
 		if (!gone_previous) {
-			// fprintf (stderr, "---------------\nbuf\n%s\n-----------------\n", rights[curr].buf);
+			fprintf (stderr, "---------------\nbuf\n%s\n-----------------\n", rights[curr].buf);
 			rights[curr].nelems = mp_decode_array(&rights[curr].buf);
-			// fprintf (stderr, "curr nelems %d\n", rights[curr].nelems);
+			fprintf (stderr, "curr nelems %d\n", rights[curr].nelems);
+			fprintf(stderr, "\ttry decode key\n");
 			tmp = mp_decode_str(&rights[curr].buf, &len);
 			memcpy(rights[curr].id, tmp, len);
 			rights[curr].id[len] = '\0';
 			rights[curr].id_len = len;
-			// fprintf (stderr, "%d %s\n", curr, rights[curr].id);
+			fprintf (stderr, "%d %s\n", curr, rights[curr].id);
 			rights[curr].i = 0;
 		}
 
@@ -122,17 +124,19 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 			uint8_t right_access;
 
 			next = rights_count++;
+			fprintf(stderr, "\ti=%d nelems=%d\n", rights[curr].i, rights[curr].nelems - 1);
+			fprintf(stderr, "\ttry decode new node\n");
 			tmp = mp_decode_str(&rights[curr].buf, &len);
 			memcpy(rights[next].id + 1, tmp, len);
 			rights[next].id[0] = MEMBERSHIP_PREFIX;
 			right_access = rights[next].id[len] - 1;
-			// fprintf (stderr, "\tnext uri %s len=%d\n", rights[next].id, len);
+			fprintf (stderr, "\tnext uri %s len=%d\n", rights[next].id, len);
 			rights[next].access = rights[curr].access & right_access;
 			rights[next].id[len] = '\0';
 			rights[next].id_len = len;
-			// fprintf (stderr, "\tnext uri %s\n", rights[next].id);
-			/*fprintf (stderr, "\tcurr=%u next=%u right_access=%u\n", rights[curr].access, 
-				rights[next].access, right_access);*/
+			fprintf (stderr, "\tnext uri %s\n", rights[next].id);
+			fprintf (stderr, "\tcurr=%u next=%u right_access=%u\n", rights[curr].access, 
+				rights[next].access, right_access);
 			for (i = 0; i < rights_count - 1; i++)
 				if (strcmp(rights[i].id, rights[next].id) == 0)
 					break;	
@@ -144,8 +148,9 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 
 			rights[next].parent = curr;
 
-			// fprintf (stderr, "\tnew uri %s\n", rights[next].id);
+			fprintf (stderr, "\tnew uri %s\n", rights[next].id);
 			rights[next].buf = rights[next].buf_start;
+			// fprintf(stderr, "REQUEST URI %s\n", rights[next].id);
 			if (get_tuple(rights[next].id, rights[next].id_len, (char *)rights[next].buf) == 0)
 				continue;
 			
@@ -157,11 +162,11 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 		if (!got_next) {
 			curr = rights[curr].parent;
 			gone_previous = 1;
-			/*fprintf (stderr, "\t go previous\n");
+			fprintf (stderr, "\t go previous\n");
 			if (curr != -1) {
 				fprintf (stderr, "\t prev uri %s number %d\n", rights[curr].id, curr);
 				fprintf (stderr, "buf %s\n", rights[curr].buf);
-			}*/	
+			}	
 		}
 	}
 
