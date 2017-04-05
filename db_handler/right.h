@@ -9,10 +9,14 @@
 #define PERMISSION_PREFIX   "P"
 #define FILTER_PREFIX       "F"
 
-#define ACCESS_CAN_CREATE  (1 << 0)
-#define ACCESS_CAN_READ    (1 << 1)
-#define ACCESS_CAN_UPDATE  (1 << 2)
-#define ACCESS_CAN_DELETE  (1 << 3)
+#define ACCESS_CAN_CREATE 		(1U << 0)
+#define ACCESS_CAN_READ 		(1U << 1)
+#define ACCESS_CAN_UPDATE 		(1U << 2)
+#define ACCESS_CAN_DELETE	 	(1U << 3)
+#define ACCESS_CAN_NOT_CREATE 	(1U << 4)
+#define ACCESS_CAN_NOT_READ		(1U << 5)
+#define ACCESS_CAN_NOT_UPDATE 	(1U << 6)
+#define ACCESS_CAN_NOT_DELETE 	(1U << 7)
 
 #define DEFAULT_ACCESS 15
 

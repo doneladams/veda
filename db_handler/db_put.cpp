@@ -68,7 +68,7 @@ peek_from_tarantool(string key, map<string, Right> &new_right_set)
     nmb_rights = right_obj_arr.size;
     right_uri = string(right_obj_arr.ptr->via.str.ptr, right_obj_arr.ptr->via.str.size);
 
-    for (int i = 1; i < right_obj_arr.size; i++) {
+    /*for (int i = 1; i < right_obj_arr.size; i++) {
         Right right;
         msgpack::object obj;
 
@@ -78,7 +78,20 @@ peek_from_tarantool(string key, map<string, Right> &new_right_set)
         
         // cout << "RIGHT ID " << right.id << " ACCESS " << right.access << endl;
         new_right_set[right.id] = right;
-    } 
+    }*/
+    
+    for (int i = 1; i < right_obj_arr.size; i += 2) {
+        Right right;
+        msgpack::object obj_id, obj_access;
+
+        obj_id = right_obj_arr.ptr[i];
+        obj_access = right_obj_arr.ptr[i + 1];
+        right.id = string(obj_id.via.str.ptr, obj_id.via.str.size);
+        right.access = obj_access.via.u64;
+        
+        // cout << "RIGHT ID " << right.id << " ACCESS " << right.access << endl;
+        new_right_set[right.id] = right;
+    }
 }
 
 void 
@@ -89,17 +102,19 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
     size_t arr_size;
 
-    arr_size = new_right_set.size() + 1;
+    arr_size = new_right_set.size() * 2 + 1;
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (it->second.is_deleted)
-            arr_size--;
+            arr_size -= 2;
 
     pk.pack_array(arr_size);
     pk.pack(in_key);
     cerr << "KEY" << in_key << arr_size << endl;
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
-        if (!it->second.is_deleted)
-            pk.pack(it->second.id + (char)(it->second.access + 1));
+        if (!it->second.is_deleted) {
+            pk.pack(it->second.id); 
+            pk.pack(it->second.access);
+        }
 
     if (arr_size > 1) {
         if (box_replace(acl_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
@@ -165,6 +180,8 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data)
 			access |= ACCESS_CAN_CREATE;
+        else
+            access |= ACCESS_CAN_NOT_CREATE;
     }
 
 	it = new_state->resources.find("v-s:canRead");
@@ -172,6 +189,8 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data)
 			access |= ACCESS_CAN_READ;
+        else
+            access |= ACCESS_CAN_NOT_READ;
     }
 
 	it = new_state->resources.find("v-s:canUpdate");
@@ -179,6 +198,8 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data)
 			access |= ACCESS_CAN_UPDATE;
+        else
+            access |= ACCESS_CAN_NOT_UPDATE;
     }
 
 	it = new_state->resources.find("v-s:canDelete");
@@ -186,6 +207,8 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data)
 			access |= ACCESS_CAN_DELETE;
+        else
+            access |= ACCESS_CAN_NOT_DELETE;
     }
 
 	access = (access > 0) ? access : DEFAULT_ACCESS;
