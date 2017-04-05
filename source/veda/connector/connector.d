@@ -51,7 +51,7 @@ class Connector
             {
                 try
                 {
-                    stderr.writefln("CONNECT WEB SERVER %s %d", addr, port);
+                    log.trace("CONNECT WEB SERVER %s %d", addr, port);
                     s = connectTCP(addr, port);
                 }
                 catch (Exception e)
@@ -61,7 +61,7 @@ class Connector
                 }
                 break;
             }
-            stderr.writeln("CONNECTED WEB SERVER");
+            log.trace("CONNECTED WEB SERVER");
         }
 
         version (std_socket)
@@ -71,7 +71,7 @@ class Connector
             {
                 try
                 {
-                    stderr.writefln("CONNECT STD %s %d", addr, port);
+                    log.trace("CONNECT STD %s %d", addr, port);
                     s.connect(new InternetAddress(addr, port));
                 }
                 catch (Exception e)
@@ -81,7 +81,7 @@ class Connector
                 }
                 break;
             }
-            stderr.writeln("CONNECTED STD");
+            log.trace("CONNECTED STD");
         }
     }
 
@@ -172,7 +172,7 @@ class Connector
             if (receive_size == 0 || receive_size < response.length)
             {
                 Thread.sleep(dur!("seconds")(1));
-                stderr.writeln("@RECONNECT PUT REQUEST");
+                log.trace("@RECONNECT PUT REQUEST");
                 close();
                 connect(addr, port);
                 continue;
@@ -200,7 +200,7 @@ class Connector
             //stderr.writeln("OP_RC ", request_response.op_rc);
         }
         else
-            stderr.writefln("@ERR ON UNPACKING RESPONSE");
+            log.trace("@ERR ON UNPACKING RESPONSE");
 
         return request_response;
     }

@@ -173,7 +173,7 @@ class VedaStorageRest : VedaStorageRest_API
 //    string[ string ] properties;
     int             last_used_tid = 0;
     void function(int sig) shutdown;
-    Connector connector;
+    Connector       connector;
 
     this(Context _local_context, void function(int sig) _shutdown)
     {
@@ -182,11 +182,11 @@ class VedaStorageRest : VedaStorageRest_API
         context  = _local_context;
     }
 
-	public void init ()
-	{
-	    connector = new Connector(log);
-        connector.connect("127.0.0.1", 9999);		
-	}
+    public void init()
+    {
+        connector = new Connector(log);
+        connector.connect("127.0.0.1", 9999);
+    }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void fileManager(HTTPServerRequest req, HTTPServerResponse res)
@@ -688,9 +688,9 @@ class VedaStorageRest : VedaStorageRest_API
             jreq[ "limit" ]     = limit;
 
             trail(_ticket, ticket.user_uri, "query", jreq, text(sr.result), rc, timestamp);
-            
+
             if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));            
+                throw new HTTPStatusException(rc, text(rc));
         }
     }
 
@@ -707,34 +707,35 @@ class VedaStorageRest : VedaStorageRest_API
         {
             ticket = context.get_ticket(_ticket);
             rc     = ticket.result;
-            
+
             if (rc != ResultCode.OK)
                 return res;
 
             try
             {
-            	   RequestResponse request_response = connector.get(true, ticket.user_uri, 
-                        uris, true);
-                    if (request_response.common_rc != ResultCode.OK)
-                        log.trace("@get_individuals: ERR COMMON GET! ", request_response.common_rc);
-                    else if (request_response.op_rc[ 0 ] != ResultCode.OK)
-                        log.trace("@get_individuals: ERR GET! ", request_response.op_rc[ 0 ]);
-                    else
-                    {
-            	
-                foreach (pack; request_response.msgpacks)
+                RequestResponse request_response = connector.get(true, ticket.user_uri,
+                                                                 uris, false);
+                if (request_response.common_rc != ResultCode.OK)
+                    log.trace("ERR! get_individuals: uris=[%s] common result_code=%s", uris, request_response.common_rc);
+                else
                 {
-                        Json res_i = Json.emptyObject;
-                        msgpack2vjson(&res_i, pack);
-	                    res ~= res_i;
-	                    //args ~= uri;
-                }                            	
+                    foreach (idx, pack; request_response.msgpacks)
+                    {
+                        if (request_response.op_rc[ idx ] != ResultCode.OK)
+                            log.trace("ERR! get_individuals: uri=[%s] result_code=%s", uris[idx], request_response.op_rc[ idx ]);
+                        else
+                        {
+                            Json res_i = Json.emptyObject;
+                            msgpack2vjson(&res_i, pack);
+                            res ~= res_i;
+                            //args ~= uri;
+                        }
+                    }
                 }
-
             }
             catch (Throwable ex)
             {
-            	rc = ResultCode.Internal_Server_Error;
+                rc = ResultCode.Internal_Server_Error;
                 return res;
             }
 
@@ -745,9 +746,9 @@ class VedaStorageRest : VedaStorageRest_API
             Json jreq = Json.emptyObject;
             jreq[ "uris" ] = args;
             trail(_ticket, ticket.user_uri, "get_individuals", jreq, text(res), rc, timestamp);
-            
+
             if (rc != ResultCode.OK)
-                throw new HTTPStatusException(rc, text(rc));            
+                throw new HTTPStatusException(rc, text(rc));
         }
     }
 
@@ -756,7 +757,7 @@ class VedaStorageRest : VedaStorageRest_API
         ulong      timestamp = Clock.currTime().stdTime() / 10;
 
         Json       res = Json.emptyObject;
-        ResultCode rc = ResultCode.Internal_Server_Error;
+        ResultCode rc  = ResultCode.Internal_Server_Error;
         Ticket     *ticket;
 
         try
@@ -765,12 +766,12 @@ class VedaStorageRest : VedaStorageRest_API
             rc     = ticket.result;
 
             if (rc != ResultCode.OK)
-	            return res;
+                return res;
 
             try
             {
-                ticket = context.get_ticket(_ticket);
-                rc     = ticket.result;
+                ticket                                = context.get_ticket(_ticket);
+                rc                                    = ticket.result;
                 Individual[ string ] onto_individuals =
                     context.get_onto_as_map_individuals();
 
@@ -783,15 +784,14 @@ class VedaStorageRest : VedaStorageRest_API
                 }
                 else
                 {
-                    RequestResponse request_response = connector.get(true, ticket.user_uri, 
-                        [ uri ], true);
+                    RequestResponse request_response = connector.get(true, ticket.user_uri,
+                                                                     [ uri ], false);
                     if (request_response.common_rc != ResultCode.OK)
-                        log.trace("@get_individual: ERR COMMON GET! ", request_response.common_rc);
+                        log.trace("ERR! get_individual: uri=[%s] common result_code=%s", uri, request_response.common_rc);
                     else if (request_response.op_rc[ 0 ] != ResultCode.OK)
-                        log.trace("@get_individual: ERR GET! ", request_response.op_rc[ 0 ]);
+                        log.trace("ERR! get_individual: uri=[%s], result_code=%s", uri, request_response.op_rc[ 0 ]);
                     else
                     {
-                        log.trace("@get_individual: OK");
                         res = Json.emptyObject;
                         msgpack2vjson(&res, request_response.msgpacks[ 0 ]);
                     }
@@ -799,7 +799,7 @@ class VedaStorageRest : VedaStorageRest_API
             }
             catch (Throwable ex)
             {
-            	return res;
+                return res;
                 //throw new HTTPStatusException(rc, ex.msg);
             }
 

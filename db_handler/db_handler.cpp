@@ -104,7 +104,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
     need_auth = obj_arr.ptr[1].via.boolean;    
     user_id = obj_arr.ptr[2].via.str;
     
-    fprintf (stderr, "NEED AUTH %d\n", need_auth);
+    //fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);    
     for (int i = 3; i < obj_arr.size; i++) {
         int auth_result = 0;
@@ -112,32 +112,32 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        //fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
         res_size = db_get(res_uri, &res_buf);
         if (res_size > 0) {
-            cerr << "EXISTS" << endl;
+            //cerr << "EXISTS" << endl;
             if (need_auth) 
                 auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
-            cerr << "AUTH " << auth_result << endl;
+            //cerr << "AUTH " << auth_result << endl;
             if ((auth_result & ACCESS_CAN_READ) || !need_auth) {
                 pk.pack(OK);
-                cerr << "TRY PACK SIZE" << endl;
+                //cerr << "TRY PACK SIZE" << endl;
                 pk.pack_str(res_size);
-                cerr << "TRY PACK BODY" << endl;
+                //cerr << "TRY PACK BODY" << endl;
                 pk.pack_str_body(res_buf, res_size);
-                cout << "PACKED" << endl;
+                //cout << "PACKED" << endl;
                 delete res_buf;
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
-    		    fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
-                fprintf (stderr, "\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
-                    auth_result);
+    		    //fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+                //fprintf (stderr, "\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
+                //    auth_result);
             }
         } else  {
             pk.pack(NOT_FOUND);
             pk.pack_nil();
-	        fprintf (stderr, "GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
+	        //fprintf (stderr, "GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
         }
     }
 }
@@ -158,7 +158,7 @@ db_handle_request(lua_State *L)
         
     
     msg = lua_tolstring(L, -1, &msg_size);
-    fprintf (stderr, "@HANDLE REQUEST\n");
+    //fprintf (stderr, "@HANDLE REQUEST\n");
     //fprintf (stderr, "@SIZE %zu\n", msg_size);
     // fprintf (stderr, "@MSG %s\n", msg);
 
@@ -239,24 +239,24 @@ db_handle_request(lua_State *L)
     switch (op) {
         case GET: {
             //fprintf (stderr, "GET=%d %s\n", op, msg);
-	    fprintf (stderr, "-------- GET ----------\n");
+	    //fprintf (stderr, "-------- GET ----------\n");
             handle_get_request(msg, msg_size, pk, obj_arr);
-	    fprintf (stderr, "--------\n");
+	    //fprintf (stderr, "--------\n");
 //            fprintf (stderr, "GET RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case PUT: {
-	    fprintf (stderr, "-------- PUT ----------\n");
+	    //fprintf (stderr, "-------- PUT ----------\n");
             //fprintf (stderr, "PUT=%d %s\n", op, msg);
             handle_put_request(msg, msg_size, pk, obj_arr);
-	    fprintf (stderr, "--------\n");
+	    //fprintf (stderr, "--------\n");
 //            fprintf (stderr, "PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case REMOVE: {
-	    fprintf (stderr, "-------- REMOVE ----------\n");
+	    //fprintf (stderr, "-------- REMOVE ----------\n");
             handle_remove_request(msg, msg_size, pk, obj_arr);
-	    fprintf (stderr, "--------\n");
+	    //fprintf (stderr, "--------\n");
 //            fprintf (stderr, "REMOVE RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
@@ -268,9 +268,9 @@ db_handle_request(lua_State *L)
         }
     }
     
-    fprintf(stderr, "PUSH ANSWER BACK\n");
+    //fprintf(stderr, "PUSH ANSWER BACK\n");
     lua_pushlstring(L, buffer.data(), buffer.size());    
-    fprintf(stderr, "PUSH RETURNING\n");    
+    //fprintf(stderr, "PUSH RETURNING\n");    
     return 1;
 }
 
