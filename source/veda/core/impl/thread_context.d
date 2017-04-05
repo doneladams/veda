@@ -1107,26 +1107,6 @@ class PThreadContext : Context
 
         try
         {
-            EVENT      ev = EVENT.REMOVE;
-
-            string     prev_state;
-            Individual indv;
-            Individual prev_indv;
-
-            prev_state = get_from_individual_storage_thread(ticket.user_uri, uri);
-            if (prev_state !is null)
-            {
-                int code = prev_indv.deserialize(prev_state);
-                if (code < 0)
-                {
-                    log.trace("ERR! store_individual: invalid prev_state [%s]", prev_state);
-                    res.result = ResultCode.Unprocessable_Entity;
-                    return res;
-                }
-
-                prev_indv.addResource("v-s:deleted", Resource(true));
-            }
-
             version (isModule)
             {
                 JSONValue req_body;
@@ -1142,24 +1122,50 @@ class PThreadContext : Context
 
             version (isServer)
             {
+	            EVENT      ev = EVENT.REMOVE;
+
+	            string     prev_state;
+	            Individual indv;
+	            Individual prev_indv;
+
+	            prev_state = get_from_individual_storage_thread(ticket.user_uri, uri);
+	            if (prev_state !is null)
+	            {
+	                int code = prev_indv.deserialize(prev_state);
+	                if (code < 0)
+	                {
+	                    log.trace("ERR! remove_individual: invalid prev_state [%s]", prev_state);
+	                    res.result = ResultCode.Unprocessable_Entity;
+	                    return res;
+	                }
+
+	                prev_indv.setResources("v-s:deleted", [Resource(true)]);
+	            }
+
                 OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, ignore_freeze, true);
 
-                if (oprc.result == ResultCode.OK)
+                if (oprc.result != ResultCode.OK)
+                {
+                    res.result = oprc.result;
+	                log.trace("ERR! remove_individual: fail set [v-s:deleted], :uri=%s, errcode=[%s]", prev_indv.uri, res.result);
+                }
+                else
                 {
                     res.result = subject_storage_module.remove(P_MODULE.subject_manager, ticket.user_uri, uri, ignore_freeze, res.op_id);
                 }
-                else
-                    res.result = oprc.result;
+                    
+                if (res.result == ResultCode.OK)
+				{
+	                Resources   _types = prev_indv.resources.get(rdf__type, Resources.init);
+	                MapResource rdfType;
+	                setMapResources(_types, rdfType);
 
-                Resources   _types = prev_indv.resources.get(rdf__type, Resources.init);
-                MapResource rdfType;
-                setMapResources(_types, rdfType);
-
-                if (rdfType.anyExists(owl_tags) == true)
-                {
-                    // изменения в онтологии, послать в interthread сигнал о необходимости перезагрузки (context) онтологии
-                    inc_count_onto_update();
-                }
+	                if (rdfType.anyExists(owl_tags) == true)
+	                {
+	                    // изменения в онтологии, послать в interthread сигнал о необходимости перезагрузки (context) онтологии
+	                    inc_count_onto_update();
+	                }
+				}
             }
 
             return res;
@@ -1167,7 +1173,7 @@ class PThreadContext : Context
         finally
         {
             if (res.result != ResultCode.OK)
-                log.trace("ERR! no remove subject :uri=%s, errcode=[%s], ticket=[%s]",
+                log.trace("ERR! remove_individual :uri=%s, errcode=[%s], ticket=[%s]",
                           uri, text(res.result), ticket !is null ? text(*ticket) : "null");
 
             if (trace_msg[ T_API_210 ] == 1)

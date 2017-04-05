@@ -713,12 +713,24 @@ class VedaStorageRest : VedaStorageRest_API
 
             try
             {
-                foreach (indv; context.get_individuals(ticket, uris))
+            	   RequestResponse request_response = connector.get(true, ticket.user_uri, 
+                        uris, true);
+                    if (request_response.common_rc != ResultCode.OK)
+                        log.trace("@get_individuals: ERR COMMON GET! ", request_response.common_rc);
+                    else if (request_response.op_rc[ 0 ] != ResultCode.OK)
+                        log.trace("@get_individuals: ERR GET! ", request_response.op_rc[ 0 ]);
+                    else
+                    {
+            	
+                foreach (pack; request_response.msgpacks)
                 {
-                    Json jj = individual_to_json(indv);
-                    res ~= jj;
-                    args ~= indv.uri;
+                        Json res_i = Json.emptyObject;
+                        msgpack2vjson(&res_i, pack);
+	                    res ~= res_i;
+	                    //args ~= uri;
+                }                            	
                 }
+
             }
             catch (Throwable ex)
             {
@@ -783,22 +795,6 @@ class VedaStorageRest : VedaStorageRest_API
                         res = Json.emptyObject;
                         msgpack2vjson(&res, request_response.msgpacks[ 0 ]);
                     }
-                    //connector.close();            
-                    
-
-                    /*if (reopen)
-                       {
-                        context.reopen_ro_acl_storage_db();
-                        context.reopen_ro_subject_storage_db();
-                       }
-
-                       string cb = context.get_individual_as_binobj(ticket, uri, rc);
-
-                       if (rc == ResultCode.OK)
-                       {
-                        res = Json.emptyObject;
-                        msgpack2vjson(&res, cb);
-                       }*/
                 }
             }
             catch (Throwable ex)
