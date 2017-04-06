@@ -80,6 +80,9 @@ public enum INDV_OP : byte
     /// Сохранить
     GET         = 2,
 
+    /// Авторизовать
+    AUTHORIZE = 8, 
+
     /// Установить в
     SET_IN      = 45,
 
