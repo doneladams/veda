@@ -466,7 +466,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
-                                            log.trace("SEND TO TT %s ", imm);
+                                            //log.trace("SEND TO TT %s ", imm);
 
                                             string binobj = imm.serialize();
                                             

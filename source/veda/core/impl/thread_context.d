@@ -12,8 +12,7 @@ private
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context,
            veda.core.common.log_msg, veda.util.module_info;
-    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.lmdb_storage, veda.core.storage.tarantool_storage;
-    import veda.core.az.acl, veda.core.search.vql;
+    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.lmdb_storage, veda.core.storage.tarantool_storage, veda.core.search.vql;
     import veda.util.module_info;
     import veda.common.logger;
 
@@ -21,7 +20,7 @@ private
     {
         alias veda.server.storage_manager ticket_storage_module;
         alias veda.server.tt_storage_manager subject_storage_module;
-        alias veda.server.acl_manager     acl_module;
+        //alias veda.server.acl_manager     acl_module;
         alias veda.server.load_info       load_info;
     }
 }
@@ -79,7 +78,7 @@ class PThreadContext : Context
     private Ticket *[ string ] user_of_ticket;
 
     // // // authorization
-    private Authorization _acl_indexes;
+    //private Authorization _acl_indexes;
 
     private Onto          onto;
 
@@ -175,21 +174,20 @@ class PThreadContext : Context
         }
     }
 
-    public Authorization acl_indexes()
-    {
-        if (_acl_indexes is null)
-            _acl_indexes = new Authorization(acl_indexes_db_path, DBMode.R, name ~ ":acl", this.log);
+    //public Authorization acl_indexes()
+    //{
+    //    if (_acl_indexes is null)
+    //        _acl_indexes = new Authorization(acl_indexes_db_path, DBMode.R, name ~ ":acl", this.log);
 
-        return _acl_indexes;
-    }
+    //    return _acl_indexes;
+    //}
 
     public string get_config_uri()
     {
         return node_id;
     }
 
-    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, string _main_module_url = null,
-                                     Authorization in_acl_indexes = null)
+    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, string _main_module_url = null)
     {
         PThreadContext ctx = new PThreadContext();
 
@@ -198,7 +196,7 @@ class PThreadContext : Context
         if (ctx.log is null)
             writefln("context_name [%s] log is null", context_name);
 
-        ctx._acl_indexes = in_acl_indexes;
+        //ctx._acl_indexes = in_acl_indexes;
 
         ctx.main_module_url = _main_module_url;
 /*
@@ -374,18 +372,20 @@ class PThreadContext : Context
     }
 
     import backtrace.backtrace, Backtrace = backtrace.backtrace;
-    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload)
+//    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload)
+    ubyte authorize(string _uri, Ticket *ticket, ubyte request_access, bool is_check_for_reload, void delegate(string resource_group, string subject_group, string right)
+		trace_acl,  void delegate(string resource_group) trace_group)    	        		
     {
         if (ticket is null)
         {
             printPrettyTrace(stderr);
         }
 
-        //writeln ("@p ### uri=", uri, " ", request_acess);
-        ubyte res = acl_indexes.authorize(uri, ticket, request_acess, is_check_for_reload, null, null);
+        ubyte res = inividuals_storage_r.authorize(_uri, ticket.user_uri, true);
 
-        //writeln ("@p ### uri=", uri, " ", request_acess, " ", request_acess == res);
-        return request_acess == res;
+        log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
+
+		return res & request_access;
     }
 
     public string get_name()
@@ -915,8 +915,8 @@ class PThreadContext : Context
 //        }
 //        catch (Exception ex) {}
 
-        if (acl_indexes !is null)
-            acl_indexes.reopen_db();
+        //if (acl_indexes !is null)
+        //    acl_indexes.reopen_db();
         //log.trace ("reopen_ro_acl_storage_db");
     }
 
@@ -924,19 +924,19 @@ class PThreadContext : Context
 
     public ubyte get_rights(Ticket *ticket, string uri)
     {
-        return acl_indexes.authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, null, null);
+        return authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, null, null);
     }
 
     public void get_rights_origin_from_acl(Ticket *ticket, string uri,
                                            void delegate(string resource_group, string subject_group, string right) trace_acl)
     {
-        acl_indexes.authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, trace_acl, null);
+        authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, trace_acl, null);
     }
 
     public void get_membership_from_acl(Ticket *ticket, string uri,
                                         void delegate(string resource_group) trace_group)
     {
-        acl_indexes.authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, null, trace_group);
+        authorize(uri, ticket, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true, null, trace_group);
     }
 
     public SearchResult get_individuals_ids_via_query(Ticket *ticket, string query_str, string sort_str, string db_str, int from, int top, int limit,
@@ -974,7 +974,7 @@ class PThreadContext : Context
             if (individual_as_binobj !is null && individual_as_binobj.length > 1)
             {
             	
-                if (acl_indexes.authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
+                if (authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
                 {
                     if (individual.deserialize(individual_as_binobj) > 0)
                         individual.setStatus(ResultCode.OK);
@@ -1017,7 +1017,7 @@ class PThreadContext : Context
 
             foreach (uri; uris)
             {
-                if (acl_indexes.authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
+                if (authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
                 {
                     Individual individual           = Individual.init;
                     string     individual_as_binobj = get_from_individual_storage(ticket.user_uri, uri);
@@ -1067,7 +1067,7 @@ class PThreadContext : Context
 
         try
         {
-            if (acl_indexes.authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
+            if (authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
             {
                 string individual_as_binobj = get_from_individual_storage(ticket.user_uri, uri);
 
@@ -1292,11 +1292,11 @@ class PThreadContext : Context
                     if (is_api_request)
                     {
                         // для обновляемого индивида проверим доступность бита Update
-                        if (acl_indexes.authorize(indv.uri, ticket, Access.can_update, true, null, null) != Access.can_update)
-                        {
-                            res.result = ResultCode.Not_Authorized;
-                            return res;
-                        }
+//                        if (authorize(indv.uri, ticket, Access.can_update, true, null, null) != Access.can_update)
+//                        {
+//                            res.result = ResultCode.Not_Authorized;
+//                            return res;
+//                        }
 
                         // найдем какие из типов были добавлены по сравнению с предыдущим набором типов
                         foreach (rs; _types)
@@ -1318,11 +1318,11 @@ class PThreadContext : Context
                     {
                         if (rr.info == NEW_TYPE)
                         {
-                            if (acl_indexes.authorize(key, ticket, Access.can_create, true, null, null) != Access.can_create)
-                            {
-                                res.result = ResultCode.Not_Authorized;
-                                return res;
-                            }
+//                            if (authorize(key, ticket, Access.can_create, true, null, null) != Access.can_create)
+//                            {
+//                                res.result = ResultCode.Not_Authorized;
+//                                return res;
+//                            }
                         }
                     }
                 }
@@ -1364,14 +1364,14 @@ class PThreadContext : Context
                         inc_count_onto_update();
                     }
 
-                    if (rdfType.anyExists(veda_schema__PermissionStatement) == true || rdfType.anyExists(veda_schema__Membership) == true)
-                    {
-                        tid_acl = getTid(P_MODULE.acl_preparer);
-                        if (tid_acl != Tid.init)
-                        {
-                            send(tid_acl, CMD_PUT, ev, prev_state, new_state, res.op_id);
-                        }
-                    }
+                    //if (rdfType.anyExists(veda_schema__PermissionStatement) == true || rdfType.anyExists(veda_schema__Membership) == true)
+                    //{
+                    //    tid_acl = getTid(P_MODULE.acl_preparer);
+                    //    if (tid_acl != Tid.init)
+                    //    {
+                    //        send(tid_acl, CMD_PUT, ev, prev_state, new_state, res.op_id);
+                    //    }
+                    //}
 
 /*
                         version (libV8)
@@ -1410,7 +1410,7 @@ class PThreadContext : Context
                           text(res.result), ticket !is null ? text(*ticket) : "null");
 
             //if (trace_msg[ T_API_240 ] == 1)
-                log.trace("[%s] store_individual [%s] = %s", name, indv.uri, res);
+            //    log.trace("[%s] store_individual [%s] = %s", name, indv.uri, res);
 
             stat(CMD_PUT, sw);
         }
@@ -1611,11 +1611,12 @@ class PThreadContext : Context
 
         version (isServer)
         {
-            if (module_id == P_MODULE.acl_preparer)
-            {
-                return get_acl_manager_op_id;
-            }
-            else if (module_id == P_MODULE.subject_manager)
+            //if (module_id == P_MODULE.acl_preparer)
+            //{
+            //    return get_acl_manager_op_id;
+            //}
+            //else
+            if (module_id == P_MODULE.subject_manager)
             {
                 return get_subject_manager_op_id;
             }
@@ -1636,8 +1637,8 @@ class PThreadContext : Context
             if (module_id == P_MODULE.subject_manager)
                 this.reopen_ro_subject_storage_db();
 
-            if (module_id == P_MODULE.acl_preparer)
-                this.reopen_ro_acl_storage_db();
+            //if (module_id == P_MODULE.acl_preparer)
+            //    this.reopen_ro_acl_storage_db();
 
             if (module_id == P_MODULE.fulltext_indexer)
                 this.reopen_ro_fulltext_indexer_db();
@@ -1648,8 +1649,8 @@ class PThreadContext : Context
             if (module_id == P_MODULE.subject_manager)
                 this.reopen_ro_subject_storage_db();
 
-            if (module_id == P_MODULE.acl_preparer)
-                this.reopen_ro_acl_storage_db();
+            //if (module_id == P_MODULE.acl_preparer)
+            //    this.reopen_ro_acl_storage_db();
 
             if (module_id == P_MODULE.fulltext_indexer)
                 this.reopen_ro_fulltext_indexer_db();
@@ -1833,8 +1834,8 @@ class PThreadContext : Context
 
                 if (f_module_id == P_MODULE.subject_manager)
                     rc = subject_storage_module.flush_int_module(P_MODULE.subject_manager, false);
-                else if (f_module_id == P_MODULE.acl_preparer)
-                    rc = acl_module.flush(false);
+                //else if (f_module_id == P_MODULE.acl_preparer)
+                //    rc = acl_module.flush(false);
                 else if (f_module_id == P_MODULE.fulltext_indexer)
                     subject_storage_module.flush_ext_module(f_module_id, wait_op_id);
 

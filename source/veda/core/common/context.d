@@ -22,7 +22,7 @@ public enum P_MODULE : byte
     subject_manager = 1,
 
     /// Индексирование прав
-    acl_preparer    = 2,
+    //acl_preparer    = 2,
 
     /// Полнотекстовое индексирование
     //xapian_thread_context      = 3,
@@ -211,6 +211,7 @@ public enum Result
 interface Storage
 {
     public ResultCode put(string user_id, string in_key, string in_value, long op_id);    
+    public ubyte authorize (string user_uri, string uri, bool trace);
     public string find(string user_id, string uri, bool return_value = true);
     public ResultCode remove(string user_id, string in_key);
     public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_ids);
@@ -240,7 +241,10 @@ interface Context
 
     int[ string ] get_key2slot();
 
-    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload);
+//    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload);
+    ubyte authorize(string _uri, Ticket *ticket, ubyte request_access, bool is_check_for_reload, void delegate(string resource_group, string subject_group, string right)
+		trace_acl,  void delegate(string resource_group) trace_group);    	        		
+    
     string get_from_individual_storage(string user_uri, string uri);
     Onto get_onto();
 

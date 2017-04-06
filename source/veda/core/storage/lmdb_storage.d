@@ -69,6 +69,11 @@ public class LmdbStorage : Storage
         return this._path;
     }
 
+	public ubyte authorize (string user_uri, string uri, bool trace)
+	{
+		throw new Exception ("method [authorize] not implemented");
+	}
+
     public Result backup(string backup_id)
     {
         if (db_is_opened == false)

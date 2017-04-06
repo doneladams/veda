@@ -3,9 +3,9 @@
  */
 module veda.core.storage.tarantool_storage;
 
-import veda.core.common.context, veda.common.logger;
-import veda.connector.connector;
-import veda.connector.requestresponse;
+import std.conv, std.stdio;
+import veda.core.common.context, veda.common.logger, veda.common.type;
+import veda.connector.connector, veda.connector.requestresponse;
 
 public class TarantoolStorage : Storage
 {
@@ -53,6 +53,18 @@ public class TarantoolStorage : Storage
         return null;
     }
 
+	public ubyte authorize (string user_uri, string uri, bool trace)
+	{
+        RequestResponse rr = connector.authorize(user_uri, [uri], trace);
+
+		log.trace ("common_rc = %s %s", rr.common_rc, access_to_pretty_string (rr.rights[0]));
+
+        if (rr !is null && rr.rights.length > 0)
+            return rr.rights[0];
+
+        return 0;
+	} 
+
     public void unload_to_queue(string path, string queue_id, bool only_ids)
     {
     	
@@ -87,3 +99,28 @@ public class TarantoolStorage : Storage
         throw new Exception("not implemented");
     }
 }
+
+string access_to_pretty_string(const ubyte src)
+{
+    string res = "";
+
+    if (src & Access.can_create)
+        res ~= "C ";
+    if (src & Access.can_read)
+        res ~= "R ";
+    if (src & Access.can_update)
+        res ~= "U ";
+    if (src & Access.can_delete)
+        res ~= "D ";
+    if (src & Access.cant_create)
+        res ~= "!C ";
+    if (src & Access.cant_read)
+        res ~= "!R ";
+    if (src & Access.cant_update)
+        res ~= "!U ";
+    if (src & Access.cant_delete)
+        res ~= "!D ";
+
+    return res;
+}
+

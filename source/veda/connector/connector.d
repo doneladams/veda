@@ -468,7 +468,7 @@ class Connector
             request_response.rights.length = uris.length;
 
             if (trace)
-                log.trace("connector.authorize OP RESULT = %d", obj.via.uinteger);
+                log.trace("connector.authorize OP RESULT = %d, unpacker.unpacked.length=%d", obj.via.uinteger, unpacker.unpacked.length);
                 
             for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 2, j++)
             {
@@ -476,7 +476,7 @@ class Connector
                 request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
                 request_response.rights[ j ] = cast(ubyte)unpacker.unpacked[ i + 1 ].via.uinteger;
                 if (trace)
-                    log.trace("connector.get AUTHORIZE RESULT = %d", obj.via.uinteger);
+                    log.trace("connector.get AUTHORIZE RESULT: op_rc=%d, right=%d", request_response.op_rc[ j ], request_response.rights[ j ]);
             }
         }
         else

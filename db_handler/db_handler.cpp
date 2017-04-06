@@ -297,10 +297,11 @@ db_handle_request(lua_State *L)
         }
         case AUTHORIZE: {
             handle_authorize_request(msg, msg_size, pk, obj_arr);
+	    break;
         }
 
         default: {
-            fprintf (stderr, "@ERR! UNKNOWN REQUEST!\n");
+            fprintf (stderr, "@ERR! [%d] UNKNOWN REQUEST!\n", op);
             pk.pack_array(1);
             pk.pack(BAD_REQUEST);
         }
