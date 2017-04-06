@@ -235,7 +235,7 @@ veda.Module(function Backend(veda) { "use strict";
       if (op_id_from_module >= op_id) { break; }
       var endtime = new Date().getTime() + timeout;
       while (new Date().getTime() < endtime);
-      timeout += 1;
+      timeout += 3;
     }
   }
 

@@ -109,7 +109,7 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
 
     pk.pack_array(arr_size);
     pk.pack(in_key);
-    cerr << "KEY" << in_key << arr_size << endl;
+    //cerr << "KEY" << in_key << arr_size << endl;
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (!it->second.is_deleted) {
             pk.pack(it->second.id); 

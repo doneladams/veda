@@ -30,9 +30,9 @@ db_get(msgpack::object_str &key, char **out_buf)
         
     tuple_size = box_tuple_bsize(tuple);
     *out_buf = new char[tuple_size];
-    fprintf(stderr, "COPY BYTES %zu\n", tuple_size);
+    //fprintf(stderr, "COPY BYTES %zu\n", tuple_size);
     box_tuple_to_buf(tuple, *out_buf, tuple_size);
-    fprintf(stderr, "COPIED\n");
+    //fprintf(stderr, "COPIED\n");
 
     return tuple_size;
 }
