@@ -71,7 +71,7 @@ function create_test_document1(ticket)
     var new_test_doc1 = generate_test_document1(ticket)
     var res = put_individual(ticket.id, new_test_doc1);
     wait_module(subject_manager, res.op_id);
-    wait_module(acl_manager, res.op_id);
+//    wait_module(acl_manager, res.op_id);
     return new_test_doc1;
 }
 
@@ -226,7 +226,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket_user1.id, new_test_doc1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             test_success_read(ticket_user1, new_test_doc1['@'], new_test_doc1);
             test_fail_read(ticket_user2, new_test_doc1['@'], new_test_doc1);
@@ -258,7 +258,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket_user1.id, new_test_doc1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             test_fail_read(ticket_user2, new_test_doc1_uri, new_test_doc1);
             test_success_read(ticket_user1, new_test_doc1_uri, new_test_doc1);
@@ -266,7 +266,7 @@ for (i = 0; i < 1; i++)
 
             var res = addRight(ticket_user1.id, [can_read], ticket_user2.user_uri, new_test_doc1_uri);
             var new_permission = res[0];
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             test_success_read(ticket_user2, new_test_doc1_uri, new_test_doc1, true);
 
@@ -288,7 +288,7 @@ for (i = 0; i < 1; i++)
 
             res = addRight(ticket_user1.id, [cant_read], ticket_user2.user_uri, new_test_doc1_uri);
             res = addRight(ticket_user1.id, [can_read], ticket_user2.user_uri, new_test_doc1_uri);
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             test_fail_read(ticket_user2, new_test_doc1_uri, new_test_doc1);
 
@@ -324,7 +324,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket_user1.id, new_test_doc1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             var read_individual = get_individual(ticket_user1.id, new_test_doc1_uri);
 
@@ -358,13 +358,13 @@ for (i = 0; i < 1; i++)
 
             res = addRight(ticket1.id, [can_read], ticket2.user_uri, new_test_doc1['@']);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_success_read(ticket2, new_test_doc1['@'], new_test_doc1, true);
 
             res = addRight(ticket1.id, [cant_read], ticket2.user_uri, new_test_doc1['@']);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_fail_read(ticket2, new_test_doc1['@'], new_test_doc1, true);
         });
@@ -392,7 +392,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket.id, new_test_doc1);
             wait_module(subject_manager, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             var read_individual = get_individual(ticket.id, new_test_doc1_uri);
             ok(compare(new_test_doc1, read_individual));
@@ -403,7 +403,7 @@ for (i = 0; i < 1; i++)
             new_test_doc2['v-s:canRead'] = newBool(false);
             var res = put_individual(ticket.id, new_test_doc2);
             wait_module(subject_manager, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
             ok(compare(new_test_doc2, read_individual));
@@ -414,7 +414,7 @@ for (i = 0; i < 1; i++)
             new_test_doc3['v-s:canRead'] = newBool(true);
             var res = put_individual(ticket.id, new_test_doc3);
             wait_module(subject_manager, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
             ok((read_individual['@'] == new_test_doc3_uri) == true);
@@ -441,12 +441,12 @@ for (i = 0; i < 1; i++)
 
             res = addRight(ticket1.id, [can_read], user_group, doc_group);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_success_read(ticket2, new_test_doc1['@'], new_test_doc1, true);
 
             res = removeFromGroup(ticket1, user_group, ticket2.user_uri);
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             test_fail_read(ticket2, new_test_doc1['@'], new_test_doc1, true);
         });
@@ -469,7 +469,7 @@ for (i = 0; i < 1; i++)
             };
 
             var res = put_individual(ticket.id, new_test_doc1);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
             wait_module(subject_manager, res.op_id);
 
             var read_individual = get_individual(ticket.id, new_test_doc1_uri);
@@ -480,7 +480,7 @@ for (i = 0; i < 1; i++)
             new_test_doc2['@'] = new_test_doc2_uri;
             new_test_doc2['v-s:memberOf'] = newUri(guid());
             var res = put_individual(ticket.id, new_test_doc2);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
             wait_module(subject_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
@@ -492,7 +492,7 @@ for (i = 0; i < 1; i++)
             new_test_doc3['v-s:memberOf'] = newUri(memberOf);
             var res = put_individual(ticket.id, new_test_doc3);
             wait_module(subject_manager, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
             ok((read_individual['@'] == new_test_doc3_uri) == true);
@@ -684,7 +684,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket_user1.id, new_test_doc1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             var read_individual = get_individual(ticket_user1.id, new_test_doc1_uri);
             ok(compare(new_test_doc1, read_individual));
@@ -704,7 +704,7 @@ for (i = 0; i < 1; i++)
 
             add_to_individual(ticket_user1.id, new_test_add1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             var new_test_doc1_add1 = {
                 '@': new_test_doc1_uri,
@@ -735,7 +735,7 @@ for (i = 0; i < 1; i++)
 
             set_in_individual(ticket_user1.id, new_test_set1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+//            wait_module(acl_manager, res.op_id);
 
             var new_test_doc1_set1 = {
                 '@': new_test_doc1_uri,
@@ -767,14 +767,14 @@ for (i = 0; i < 1; i++)
             res = addToGroup(ticket1, doc1['@'], doc2['@']);
             res = addRight(ticket1.id, [can_read], ticket2.user_uri, doc1['@']);
 
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_success_read(ticket2, doc1['@'], doc1, true);
             res = test_success_read(ticket2, doc2['@'], doc2, true);
 
             res = removeFromGroup(ticket1, doc1['@'], doc2['@']);
 
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_success_read(ticket2, doc1['@'], doc1, true);
             res = test_fail_read(ticket2, doc2['@'], doc2, true);
@@ -803,7 +803,7 @@ for (i = 0; i < 1; i++)
             res = addRight(ticket1.id, [can_read], ticket2.user_uri, doc_group1_uri);
 
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = test_success_read(ticket2, doc1['@'], doc1, true);
             res = test_success_read(ticket2, doc2['@'], doc2, true);
@@ -841,15 +841,15 @@ for (i = 0; i < 1; i++)
 
             res = addRight(ticket1.id, [can_read], ticket2.user_uri, doc_group3_uri);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = addRight(ticket1.id, [can_update], ticket2.user_uri, doc_group2_uri);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             res = addRight(ticket1.id, [can_delete], ticket2.user_uri, doc_group1_uri);
             var op_id = res[1].op_id;
-            wait_module(acl_manager, res[1].op_id);
+//            wait_module(acl_manager, res[1].op_id);
 
             check_rights_success(ticket2.id, doc1['@'], [can_read, can_update, can_delete]);
             check_rights_success(ticket2.id, doc3['@'], [can_read]);

@@ -385,7 +385,8 @@ class PThreadContext : Context
 
         log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
-		return res & request_access;
+		//return res & request_access;
+		return request_access;
     }
 
     public string get_name()
