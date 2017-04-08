@@ -65,6 +65,8 @@ db_remove(msgpack::object_str &key, msgpack::object_str &user_id, bool need_auth
     delete buf;
 
     auth_result = db_auth(user_id.ptr, user_id.size, key.ptr, key.size);
+    if (auth_result < 0 && need_auth)
+        return INTERNAL_SERVER_ERROR;
     if (!(auth_result & ACCESS_CAN_DELETE) && need_auth) {
         delete individual;
         return AUTH_FAILED;

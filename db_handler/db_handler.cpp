@@ -45,7 +45,7 @@ handle_authorize_request(const char *msg, size_t msg_size, msgpack::packer<msgpa
 
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
-        int auth_result = 0;
+        uint8_t auth_result = 0;
         msgpack::sbuffer buffer;
         msgpack::packer<msgpack::sbuffer> res_pk(&buffer);
         msgpack::object_str res_uri;
@@ -58,8 +58,14 @@ handle_authorize_request(const char *msg, size_t msg_size, msgpack::packer<msgpa
         //fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
         if (box_index_count(individuals_space_id, individuals_index_id, ITER_EQ, buffer.data(), 
             buffer.data() + buffer.size()) > 0) {
-            pk.pack(OK);
             auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
+            if (auth_result < 0) {
+                pk.pack(INTERNAL_SERVER_ERROR);
+                pk.pack(0);
+                continue;
+            }
+            pk.pack(OK);
+            // auth_result = 0;
             pk.pack(auth_result);
         } else {
             pk.pack(NOT_FOUND);
@@ -103,7 +109,7 @@ void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msg
     pk.pack_array(obj_arr.size - 3 + 1);
     need_auth = obj_arr.ptr[1].via.boolean;
     user_id = obj_arr.ptr[2].via.str;
-    fprintf (stderr, "REMOVE:user_id.length=%d\n", (int)user_id.size);
+    // fprintf (stderr, "REMOVE:user_id.length=%d\n", (int)user_id.size);
     //fprintf (stderr, "REMOVE:USER URI(%d) [%*.s]\n", (int)user_id.size, (int)user_id.size, user_id.ptr);
     //cout << "MSG " << msg << endl;
     //if (need_auth)
@@ -121,7 +127,7 @@ void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msg
         delete_result = db_remove(res_uri, user_id, need_auth);
 //        fprintf (stderr, "REMOVE #1\n");
         pk.pack(delete_result);
-        fprintf (stderr, "REMOVE #E\n");
+        // fprintf (stderr, "REMOVE #E\n");
     }
 }
 
@@ -151,8 +157,14 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
         res_size = db_get(res_uri, &res_buf);
         if (res_size > 0) {
             //cerr << "EXISTS" << endl;
-            if (need_auth) 
+            if (need_auth) { 
                 auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
+                if (auth_result < 0) {
+                    pk.pack(INTERNAL_SERVER_ERROR);
+                    pk.pack_nil();
+                    continue;
+                }
+            }
             //cerr << "AUTH " << auth_result << endl;
             if ((auth_result & ACCESS_CAN_READ) || !need_auth) {
                 pk.pack(OK);
@@ -193,7 +205,7 @@ db_handle_request(lua_State *L)
         
     
     msg = lua_tolstring(L, -1, &msg_size);
-    //fprintf (stderr, "@HANDLE REQUEST\n");
+    // fprintf (stderr, "@HANDLE REQUEST\n");
     //fprintf (stderr, "@SIZE %zu\n", msg_size);
     // fprintf (stderr, "@MSG %s\n", msg);
 
@@ -307,9 +319,9 @@ db_handle_request(lua_State *L)
         }
     }
     
-    //fprintf(stderr, "PUSH ANSWER BACK\n");
+    // fprintf(stderr, "PUSH ANSWER BACK\n");
     lua_pushlstring(L, buffer.data(), buffer.size());    
-    //fprintf(stderr, "PUSH RETURNING\n");    
+    // fprintf(stderr, "RETURNING\n");    
     return 1;
 }
 

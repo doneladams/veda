@@ -342,7 +342,10 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                     is_update = false;
                     auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
                         rdf_type[i].str_data.size());
-                    if (!(auth_result & ACCESS_CAN_CREATE)){
+                    if (auth_result < 0) {
+                        return INTERNAL_SERVER_ERROR;
+                    }
+                    if (!(auth_result & ACCESS_CAN_CREATE)) {
                         delete new_state;
                         return AUTH_FAILED;
                     }
@@ -354,6 +357,9 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         if (is_update && need_auth) {
             auth_result = db_auth(user_id.ptr, user_id.size, individual->uri.c_str(),
                 individual->uri.size());
+            if (auth_result < 0)
+                return INTERNAL_SERVER_ERROR;
+                
             if (!(auth_result & ACCESS_CAN_UPDATE)) {
                 delete new_state;
                 return AUTH_FAILED;

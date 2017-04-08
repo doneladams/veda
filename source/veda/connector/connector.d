@@ -381,7 +381,7 @@ class Connector
         long request_size = packer.stream.data.length;
 
         if (trace)
-	        log.trace("connector.get DATA SIZE %d", request_size);
+	        log.trace("connector.authorize DATA SIZE %d", request_size);
 
         buf = new ubyte[ 4 + request_size ];
 
@@ -403,7 +403,7 @@ class Connector
             }
 
 	        if (trace)
-		        log.trace("connector.get SEND %s", buf);
+		        log.trace("connector.authorize SEND %s", buf);
 
 
             version (WebServer)
@@ -420,17 +420,17 @@ class Connector
             }
             
             if (trace)
-                log.trace("connector.get RECEIVE SIZE BUF %d", receive_size);
+                log.trace("connector.authorize RECEIVE SIZE BUF %d", receive_size);
 
             if (trace)
-                log.trace("connector.get RESPONSE SIZE BUF %s", buf);
+                log.trace("connector.authorize RESPONSE SIZE BUF %s", buf);
                 
             long response_size = 0;
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
 
             if (trace)
-                log.trace("connector.get RESPONSE SIZE %d", response_size);
+                log.trace("connector.authorize RESPONSE SIZE %d", response_size);
 
             response = new ubyte[ response_size ];
 
@@ -444,12 +444,12 @@ class Connector
                 receive_size = s.receive(response);
             }
             if (trace)
-                log.trace("connector.get RECEIVE RESPONSE %s", receive_size);
+                log.trace("connector.authorize RECEIVE RESPONSE %s", receive_size);
 
             if (receive_size == 0 || receive_size < response.length)
             {
                 Thread.sleep(dur!("seconds")(1));
-                log.trace ("connector.get @RECONNECT GET REQUEST");
+                log.trace ("connector.authorize @RECONNECT AUTHORIZE REQUEST");
                 close();
                 connect(addr, port);
                 continue;
@@ -465,7 +465,7 @@ class Connector
             auto obj = unpacker.unpacked[ 0 ];
             request_response.common_rc       = cast(ResultCode)(obj.via.uinteger);
             request_response.op_rc.length    = unpacker.unpacked.length - 1;
-            request_response.rights.length = uris.length;
+            request_response.rights.length   = uris.length;
 
             if (trace)
                 log.trace("connector.authorize OP RESULT = %d, unpacker.unpacked.length=%d", obj.via.uinteger, unpacker.unpacked.length);
@@ -476,11 +476,11 @@ class Connector
                 request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
                 request_response.rights[ j ] = cast(ubyte)unpacker.unpacked[ i + 1 ].via.uinteger;
                 if (trace)
-                    log.trace("connector.get AUTHORIZE RESULT: op_rc=%d, right=%d", request_response.op_rc[ j ], request_response.rights[ j ]);
+                    log.trace("connector.authorize AUTHORIZE RESULT: op_rc=%d, right=%d", request_response.op_rc[ j ], request_response.rights[ j ]);
             }
         }
         else
-            log.trace("connector.get @ERR ON UNPACKING RESPONSE");
+            log.trace("connector.authorize @ERR ON UNPACKING RESPONSE");
 
         return request_response;
     }
