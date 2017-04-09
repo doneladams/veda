@@ -381,12 +381,12 @@ class PThreadContext : Context
             printPrettyTrace(stderr);
         }
 
-        ubyte res = inividuals_storage_r.authorize(_uri, ticket.user_uri, true);
+        ubyte res = inividuals_storage_r.authorize(ticket.user_uri, _uri, true);
 
         log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
-		//return res & request_access;
-		return request_access;
+		return res & request_access;
+		//return request_access;
     }
 
     public string get_name()

@@ -614,7 +614,7 @@ class XapianVQL
         }
         catch (Throwable tr)
         {
-            log.trace("EX: _transform_vql_to_xapian, tta=[%s], err=[%s]", tta, tr.info);
+            log.trace("EX: _transform_vql_to_xapian, tta=[%s], err=[%s \n%s]", tta, tr.msg, tr.info);
             throw tr;
             //return null;
         }
