@@ -18,6 +18,8 @@ version (WebServer)
     import vibe.core.net;
 }
 
+const MAX_SIZE_OF_PACKET = 1024*1024*10;
+
 class Connector
 {
     Logger         log;
@@ -156,6 +158,14 @@ class Connector
             for (int i = 0; i < 4; i++)
                 response_size = (response_size << 8) + buf[ i ];
             //stderr.writeln("RESPONSE SIZE ", response_size);
+
+			if (response_size > MAX_SIZE_OF_PACKET)
+			{
+				request_response.common_rc = ResultCode.Size_too_large;
+				log.trace("ERR! connector.put, code=%s", request_response.common_rc);
+				return request_response;
+			}
+
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -291,6 +301,13 @@ class Connector
             if (trace)
                 log.trace("connector.get RESPONSE SIZE %d", response_size);
 
+			if (response_size > MAX_SIZE_OF_PACKET)
+			{
+				request_response.common_rc = ResultCode.Size_too_large;
+				log.trace("ERR! connector.get, code=%s", request_response.common_rc);
+				return request_response;
+			}
+
             response = new ubyte[ response_size ];
 
             version (WebServer)
@@ -371,7 +388,7 @@ class Connector
 		//need_auth = false;
 
         if (trace)
-            log.trace("connector.get PACK AUTHORIZE REQUEST user_uri=%s, uris=%s", user_uri, uris);
+            log.trace("connector.authorize PACK AUTHORIZE REQUEST user_uri=%s, uris=%s", user_uri, uris);
 
         packer.beginArray(uris.length + 3);
         packer.pack(INDV_OP.AUTHORIZE, false, user_uri);
@@ -423,7 +440,7 @@ class Connector
                 log.trace("connector.authorize RECEIVE SIZE BUF %d", receive_size);
 
             if (trace)
-                log.trace("connector.authorize RESPONSE SIZE BUF %s", buf);
+                log.trace("connector.authorize RESPONSE SIZE BUF %s %s", buf, cast(char[])buf);
                 
             long response_size = 0;
             for (int i = 0; i < 4; i++)
@@ -431,6 +448,13 @@ class Connector
 
             if (trace)
                 log.trace("connector.authorize RESPONSE SIZE %d", response_size);
+
+			if (response_size > MAX_SIZE_OF_PACKET)
+			{
+				request_response.common_rc = ResultCode.Size_too_large;
+				log.trace("ERR! connector.authorize, code=%s", request_response.common_rc);
+				return request_response;
+			}
 
             response = new ubyte[ response_size ];
 
@@ -570,6 +594,13 @@ class Connector
 
             if (trace)
                 log.trace("connector.remove RESPONSE SIZE %d", response_size);
+
+			if (response_size > MAX_SIZE_OF_PACKET)
+			{
+				request_response.common_rc = ResultCode.Size_too_large;
+				log.trace("ERR! connector.remove, code=%s", request_response.common_rc);
+				return request_response;
+			}
 
             response = new ubyte[ response_size ];
 

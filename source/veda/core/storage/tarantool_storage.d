@@ -57,11 +57,16 @@ public class TarantoolStorage : Storage
 	{
         RequestResponse rr = connector.authorize(user_uri, [uri], trace);
 
-		log.trace ("common_rc = %s %s", rr.common_rc, access_to_pretty_string (rr.rights[0]));
+		log.trace ("authorize.common_rc = %s", rr.common_rc);
+		
+		if (rr.common_rc == ResultCode.OK)
+		{
+			 log.trace ("authorize.right=%s", access_to_pretty_string (rr.rights[0]));
 
-        if (rr !is null && rr.rights.length > 0)
+	        if (rr !is null && rr.rights.length > 0)
             return rr.rights[0];
-
+		}
+		
         return 0;
 	} 
 
