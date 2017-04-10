@@ -303,8 +303,10 @@ class Connector
 
 			if (response_size > MAX_SIZE_OF_PACKET)
 			{
+                log.trace("connector.get RESPONSE SIZE BUF %s %s", buf, cast(char[])buf);
+
 				request_response.common_rc = ResultCode.Size_too_large;
-				log.trace("ERR! connector.get, code=%s", request_response.common_rc);
+				log.trace("ERR! connector.get[%s], code=%s", uris, request_response.common_rc);
 				return request_response;
 			}
 
