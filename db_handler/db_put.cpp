@@ -101,7 +101,7 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
     msgpack::sbuffer buffer;
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
     size_t arr_size;
-
+     
     arr_size = new_right_set.size() * 2 + 1;
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (it->second.is_deleted)
@@ -110,8 +110,11 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
     pk.pack_array(arr_size);
     pk.pack(in_key);
     //cerr << "KEY" << in_key << arr_size << endl;
+    fprintf(stderr, "PREPARE RIGHT %s\n", in_key.c_str());
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (!it->second.is_deleted) {
+            printf("\t%s\n", it->second.id.c_str());
+            printf("\t%u\n", it->second.access);
             pk.pack(it->second.id); 
             pk.pack(it->second.access);
         }
@@ -327,8 +330,14 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
 
         int res;
         vector<string> tnt_rdf_types;
-
         res = get_rdf_types(new_state->uri, tnt_rdf_types);
+        fprintf(stderr, "TNT RDF TYPES\n");
+        for (int i = 0; i < tnt_rdf_types.size(); i++)
+            fprintf(stderr, "\t%s\n", tnt_rdf_types[i].c_str()); 
+
+        fprintf(stderr, "NEW RDF TYPES\n");
+        for (int i = 0; i < tnt_rdf_types.size(); i++)
+            fprintf(stderr, "\t%s\n",  rdf_type[i].str_data.c_str());            
         if (res < 0) {
             fprintf (stderr, "@ERR REST! GET RDF TYPES ERR!\n");
             cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
@@ -336,9 +345,9 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
         } else if (res > 0 && need_auth) {
             vector<string>::iterator it;
             for (int i = 0; i < rdf_type.size(); i++) {
-                
                 it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
                 if (it == tnt_rdf_types.end()) {
+                    fprintf(stderr, "CHANGE IS UPDATE");
                     is_update = false;
                     auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
                         rdf_type[i].str_data.size());
@@ -351,7 +360,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                     }
                 }
             }
-        } else
+        } else if (res == 0)
             is_update = false;
                 
         if (is_update && need_auth) {
@@ -365,6 +374,8 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                 return AUTH_FAILED;
             }
         }
+
+        fprintf(stderr, "IS UPDATE %d\n", (int)is_update);
 
         if (!is_update)
             put_rdf_types(new_state->uri, rdf_type);

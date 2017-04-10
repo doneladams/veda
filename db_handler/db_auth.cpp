@@ -57,13 +57,18 @@ get_tuple(const char *key, int32_t key_len, char *outbuf)
 	key_end = key_start;
 	key_end = mp_encode_array(key_end, 1);
 	key_end = mp_encode_str(key_end, key, key_len);
-	box_index_get(cache_space_id, cache_index_id, key_start, key_end, &result);
+	fprintf(stderr, "REQUEST KEY %.*s\n", key_len, key);	
+	// box_index_get(cache_space_id, cache_index_id, key_start, key_end, &result);
 
-	if (result != NULL) {
+	/*if (result != NULL) {
 		if (box_tuple_field_count(result) == 1)
 			return 0;
 		tuple_size = box_tuple_bsize(result);	
-		// fprintf(stderr, "tuple_size=%zu\n", tuple_size);	
+		if (tuple_size > MAX_BUF_SIZE) {
+			fprintf(stderr, "@TUPLE SIZE IS GREATER THAN MAX_BUF_SIZE");
+			return -1;
+		}
+		fprintf(stderr, "FROM CACHE TO %p : %zu bytes\n", outbuf, tuple_size);
 		box_tuple_to_buf(result, outbuf, tuple_size);
 		return 1;
 	} else {
@@ -76,12 +81,37 @@ get_tuple(const char *key, int32_t key_len, char *outbuf)
 			return 0;
 		}
 		tuple_size = box_tuple_bsize(result);	
+		if (tuple_size > MAX_BUF_SIZE) {
+			fprintf(stderr, "@TUPLE SIZE IS GREATER THAN MAX_BUF_SIZE");
+			return -1;
+		}
 		// fprintf(stderr, "tuple_size=%zu\n", tuple_size);	
+		fprintf(stderr, "FROM VINYL TO %p : %zu bytes\n", outbuf, tuple_size);		
 		box_tuple_to_buf(result, outbuf, tuple_size);
 		box_insert(cache_space_id, outbuf, outbuf + tuple_size, NULL);
 		return 1;
+	}*/
+
+	box_index_get(acl_space_id, acl_index_id, key_start, key_end, &result);
+	if (result == NULL) {
+		// key_end = key_start;
+		// key_end = mp_encode_array(key_end, 1);
+		// key_end = mp_encode_str(key_end, key, key_len);
+		// box_insert(cache_space_id, key_start, key_end, NULL);
+		// box_insert(acl_space_id, key_start, key_end, NULL);
+		return 0;
 	}
-	return 0;
+	tuple_size = box_tuple_bsize(result);	
+	if (tuple_size > MAX_BUF_SIZE) {
+		fprintf(stderr, "@TUPLE SIZE IS GREATER THAN MAX_BUF_SIZE");
+		return -1;
+	}
+	// fprintf(stderr, "tuple_size=%zu\n", tuple_size);	
+	fprintf(stderr, "FROM VINYL TO %p : %zu bytes\n", outbuf, tuple_size);		
+	box_tuple_to_buf(result, outbuf, tuple_size);
+	// box_insert(cache_space_id, outbuf, outbuf + tuple_size, NULL);
+	return 1;
+	// return 0;
 }
 
 //think about return value
@@ -91,6 +121,7 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 	// char key_start[MAX_URI_LEN], *key_end;
 	int32_t rights_count = 0, curr = 0;
 	int gone_previous = 0;
+	int get_tuple_res;
 
 	rights[curr].parent = -1;
 	rights[curr].access =  access;
@@ -99,12 +130,14 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 	rights[curr].id_len =  strlen(uri);
 	
 	// fprintf(stderr, "REQUEST URI %s\n", uri);
-	if (get_tuple(uri, rights[curr].id_len, (char *)rights[curr].buf) == 0) {
+	get_tuple_res = get_tuple(uri, rights[curr].id_len, (char *)rights[curr].buf);
+	if (get_tuple_res == 0) {
 		memcpy(rights[curr].id, uri, rights[curr].id_len);
 		rights[curr].id[rights[curr].id_len]  = '\0';
 		return 1;
-		
-	}
+	} else if (get_tuple_res < 0)
+		return -1;
+
 	rights_count = 1;
 
 	while (curr != -1) {
@@ -139,6 +172,10 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 			// fprintf(stderr, "\ti=%d nelems=%d\n", rights[curr].i, rights[curr].nelems - 1);
 			// fprintf(stderr, "\ttry decode new node\n");
 			tmp = mp_decode_str(&rights[curr].buf, &len);
+			if (len > MAX_URI_LEN) {
+				fprintf(stderr, "@LEN IS GREATER THAN MAX_URI_LEN");
+				return -1;
+			}
 			memcpy(rights[next].id + 1, tmp, len);
 			rights[next].id[0] = MEMBERSHIP_PREFIX;
 			right_access = mp_decode_uint(&rights[curr].buf);
@@ -163,8 +200,12 @@ get_groups(const char *uri, uint8_t access, struct Right rights[MAX_RIGHTS])
 			// fprintf (stderr, "\tnew uri %s\n", rights[next].id);
 			rights[next].buf = rights[next].buf_start;
 			// fprintf(stderr, "REQUEST URI %s\n", rights[next].id);
-			if (get_tuple(rights[next].id, rights[next].id_len, (char *)rights[next].buf) == 0)
+			get_tuple_res = get_tuple(rights[next].id, rights[next].id_len, 
+				(char *)rights[next].buf);
+			if (get_tuple_res == 0)
 				continue;
+			else if (get_tuple_res  < 0)
+				return -1;
 			
 			rights[curr].i += 2;
 			curr = next;
@@ -197,13 +238,14 @@ subject_search(struct Right subject_rights[MAX_RIGHTS], int32_t subject_rights_c
 	return -1;
 }
 
-uint8_t
+int
 get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 	struct Right subject_rights[MAX_RIGHTS], int32_t subject_rights_count, uint8_t desired_access)
 {
 	int i, j, nperms;
 	uint8_t result_access = 0;
 	char perm_buf_start[MAX_BUF_SIZE];
+	int get_tuple_res;
 	// char key_start[MAX_URI_LEN], *key_end;
 
 	for (i = 0; i < object_rights_count; i++) {
@@ -215,8 +257,11 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 		object_rights[i].id[0] = PERMISSION_PREFIX;
 		perm_buf = perm_buf_start;
 		// fprintf(stderr, "%s\n", object_rights[i].id);
-		if (get_tuple(object_rights[i].id, object_rights[i].id_len, (char *)perm_buf) == 0) 
+		get_tuple_res = get_tuple(object_rights[i].id, object_rights[i].id_len, (char *)perm_buf);
+		if (get_tuple_res == 0) 
 			continue;
+		else if (get_tuple_res < 0)
+			return -1;
 		
 		// fprintf(stderr, "\tfound in base\n");
 
@@ -230,6 +275,10 @@ get_rights(struct Right object_rights[MAX_RIGHTS], int32_t object_rights_count,
 			uint8_t perm_access;
 
 			tmp = mp_decode_str(&perm_buf, &len);
+			if (len > MAX_URI_LEN) {
+				fprintf(stderr, "@LEN IS GREATER THAN MAX_URI_LEN");
+				return -1;
+			}
 			memcpy(perm_obj_uri + 1, tmp, len);
 			perm_obj_uri[0] = MEMBERSHIP_PREFIX;
 			perm_access = mp_decode_uint(&perm_buf);
@@ -263,9 +312,9 @@ int
 db_auth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res_uri_len)
 {
 	struct Right object_rights[MAX_RIGHTS], subject_rights[MAX_RIGHTS], extra_membership;
-	int32_t object_rights_count, subject_rights_count;
+	int32_t object_rights_count = 0, subject_rights_count = 0;
     char subject[MAX_URI_LEN], object[MAX_URI_LEN];
-	uint8_t auth_result;
+	int auth_result = 15;
 	
 
 	memcpy(extra_membership.id, "Mv-s:AllResourcesGroup", 22);
