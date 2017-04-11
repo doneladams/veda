@@ -74,6 +74,7 @@ cfg:ImportDMSToVedaAppointment
   rdfs:label "ImportDMSToVeda. Appointment"@en ;
 .
 ### -------------------------------------------------------
+
 cfg:VedaNTLMFilter
   rdf:type v-s:Person ;
   v-s:author cfg:VedaSystem ;
@@ -83,6 +84,7 @@ cfg:VedaNTLMFilter
   rdfs:label "Veda NTLM Filter"@en ;
   rdfs:label "Veda NTLM Фильтр"@ru ;
 .
+
 cfg:VedaNTLMFilterAccount
   rdf:type v-s:Account ;
   rdfs:label "VedaNTLMFilter account"@en ;
@@ -92,6 +94,7 @@ cfg:VedaNTLMFilterAccount
   rdfs:label "VedaNTLMFilter. Учетная запись"@ru ;
   rdfs:label "VedaNTLMFilter. Account"@en ;
 .
+
 cfg:VedaNTLMFilterAppointment
   rdf:type v-s:Appointment ;
   v-s:author cfg:VedaSystem ;
@@ -172,12 +175,21 @@ cfg:User_position
 .
 
 ### -------------------------------------------------------
+
+cfg:Permission_ntlmu_r_tau
+  rdf:type v-s:PermissionStatement ;
+  v-s:canRead "true"^^xsd:boolean ;
+  v-s:permissionObject cfg:VedaNTLMFilter ;
+  v-s:permissionSubject cfg:TrustedAuthenticationUserGroup ;
+.
+
 cfg:Permission_VedaSystem_allRead
   rdf:type v-s:PermissionStatement ;
   v-s:canRead "true"^^xsd:boolean ;
   v-s:permissionObject cfg:VedaSystem ;
   v-s:permissionSubject cfg:AllUsersGroup ;
 .
+
 td:pm_pa_au
   rdf:type v-s:PermissionStatement ;
   v-s:canCreate "true"^^xsd:boolean ;
@@ -186,6 +198,7 @@ td:pm_pa_au
 .
 
 ### -------------------------------------------------------
+
 cfg:SuperUser
   rdf:type v-s:Group ;
   v-s:author cfg:VedaSystem ;
@@ -193,11 +206,11 @@ cfg:SuperUser
   rdfs:label "Супер админ"@ru ;
 .
 
-cfg:TrustedAuthenticationUser
+cfg:TrustedAuthenticationUserGroup
   rdf:type v-s:Group ;
   v-s:author cfg:VedaSystem ;
   rdfs:label "Trusted Authentication User"@en ;
-  rdfs:label "Trusted Authentication Потзователи"@ru ;
+  rdfs:label "Trusted Authentication Пользователи"@ru ;
 .
 
 cfg:TTLResourcesGroup
@@ -230,11 +243,12 @@ cfg:Membership_su
   v-s:resource cfg:ImportDMSToVeda ;
   v-s:memberOf cfg:SuperUser ;
 .
+
 cfg:Membership_tau
   rdf:type v-s:Membership ;
   v-s:author cfg:VedaSystem ;
   v-s:resource cfg:VedaNTLMFilter ;
-  v-s:memberOf cfg:TrustedAuthenticationUser ;
+  v-s:memberOf cfg:TrustedAuthenticationUserGroup ;
 .
 
 ### -------------------------------------------------------

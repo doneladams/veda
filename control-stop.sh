@@ -16,3 +16,4 @@ killall -9 tarantool
 
 rm data/module-info/*.lock
 rm data/queue/*.lock
+rm data/uris/*.lock

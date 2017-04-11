@@ -23,67 +23,65 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       )
     );
 
-    var toRender = [];
-
     if (template) {
       if (template instanceof veda.IndividualModel) {
         template = $( template["v-ui:template"][0].toString() );
       } else if (typeof template === "string") {
-        template = $( (new veda.IndividualModel(template))["v-ui:template"][0].toString() );
+        template = new veda.IndividualModel(template);
+        template = $( template["v-ui:template"][0].toString() );
       }
-      toRender = [ template ];
+      renderTemplate(individual, container, template, mode, specs);
     } else {
-      toRender = individual["rdf:type"].map( function (_class) {
-        if (_class.template && _class.template["v-ui:template"]) {
-          // Get template from class
-          template = $( _class.template["v-ui:template"][0].toString() );
+      individual["rdf:type"].map(function (type) {
+        if ( type.template ) {
+          template = type.template;
         } else {
-          // Use generic template
-          template = $( (new veda.IndividualModel("v-ui:generic"))["v-ui:template"][0].toString() );
+          template = new veda.IndividualModel("v-ui:generic");
         }
-        return template;
+        template = $( template["v-ui:template"][0].toString() );
+        renderTemplate(individual, container, template, mode, specs);
       });
     }
-
-    toRender.map( function (template) {
-      var pre_render_src,
-          pre_render,
-          post_render_src,
-          post_render;
-
-      template = template.filter(function () { return this.nodeType === 1 });
-
-      if (template.first().is("script")) {
-        pre_render_src = template.first().text();
-        pre_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + pre_render_src);
-      }
-      if (template.last().is("script")) {
-        post_render_src = template.last().text();
-        post_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + post_render_src);
-      }
-      template = template.filter("*:not(script)");
-
-      if (pre_render) {
-        pre_render.call(individual, veda, individual, container, template, mode, specs);
-      }
-
-      template = renderTemplate (individual, container, template, mode, specs);
-      container.append(template);
-      individual.trigger("individual:templateReady", template);
-
-      // Timeout to wait all related individuals to render
-      setTimeout(function () {
-        template.trigger(mode);
-        if (post_render) {
-          post_render.call(individual, veda, individual, container, template, mode, specs);
-        }
-      }, 0);
-    });
 
     if (container.prop("id") === "main") { container.show("fade", 250); }
   });
 
-  function renderTemplate (individual, container, template, mode, specs) {
+  function renderTemplate(individual, container, template, mode, specs) {
+    var pre_render_src,
+        pre_render,
+        post_render_src,
+        post_render;
+
+    template = template.filter(function () { return this.nodeType === 1 });
+
+    if (template.first().is("script")) {
+      pre_render_src = template.first().text();
+      pre_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + pre_render_src);
+    }
+    if (template.last().is("script")) {
+      post_render_src = template.last().text();
+      post_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + post_render_src);
+    }
+    template = template.filter("*:not(script)");
+
+    if (pre_render) {
+      pre_render.call(individual, veda, individual, container, template, mode, specs);
+    }
+
+    template = processTemplate (individual, container, template, mode, specs);
+    container.append(template);
+    individual.trigger("individual:templateReady", template);
+
+    // Timeout to wait all related individuals to render
+    setTimeout(function () {
+      template.trigger(mode);
+      if (post_render) {
+        post_render.call(individual, veda, individual, container, template, mode, specs);
+      }
+    }, 0);
+  }
+
+  function processTemplate (individual, container, template, mode, specs) {
 
     template.attr({
       "resource": individual.id,
@@ -99,15 +97,19 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     var _view = $(".-view", wrapper);
     var _edit = $(".-edit", wrapper);
     var _search = $(".-search", wrapper);
-    function showHideHandler (e) {
-      switch (e.type) {
+
+    // Apply mode to template to show/hide elements in different modes
+    function modeHandler (e) {
+      mode = e.type;
+      template.data("mode", mode);
+      switch (mode) {
         case "view": view.show(); _view.hide(); break;
         case "edit": edit.show(); _edit.hide(); break;
         case "search": search.show(); _search.hide(); break;
       }
       e.stopPropagation();
     }
-    template.on("view edit search", showHideHandler);
+    template.on("view edit search", modeHandler);
 
     // Embedded templates list
     var embedded = [];
@@ -314,18 +316,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     setTimeout( function () {
       isDraftHandler("v-s:isDraft");
     }, 100);
-
-    // Apply mode to template to show/hide elements in different modes
-    function modeHandler (e) {
-      mode = e.type;
-      mode === "view" ? template.addClass("mode-view").removeClass("mode-edit mode-search") :
-          mode === "edit" && (individual.rights && individual.rights.hasValue("v-s:canUpdate") && individual.rights["v-s:canUpdate"][0] == true) ? template.addClass("mode-edit").removeClass("mode-view mode-search") :
-              mode === "search" ? template.addClass("mode-search").removeClass("mode-view mode-edit") :
-                  true;
-      template.data("mode", mode);
-      e.stopPropagation();
-    }
-    template.on("view edit search", modeHandler);
 
     // Additional actions buttons
     var $send = $("#send.action", wrapper);
