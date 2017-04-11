@@ -33,14 +33,14 @@ function handle_request(s)
      print(s:nonblock())
     s:nonblock(true)
     while true do
-        log.info('start loop')
+--        log.info('start loop')
         local size_str, size, op, op_str, msg, resp, resp_size
         local resp_size_str, msg_table, zero_count, zero_pos
         local peer_info
 
-        log.info('#1 s=%s', s)
+--        log.info('#1 s=%s', s)
         local res= s:readable()
-        log.info('#2 res=%s', res)
+--        log.info('#2 res=%s', res)
         peer_info = s:peer()
         log.info('START')
         size_str = s:read(4)
