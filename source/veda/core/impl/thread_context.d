@@ -1201,7 +1201,7 @@ class PThreadContext : Context
                                       bool is_api_request)
     {
         //if (trace_msg[ T_API_230 ] == 1)
-        //log.trace("[%s] store_individual: %s %s", name, text(cmd), *indv);
+        //log.trace("[%s] store_individual: %s %s %s", name, text(cmd), *ticket, *indv);
 
         StopWatch sw; sw.start;
 
@@ -1407,6 +1407,7 @@ class PThreadContext : Context
                     res.result = ResultCode.Internal_Server_Error;
                 }
             }
+log.trace("!E");
 
             return res;
         }

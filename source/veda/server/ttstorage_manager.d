@@ -473,9 +473,19 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 					                        RequestResponse request_response = connector.put(need_auth, user_uri, [ binobj ]);
 												
                                             if (request_response.common_rc != ResultCode.OK)
+                                            {
+                                            	rc = request_response.common_rc;
+                                            	send(tid_response_reciever, rc, thisTid);												
+
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
+                                            }
                                             else if (request_response.op_rc[0] != ResultCode.OK)
+                                            {
+                                            	rc = request_response.op_rc[0];
+                                            	send(tid_response_reciever, rc, thisTid);												
+
                                                 stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
+                                            }
 											else 
 											{                                            
                                              rc = request_response.op_rc[0];
