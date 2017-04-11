@@ -1150,7 +1150,7 @@ class PThreadContext : Context
 	                prev_indv.setResources("v-s:deleted", [Resource(true)]);
 	            }
 
-                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, ignore_freeze, true);
+                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, ignore_freeze, false);
 
                 if (oprc.result != ResultCode.OK)
                 {
@@ -1159,7 +1159,7 @@ class PThreadContext : Context
                 }
                 else
                 {
-                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, true, ticket.user_uri, uri, ignore_freeze, res.op_id);
+                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, false, ticket.user_uri, uri, ignore_freeze, res.op_id);
                 }
                     
                 if (res.result == ResultCode.OK)
@@ -1407,7 +1407,6 @@ class PThreadContext : Context
                     res.result = ResultCode.Internal_Server_Error;
                 }
             }
-log.trace("!E");
 
             return res;
         }

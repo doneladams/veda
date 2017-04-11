@@ -472,19 +472,22 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             
 					                        RequestResponse request_response = connector.put(need_auth, user_uri, [ binobj ]);
 												
+											set_subject_manager_op_id(op_id);
+	                                        op_id++;
+
                                             if (request_response.common_rc != ResultCode.OK)
                                             {
                                             	rc = request_response.common_rc;
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
+                                                log.trace("!ERR, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
                                             }
                                             else if (request_response.op_rc[0] != ResultCode.OK)
                                             {
                                             	rc = request_response.op_rc[0];
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                stderr.writeln("@ERR PUT! ", request_response.op_rc[0]);
+                                                log.trace("!ERR, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
                                             }
 											else 
 											{                                            
@@ -511,8 +514,6 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 	                                            string new_hash = "0000";
 	                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
 
-											set_subject_manager_op_id(op_id);
-	                                        op_id++;
 
 											}
 											
