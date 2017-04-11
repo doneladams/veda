@@ -55,7 +55,7 @@ handle_authorize_request(const char *msg, size_t msg_size, msgpack::packer<msgpa
         res_pk.pack_str(res_uri.size);
         res_pk.pack_str_body(res_uri.ptr, res_uri.size);
 
-        //fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        fprintf (stderr, "RES URI %.*s\n", (int)res_uri.size, res_uri.ptr);
         if (box_index_count(individuals_space_id, individuals_index_id, ITER_EQ, buffer.data(), 
             buffer.data() + buffer.size()) > 0) {
             auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
@@ -120,15 +120,17 @@ void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msg
     //fprintf (stderr, "NEED AUTH %d\n", need_auth);
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
-        int delete_result;
+        int remove_result = 0;
         msgpack::object_str res_uri;
         // fprintf (stderr, "size=%u i=%u\n", obj_arr.size, i);
         res_uri = obj_arr.ptr[i].via.str;
 //        fprintf (stderr, "REMOVE:DELETE RES URI [%*.s]\n", (int)res_uri.size, res_uri.ptr);
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
-        delete_result = db_remove(res_uri, user_id, need_auth);
+        fprintf(stderr, "TRY REMOVE %.*s\n", (int)res_uri.size, res_uri.ptr);
+        remove_result = db_remove(res_uri, user_id, need_auth);
+        fprintf(stderr, "REMOVE RESULT %d\n", remove_result);
 //        fprintf (stderr, "REMOVE #1\n");
-        pk.pack(delete_result);
+        pk.pack(remove_result);
         // fprintf (stderr, "REMOVE #E\n");
     }
 }
@@ -155,7 +157,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        //fprintf (stderr, "RES URI %*.s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        fprintf (stderr, "RES URI %.*s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
         res_size = db_get(res_uri, &res_buf);
         if (res_size > 0) {
             //cerr << "EXISTS" << endl;
@@ -175,15 +177,18 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
                 //cerr << "TRY PACK BODY" << endl;
                 pk.pack_str_body(res_buf, res_size);
                 //cout << "PACKED" << endl;
+                fprintf(stderr, "GET OK\n");
                 delete res_buf;
             } else {
                 pk.pack(AUTH_FAILED);
                 pk.pack_nil();
+                fprintf(stderr, "GET AUTH FAILED\n");
     		    //fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
                 //fprintf (stderr, "\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
                 //    auth_result);
             }
         } else  {
+            fprintf(stderr, "GET NOT FOUND\n");     
             pk.pack(NOT_FOUND);
             pk.pack_nil();
 	        //fprintf (stderr, "GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
@@ -223,8 +228,7 @@ db_handle_request(lua_State *L)
         return 0;
     }
 
-    if ((acl_space_id = box_space_id_by_name("acl",  
-        strlen("acl"))) == BOX_ID_NIL) {
+    if ((acl_space_id = box_space_id_by_name("acl", strlen("acl"))) == BOX_ID_NIL) {
 		cerr << "@ERR LISTENER! NO SUCH SPACE: individuals" << endl;
 		return 0;
 	}
@@ -235,7 +239,7 @@ db_handle_request(lua_State *L)
         return 0;
     }
 
-    if ((cache_space_id = box_space_id_by_name("acl_cache",  
+   /* if ((cache_space_id = box_space_id_by_name("acl_cache",  
         strlen("acl"))) == BOX_ID_NIL) {
 		cerr << "@ERR LISTENER! NO SUCH SPACE: acl_cache" << endl;
 		return 0;
@@ -245,7 +249,7 @@ db_handle_request(lua_State *L)
         strlen("primary"))) == BOX_ID_NIL) {
         cerr << "@ERR LISTENER! NO SUCH ACL INDEX: primary" << endl;   
         return 0;
-    }
+    }*/
 
     if ((rdf_types_space_id = box_space_id_by_name("rdf_types",  
         strlen("rdf_types"))) == BOX_ID_NIL) {

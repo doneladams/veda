@@ -57,7 +57,7 @@ get_tuple(const char *key, int32_t key_len, char *outbuf)
 	key_end = key_start;
 	key_end = mp_encode_array(key_end, 1);
 	key_end = mp_encode_str(key_end, key, key_len);
-	fprintf(stderr, "REQUEST KEY %.*s\n", key_len, key);	
+	// fprintf(stderr, "REQUEST KEY %.*s\n", key_len, key);	
 	// box_index_get(cache_space_id, cache_index_id, key_start, key_end, &result);
 
 	/*if (result != NULL) {
@@ -107,7 +107,7 @@ get_tuple(const char *key, int32_t key_len, char *outbuf)
 		return -1;
 	}
 	// fprintf(stderr, "tuple_size=%zu\n", tuple_size);	
-	fprintf(stderr, "FROM VINYL TO %p : %zu bytes\n", outbuf, tuple_size);		
+	// fprintf(stderr, "FROM VINYL TO %p : %zu bytes\n", outbuf, tuple_size);		
 	box_tuple_to_buf(result, outbuf, tuple_size);
 	// box_insert(cache_space_id, outbuf, outbuf + tuple_size, NULL);
 	return 1;

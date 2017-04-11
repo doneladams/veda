@@ -181,37 +181,49 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     it = new_state->resources.find("v-s:canCreate");
     if (it != new_state->resources.end()) {
     	it->second = it->second;
-		if (it->second[0].bool_data)
+		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_CREATE;
-        else
+            fprintf(stderr, "CAN CREATE\n");
+        } else {
             access |= ACCESS_CAN_NOT_CREATE;
+            fprintf(stderr, "CAN NOT REATE\n");
+        }
     }
 
 	it = new_state->resources.find("v-s:canRead");
     if (it != new_state->resources.end()) {
     	it->second = it->second;
-		if (it->second[0].bool_data)
+		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_READ;
-        else
+            fprintf(stderr, "CAN READ\n");
+        } else {
             access |= ACCESS_CAN_NOT_READ;
+            fprintf(stderr, "CAN NOT READ\n");
+        }
     }
 
 	it = new_state->resources.find("v-s:canUpdate");
     if (it != new_state->resources.end()) {
     	it->second = it->second;
-		if (it->second[0].bool_data)
+		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_UPDATE;
-        else
+            fprintf(stderr, "CAN UPDATE\n");
+        } else {
             access |= ACCESS_CAN_NOT_UPDATE;
+            fprintf(stderr, "CAN NOT UPDATE\n");
+        }
     }
 
 	it = new_state->resources.find("v-s:canDelete");
     if (it != new_state->resources.end()) {
     	it->second = it->second;
-		if (it->second[0].bool_data)
+	    if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_DELETE;
-        else
+            fprintf(stderr, "CAN DELETE\n");
+        } else {
             access |= ACCESS_CAN_NOT_DELETE;
+            fprintf(stderr, "CAN NOT DELETE\n");
+        }
     }
 
 	access = (access > 0) ? access : DEFAULT_ACCESS;
@@ -330,14 +342,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
 
         int res;
         vector<string> tnt_rdf_types;
-        res = get_rdf_types(new_state->uri, tnt_rdf_types);
-        fprintf(stderr, "TNT RDF TYPES\n");
-        for (int i = 0; i < tnt_rdf_types.size(); i++)
-            fprintf(stderr, "\t%s\n", tnt_rdf_types[i].c_str()); 
-
-        fprintf(stderr, "NEW RDF TYPES\n");
-        for (int i = 0; i < tnt_rdf_types.size(); i++)
-            fprintf(stderr, "\t%s\n",  rdf_type[i].str_data.c_str());            
+        res = get_rdf_types(new_state->uri, tnt_rdf_types);     
         if (res < 0) {
             fprintf (stderr, "@ERR REST! GET RDF TYPES ERR!\n");
             cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
@@ -347,7 +352,6 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
             for (int i = 0; i < rdf_type.size(); i++) {
                 it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
                 if (it == tnt_rdf_types.end()) {
-                    fprintf(stderr, "CHANGE IS UPDATE");
                     is_update = false;
                     auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
                         rdf_type[i].str_data.size());
@@ -375,7 +379,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
             }
         }
 
-        fprintf(stderr, "IS UPDATE %d\n", (int)is_update);
+        // fprintf(stderr, "IS UPDATE %d\n", (int)is_update);
 
         if (!is_update)
             put_rdf_types(new_state->uri, rdf_type);
