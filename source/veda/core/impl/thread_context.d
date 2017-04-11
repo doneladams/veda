@@ -1591,7 +1591,7 @@ class PThreadContext : Context
         version (isServer)
         {
             //res = subject_storage_module.find(P_MODULE.subject_manager, uri);
-            res = inividuals_storage_r.find(user_uri, uri);
+            res = inividuals_storage_r.find(false, user_uri, uri);
         }
         return res;
     }

@@ -91,7 +91,7 @@ void main(char[][] args)
     Ticket ticket = create_new_ticket("cfg:VedaSystem", "90000000", null);
 
     long   op_id;
-    ticket_storage_module.put(P_MODULE.ticket_manager, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
+    ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, false, op_id);
     log.trace("systicket [%s] was created", ticket.id);
 
     tids[ P_MODULE.n_channel ] = spawn(&nanomsg_channel, text(P_MODULE.n_channel));

@@ -202,7 +202,7 @@ public long unload(P_MODULE storage_id, string queue_name)
     return count;
 }
 
-public ResultCode put(P_MODULE storage_id, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
+public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
                       string event_id,
                       bool ignore_freeze,
                       out long op_id)
@@ -212,7 +212,7 @@ public ResultCode put(P_MODULE storage_id, string user_uri, Resources type, stri
 
     if (tid != Tid.init)
     {
-        send(tid, INDV_OP.PUT, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, ignore_freeze, thisTid);
+        send(tid, INDV_OP.PUT, need_auth, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, ignore_freeze, thisTid);
 
         receive((ResultCode _rc, Tid from)
                 {
@@ -225,7 +225,7 @@ public ResultCode put(P_MODULE storage_id, string user_uri, Resources type, stri
     return rc;
 }
 
-public ResultCode remove(P_MODULE storage_id, string user_uri, string uri, bool ignore_freeze, out long op_id)
+public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
@@ -430,7 +430,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 return;
                             }
                         },
-                        (INDV_OP cmd, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
+                        (INDV_OP cmd, bool need_auth, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
                          bool ignore_freeze,
                          Tid tid_response_reciever)
                         {
@@ -470,7 +470,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
                                             string binobj = imm.serialize();
                                             
-					                        RequestResponse request_response = connector.put(false, user_uri, [ binobj ]);
+					                        RequestResponse request_response = connector.put(need_auth, user_uri, [ binobj ]);
 												
                                             if (request_response.common_rc != ResultCode.OK)
                                                 stderr.writeln("@ERR COMMON PUT! ", request_response.common_rc);
