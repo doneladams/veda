@@ -180,7 +180,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
                 fprintf(stderr, "GET OK\n");
                 delete res_buf;
             } else {
-                pk.pack(AUTH_FAILED);
+                pk.pack(NOT_AUTHORIZED);
                 pk.pack_nil();
                 fprintf(stderr, "GET AUTH FAILED\n");
     		    //fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);

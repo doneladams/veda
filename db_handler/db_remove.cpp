@@ -44,7 +44,7 @@ db_remove(msgpack::object_str &key, msgpack::object_str &user_id, bool need_auth
         if (auth_result < 0)
             return INTERNAL_SERVER_ERROR;
         else if (!(auth_result & ACCESS_CAN_DELETE))
-            return AUTH_FAILED;
+            return NOT_AUTHORIZED;
     }
 
     remove_right_set(key, PERMISSION_PREFIX);

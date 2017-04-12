@@ -360,7 +360,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                     }
                     if (!(auth_result & ACCESS_CAN_CREATE)) {
                         delete new_state;
-                        return AUTH_FAILED;
+                        return NOT_AUTHORIZED;
                     }
                 }
             }
@@ -375,7 +375,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
                 
             if (!(auth_result & ACCESS_CAN_UPDATE)) {
                 delete new_state;
-                return AUTH_FAILED;
+                return NOT_AUTHORIZED;
             }
         }
 
