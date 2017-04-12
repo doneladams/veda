@@ -1297,8 +1297,8 @@ class PThreadContext : Context
                         return res;
                     }
 
-                    if (is_api_request)
-                    {
+//                    if (is_api_request)
+//                    {
                         // для обновляемого индивида проверим доступность бита Update
 //                        if (authorize(indv.uri, ticket, Access.can_update, true, null, null) != Access.can_update)
 //                        {
@@ -1307,39 +1307,39 @@ class PThreadContext : Context
 //                        }
 
                         // найдем какие из типов были добавлены по сравнению с предыдущим набором типов
-                        foreach (rs; _types)
-                        {
-                            string   itype = rs.get!string;
-
-                            Resource *rr = rdfType.get(itype, null);
-
-                            if (rr !is null)
-                                rr.info = EXISTS_TYPE;
-                        }
-                    }
+//                        foreach (rs; _types)
+//                        {
+//                            string   itype = rs.get!string;
+//
+//                            Resource *rr = rdfType.get(itype, null);
+//
+//                            if (rr !is null)
+//                                rr.info = EXISTS_TYPE;
+//                        }
+//                    }
                 }
 
-                if (is_api_request)
-                {
+//                if (is_api_request)
+//                {
                     // для новых типов проверим доступность бита Create
-                    foreach (key, rr; rdfType)
-                    {
-                        if (rr.info == NEW_TYPE)
-                        {
+//                    foreach (key, rr; rdfType)
+//                    {
+//                        if (rr.info == NEW_TYPE)
+//                        {
 //                            if (authorize(key, ticket, Access.can_create, true, null, null) != Access.can_create)
 //                            {
 //                                res.result = ResultCode.Not_Authorized;
 //                                return res;
 //                            }
-                        }
-                    }
-                }
+//                        }
+//                    }
+//                }
 
                 if (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM)
                 {
-                    //log.trace("[%s] ++ store_individual, prev_indv: %s", name, prev_indv);
+                    log.trace("[%s] ++ store_individual CMD=%s, prev_indv: %s", name, cmd, prev_indv);
                     indv = indv_apply_cmd(cmd, &prev_indv, indv);
-                    //log.trace("[%s] ++ store_individual, final indv: %s", name, *indv);
+                    log.trace("[%s] ++ store_individual, final indv: %s", name, *indv);
                 }
 
                 long update_counter = prev_indv.getFirstInteger("v-s:updateCounter", 0);
