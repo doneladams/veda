@@ -26,7 +26,7 @@ public class TarantoolStorage : Storage
 
     public ResultCode put(bool need_auth, string user_uri, string in_key, string in_value, long op_id)
     {
-        RequestResponse rr = connector.put(false, user_uri, [ in_value ]);
+        RequestResponse rr = connector.put(need_auth, user_uri, [ in_value ]);
 
         if (rr !is null)
             return rr.common_rc;
