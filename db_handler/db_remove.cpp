@@ -54,6 +54,6 @@ db_remove(msgpack::object_str &key, msgpack::object_str &user_id, bool need_auth
     box_delete(individuals_space_id, individuals_index_id, buffer.data(), buffer.data() 
         + buffer.size(), NULL);
 
-    cout << "DELETE OK" << endl;
+    //cout << "DELETE OK" << endl;
     return OK;
 }
