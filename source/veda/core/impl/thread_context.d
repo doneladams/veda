@@ -383,7 +383,7 @@ class PThreadContext : Context
 
         ubyte res = inividuals_storage_r.authorize(ticket.user_uri, _uri, false);
 
-        log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
+        //log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
 		return res & request_access;
 		//return request_access;
@@ -1337,9 +1337,9 @@ class PThreadContext : Context
 
                 if (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM)
                 {
-                    log.trace("[%s] ++ store_individual CMD=%s, prev_indv: %s", name, cmd, prev_indv);
+                    //log.trace("[%s] ++ store_individual CMD=%s, prev_indv: %s", name, cmd, prev_indv);
                     indv = indv_apply_cmd(cmd, &prev_indv, indv);
-                    log.trace("[%s] ++ store_individual, final indv: %s", name, *indv);
+                    //log.trace("[%s] ++ store_individual, final indv: %s", name, *indv);
                 }
 
                 long update_counter = prev_indv.getFirstInteger("v-s:updateCounter", 0);

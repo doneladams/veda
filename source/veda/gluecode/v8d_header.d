@@ -197,7 +197,10 @@ public ResultCode commit()
         if (item.cmd == INDV_OP.REMOVE)
 	        rc = g_context.remove_individual(ticket, item.binobj, true, item.event_id, ignore_freeze).result;
 		else
+		{
+			//log.trace ("commit: put_individual %s", item.indv);
 	        rc = g_context.put_individual(ticket, item.indv.uri, item.indv, true, item.event_id, ignore_freeze).result;
+		}    
 
         if (rc == ResultCode.No_Content)
         {

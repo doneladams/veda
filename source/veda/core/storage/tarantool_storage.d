@@ -9,19 +9,19 @@ import veda.connector.connector, veda.connector.requestresponse;
 
 public class TarantoolStorage : Storage
 {
-    string host;
-    ushort port;
-    Logger log;
+    string    host;
+    ushort    port;
+    Logger    log;
     Connector connector;
 
     this(string _host, ushort _port, Logger _log)
     {
-        host = _host;
-        port = _port;
-        log  = _log;
+        host      = _host;
+        port      = _port;
+        log       = _log;
         connector = new Connector(log);
         connector.connect(this.host, this.port);
-    	log.trace ("create TarantoolStorage connector");    	
+        log.trace("create TarantoolStorage connector");
     }
 
     public ResultCode put(bool need_auth, string user_uri, string in_key, string in_value, long op_id)
@@ -37,6 +37,7 @@ public class TarantoolStorage : Storage
     public ResultCode remove(bool need_auth, string user_uri, string in_key)
     {
         RequestResponse rr = connector.remove(false, user_uri, [ in_key ], false);
+
         if (rr !is null)
             return rr.common_rc;
 
@@ -45,7 +46,7 @@ public class TarantoolStorage : Storage
 
     public string find(bool need_auth, string user_uri, string uri, bool return_value = true)
     {
-        RequestResponse rr = connector.get(false, user_uri, [ uri ], false);
+        RequestResponse rr = connector.get(need_auth, user_uri, [ uri ], false);
 
         if (rr !is null && rr.msgpacks.length > 0)
             return rr.msgpacks[ 0 ];
@@ -53,26 +54,25 @@ public class TarantoolStorage : Storage
         return null;
     }
 
-	public ubyte authorize (string user_uri, string uri, bool trace)
-	{
-        RequestResponse rr = connector.authorize(user_uri, [uri], trace);
+    public ubyte authorize(string user_uri, string uri, bool trace)
+    {
+        RequestResponse rr = connector.authorize(user_uri, [ uri ], trace);
 
-		log.trace ("authorize.common_rc = %s", rr.common_rc);
-		
-		if (rr.common_rc == ResultCode.OK)
-		{
-			 log.trace ("authorize.right=%s", access_to_pretty_string (rr.rights[0]));
+        //log.trace ("authorize.common_rc = %s", rr.common_rc);
 
-	        if (rr !is null && rr.rights.length > 0)
-            return rr.rights[0];
-		}
-		
+        if (rr.common_rc == ResultCode.OK)
+        {
+            // log.trace ("authorize.right=%s", access_to_pretty_string (rr.rights[0]));
+
+            if (rr !is null && rr.rights.length > 0)
+                return rr.rights[ 0 ];
+        }
+
         return 0;
-	} 
+    }
 
     public void unload_to_queue(string path, string queue_id, bool only_ids)
     {
-    	
     }
 
     public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_ids)
