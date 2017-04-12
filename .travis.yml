@@ -50,6 +50,7 @@ before_script:
   - cat $PWD/logs/veda-ttlreader-stderr.log
   - cat $PWD/logs/veda-webserver-stderr.log 
 #  - cat $PWD/veda_s.log
+  - whereis libmsgpackc
   - cat $PWD/logs/tarantool-stderr.log
   - ls  $PWD/data/tarantool
   - cat $PWD/logs/veda-core-server_*.log          
