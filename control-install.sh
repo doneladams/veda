@@ -270,3 +270,4 @@ fi
    cd $SMD/source/lib64/ext-lib-bind-src/v8_d
    make    
     
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
