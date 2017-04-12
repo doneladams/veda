@@ -343,7 +343,7 @@ db_auth(const char *user_id, size_t user_id_len, const char *res_uri, size_t res
 	}
 	object_rights[object_rights_count++] = extra_membership;
 
-	/*fprintf (stderr, "\n\n\nURI MEMBERSHIPS\n");
+/*	fprintf (stderr, "\n\n\nURI MEMBERSHIPS\n");
 	for (int i = 0; i < object_rights_count; i++)
 		fprintf (stderr, "\t%s %d\n", object_rights[i].id, object_rights[i].access);
 	fprintf (stderr, "USER MEMBERSHIPS\n");

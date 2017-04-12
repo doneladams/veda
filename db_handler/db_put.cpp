@@ -110,11 +110,11 @@ push_into_tarantool(string in_key, map<string, Right> new_right_set)
     pk.pack_array(arr_size);
     pk.pack(in_key);
     //cerr << "KEY" << in_key << arr_size << endl;
-    fprintf(stderr, "PREPARE RIGHT %s\n", in_key.c_str());
+    // fprintf(stderr, "PREPARE RIGHT %s\n", in_key.c_str());
     for (it = new_right_set.begin(); it != new_right_set.end(); it++) 
         if (!it->second.is_deleted) {
-            printf("\t%s\n", it->second.id.c_str());
-            printf("\t%u\n", it->second.access);
+            // printf("\t%s\n", it->second.id.c_str());
+            // printf("\t%u\n", it->second.access);
             pk.pack(it->second.id); 
             pk.pack(it->second.access);
         }
@@ -183,10 +183,10 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_CREATE;
-            fprintf(stderr, "CAN CREATE\n");
+            // fprintf(stderr, "CAN CREATE\n");
         } else {
             access |= ACCESS_CAN_NOT_CREATE;
-            fprintf(stderr, "CAN NOT REATE\n");
+            // fprintf(stderr, "CAN NOT CREATE\n");
         }
     }
 
@@ -195,10 +195,10 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_READ;
-            fprintf(stderr, "CAN READ\n");
+            // fprintf(stderr, "CAN READ\n");
         } else {
             access |= ACCESS_CAN_NOT_READ;
-            fprintf(stderr, "CAN NOT READ\n");
+            // fprintf(stderr, "CAN NOT READ\n");
         }
     }
 
@@ -207,10 +207,10 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 		if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_UPDATE;
-            fprintf(stderr, "CAN UPDATE\n");
+            // fprintf(stderr, "CAN UPDATE\n");
         } else {
             access |= ACCESS_CAN_NOT_UPDATE;
-            fprintf(stderr, "CAN NOT UPDATE\n");
+            // fprintf(stderr, "CAN NOT UPDATE\n");
         }
     }
 
@@ -219,10 +219,10 @@ prepare_right_set(Individual *prev_state, Individual *new_state, string p_resour
     	it->second = it->second;
 	    if (it->second[0].bool_data) {
 			access |= ACCESS_CAN_DELETE;
-            fprintf(stderr, "CAN DELETE\n");
+            // fprintf(stderr, "CAN DELETE\n");
         } else {
             access |= ACCESS_CAN_NOT_DELETE;
-            fprintf(stderr, "CAN NOT DELETE\n");
+            // fprintf(stderr, "CAN NOT DELETE\n");
         }
     }
 
@@ -331,7 +331,7 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
             cerr << "@ERR REST! ERR ON DECODING NEW_STATE" << endl << endl;
             return INTERNAL_SERVER_ERROR;
         }
-        
+        // fprintf (stderr, "NEW STATE [%s]\n", new_state->uri.c_str());
         it = new_state->resources.find("rdf:type");
         if (it == new_state->resources.end()) {
             fprintf (stderr, "@ERR REST! NO RDF TYPE FOUND!\n");
@@ -368,8 +368,9 @@ db_put(msgpack::object_str &indiv_msgpack, msgpack::object_str &user_id, bool ne
             is_update = false;
                 
         if (is_update && need_auth) {
-            auth_result = db_auth(user_id.ptr, user_id.size, individual->uri.c_str(),
-                individual->uri.size());
+            auth_result = db_auth(user_id.ptr, user_id.size, new_state->uri.c_str(),
+                new_state->uri.size());
+            // fprintf(stderr, "UPDATE AUTH %d\n", auth_result);
             if (auth_result < 0)
                 return INTERNAL_SERVER_ERROR;
                 

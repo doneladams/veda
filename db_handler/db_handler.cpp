@@ -55,11 +55,11 @@ handle_authorize_request(const char *msg, size_t msg_size, msgpack::packer<msgpa
         res_pk.pack_str(res_uri.size);
         res_pk.pack_str_body(res_uri.ptr, res_uri.size);
 
-        fprintf (stderr, "RES URI %.*s\n", (int)res_uri.size, res_uri.ptr);
+        // fprintf (stderr, "RES URI %.*s\n", (int)res_uri.size, res_uri.ptr);
         if (box_index_count(individuals_space_id, individuals_index_id, ITER_EQ, buffer.data(), 
             buffer.data() + buffer.size()) > 0) {
             auth_result = db_auth(user_id.ptr, user_id.size, res_uri.ptr, res_uri.size);
-            fprintf(stderr, "AUTHORIZE RESULT %d\n", auth_result);        
+            // fprintf(stderr, "AUTHORIZE RESULT %d\n", auth_result);        
             if (auth_result < 0) {
                 pk.pack(INTERNAL_SERVER_ERROR);
                 pk.pack(0);
@@ -86,7 +86,7 @@ void handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpac
     need_auth = obj_arr.ptr[1].via.boolean;
     user_id = obj_arr.ptr[2].via.str;
 
-    fprintf (stderr, "NEED AUTH %d [%*.s]\n", need_auth, (int)user_id.size, user_id.ptr);
+    // fprintf (stderr, "NEED AUTH %d [%.*s]\n", need_auth, (int)user_id.size, user_id.ptr);
     pk.pack(OK);
     for (uint32_t i = 3; i < obj_arr.size; i++) {
         int put_result;
@@ -96,7 +96,7 @@ void handle_put_request(const char *msg, size_t msg_size, msgpack::packer<msgpac
         indiv_msgpack = obj_arr.ptr[i].via.str;
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
         put_result = db_put(indiv_msgpack, user_id, need_auth);
-        fprintf(stderr, "PUT RESULT %d\n", put_result);
+        // fprintf(stderr, "PUT RESULT %d\n", put_result);
         pk.pack(put_result);
     }
 }
@@ -126,9 +126,9 @@ void handle_remove_request(const char *msg, size_t msg_size, msgpack::packer<msg
         res_uri = obj_arr.ptr[i].via.str;
 //        fprintf (stderr, "REMOVE:DELETE RES URI [%*.s]\n", (int)res_uri.size, res_uri.ptr);
         // cout << "INDIV MSGPACK " << endl << indiv_msgpack.ptr << endl;
-        fprintf(stderr, "TRY REMOVE %.*s\n", (int)res_uri.size, res_uri.ptr);
+        // fprintf(stderr, "TRY REMOVE %.*s\n", (int)res_uri.size, res_uri.ptr);
         remove_result = db_remove(res_uri, user_id, need_auth);
-        fprintf(stderr, "REMOVE RESULT %d\n", remove_result);
+        // fprintf(stderr, "REMOVE RESULT %d\n", remove_result);
 //        fprintf (stderr, "REMOVE #1\n");
         pk.pack(remove_result);
         // fprintf (stderr, "REMOVE #E\n");
@@ -157,7 +157,7 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
 
         msgpack::object_str res_uri;
         res_uri = obj_arr.ptr[i].via.str;
-        fprintf (stderr, "RES URI %.*s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
+        // fprintf (stderr, "RES URI %.*s need_auth=%d\n", (int)res_uri.size, res_uri.ptr, (int)need_auth);
         res_size = db_get(res_uri, &res_buf);
         if (res_size > 0) {
             //cerr << "EXISTS" << endl;
@@ -177,18 +177,18 @@ handle_get_request(const char *msg, size_t msg_size, msgpack::packer<msgpack::sb
                 //cerr << "TRY PACK BODY" << endl;
                 pk.pack_str_body(res_buf, res_size);
                 //cout << "PACKED" << endl;
-                fprintf(stderr, "GET OK\n");
+                // fprintf(stderr, "GET OK\n");
                 delete res_buf;
             } else {
                 pk.pack(NOT_AUTHORIZED);
                 pk.pack_nil();
-                fprintf(stderr, "GET AUTH FAILED\n");
+                // fprintf(stderr, "GET AUTH FAILED\n");
     		    //fprintf (stderr, "GET AUTH FAILED, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
                 //fprintf (stderr, "\tUSER URI=[%.*s] AUTH RESULT=%d\n", (int)user_id.size, user_id.ptr, 
                 //    auth_result);
             }
         } else  {
-            fprintf(stderr, "GET NOT FOUND\n");     
+            // fprintf(stderr, "GET NOT FOUND\n");     
             pk.pack(NOT_FOUND);
             pk.pack_nil();
 	        //fprintf (stderr, "GET NOT FOUND, URI=[%.*s]\n", (int)res_uri.size, res_uri.ptr);
@@ -292,31 +292,31 @@ db_handle_request(lua_State *L)
     switch (op) {
         case GET: {
             //fprintf (stderr, "GET=%d %s\n", op, msg);
-	        fprintf (stderr, "-------- GET ----------\n");
+	        // fprintf (stderr, "-------- GET ----------\n");
             handle_get_request(msg, msg_size, pk, obj_arr);
-	        fprintf (stderr, "--------\n");
+	        // fprintf (stderr, "--------\n");
 //            fprintf (stderr, "GET RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case PUT: {
-            fprintf (stderr, "-------- PUT ----------\n");
+            // fprintf (stderr, "-------- PUT ----------\n");
             //fprintf (stderr, "PUT=%d %s\n", op, msg);
             handle_put_request(msg, msg_size, pk, obj_arr);
-            fprintf (stderr, "--------\n");
+            // fprintf (stderr, "--------\n");
 //            fprintf (stderr, "PUT RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case REMOVE: {
-            fprintf (stderr, "-------- REMOVE ----------\n");
+            // fprintf (stderr, "-------- REMOVE ----------\n");
             handle_remove_request(msg, msg_size, pk, obj_arr);
-            fprintf (stderr, "--------\n");
+            // fprintf (stderr, "--------\n");
 //            fprintf (stderr, "REMOVE RESP szie=%zu %.*s\n", buffer.size(), (int)buffer.size(), buffer.data());
             break;
         }
         case AUTHORIZE: {
-            fprintf (stderr, "-------- AUTHORIZE ----------\n");            
+            // fprintf (stderr, "-------- AUTHORIZE ----------\n");            
             handle_authorize_request(msg, msg_size, pk, obj_arr);
-            fprintf (stderr, "--------\n");
+            // fprintf (stderr, "--------\n");
 	        break;
         }
 

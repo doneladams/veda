@@ -18,9 +18,9 @@ remove_right_set(msgpack::object_str &key, string prefix)
     
     pk.pack_array(1);
     pk.pack(prefix + string(key.ptr, key.size));
-    fprintf(stderr, "REMOVE RIGHTSET %s\n", (prefix + string(key.ptr, key.size)).c_str());
-    fprintf(stderr, "DELETE RESULT %d\n", box_delete(acl_space_id, acl_index_id, buffer.data(), buffer.data() 
-        + buffer.size(), NULL));
+    // fprintf(stderr, "REMOVE RIGHTSET %s\n", (prefix + string(key.ptr, key.size)).c_str());
+    // fprintf(stderr, "DELETE RESULT %d\n", box_delete(acl_space_id, acl_index_id, buffer.data(), buffer.data() 
+        // + buffer.size(), NULL));
     // fprintf(stderr, "ERROR %d %s\n", box_error_code(box_error_last()), box_error_message(box_error_last()));        
 }
 
