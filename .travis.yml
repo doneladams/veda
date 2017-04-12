@@ -51,6 +51,7 @@ before_script:
   - cat $PWD/logs/veda-webserver-stderr.log 
 #  - cat $PWD/veda_s.log
   - cat $PWD/logs/tarantool-stderr.log
+  - ls  $PWD/data/tarantool
   - cat $PWD/logs/veda-core-server_*.log          
   - ps aux | grep veda
 
