@@ -87,11 +87,11 @@ module.exports = {
   openPage: function (driver, driverAbout, path) {
     if (path === undefined) {
       driver.get(SERVER_ADDRESS).then(function() {
-        console.log('****** GET NEW PAGE. PLATFORM > '+driverAbout.os+' / '+driverAbout.browser+' / '+driverAbout.version);
+        console.log('****** GET NEW PAGE. PLATFORM > '+driverAbout.os+' / '+driverAbout.browser+' / '+driverAbout.version+' / job id:' + process.env.TRAVIS_JOB_ID+' / job number:'+ process.env.TRAVIS_JOB_NUMBER);
       });
     } else {
       driver.get(SERVER_ADDRESS+path).then(function() {
-        console.log('****** GET NEW PAGE. PLATFORM > '+driverAbout.os+' / '+driverAbout.browser+' / '+driverAbout.version);
+        console.log('****** GET NEW PAGE. PLATFORM > '+driverAbout.os+' / '+driverAbout.browser+' / '+driverAbout.version+' / job id:' + process.env.TRAVIS_JOB_ID+' / job number:'+ process.env.TRAVIS_JOB_NUMBER);
       });
     }
     driver.manage().window().setSize(1280, 960);
