@@ -36,7 +36,7 @@ before_script:
   - sleep 3 # give xvfb some time to start
 #  - start-stop-daemon --start --verbose --chdir $PWD --make-pidfile --pidfile $PWD/veda-pid --background --startas /bin/bash -- -c "exec ./veda >> $PWD/veda_s.log 2>&1"
   - ./control-start.sh
-  - sleep 240  # give Web server some time to bind to sockets, load startup data, etc
+  - sleep 90  # give Web server some time to bind to sockets, load startup data, etc
   - ls  $PWD   
   - ls  $PWD/logs   
   - cat $PWD/logs/veda-fanout-email-stderr.log
@@ -59,7 +59,7 @@ before_script:
 # Run API & integration test
 script:
   - date    
-  - grunt test
+  - grunt test --force
   - date    
 #  - grunt coveralls
 #  - node ./qa/testAPI.js
