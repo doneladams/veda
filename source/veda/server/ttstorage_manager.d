@@ -480,17 +480,17 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             	rc = request_response.common_rc;
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                log.trace("!ERR, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
+                                                log.trace("ERR!, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
                                             }
                                             else if (request_response.op_rc[0] != ResultCode.OK)
                                             {
                                             	rc = request_response.op_rc[0];
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                log.trace("!ERR, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
+                                                log.trace("ERR!, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
                                             }
-											else 
-											{                                            
+					    else 
+					   {                                            
                                              rc = request_response.op_rc[0];
                                             //    stderr.writeln("@OK");
 
