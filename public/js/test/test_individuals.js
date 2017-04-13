@@ -177,6 +177,8 @@ for (i = 0; i < 1; i++)
         "#002 Get individual 'owl:'",
         function()
         {
+	    try
+	    {
             var ticket = get_user1_ticket();
             var res = get_individual(ticket.id, "owl:");
             ok(res["@"] == "owl:");
@@ -195,6 +197,11 @@ for (i = 0; i < 1; i++)
 
             ok(ee != null);
             ok(ee.data == "Словарь OWL 2 Schema (OWL 2)");
+	    }
+	    catch (e)
+	    {
+		ok(false);
+	    }
         });
 
     test(
