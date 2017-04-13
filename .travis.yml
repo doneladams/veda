@@ -58,11 +58,12 @@ before_script:
 
 # Run API & integration test
 script:
+  - date    
   - grunt test
+  - date    
 #  - grunt coveralls
 #  - node ./qa/testAPI.js
   - node ./qa/testLogin.js
-  - grunt test
   - node ./qa/testPerson.js
   - node ./qa/testDrafts.js
   - node ./qa/testDeleteAndRecovery.js
@@ -71,6 +72,7 @@ script:
   - node ./qa/testVersionedDocument.js
   - node ./qa/testJournal.js
   - node ./qa/testAttachment.js
+  - grunt test
   #- node ./qa/testPager.js
   #- node ./qa/testSearchRangeOfDates.js
   #- node ./qa/testAttributiveSearchPerson.js
