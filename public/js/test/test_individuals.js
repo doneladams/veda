@@ -442,6 +442,8 @@ for (i = 0; i < 1; i++)
     test("#010 Individual of [v-s:Membership]",
         function()
         {
+	    try
+	    {
             var ticket1 = get_user1_ticket();
             var ticket2 = get_user2_ticket();
 
@@ -472,6 +474,11 @@ for (i = 0; i < 1; i++)
             res = remove_individual (ticket1.id, new_test_doc1['@']);
             wait_module(condition, res.op_id);
             test_fail_read(ticket1, new_test_doc1['@'], new_test_doc1);
+	    }
+	    catch (e)
+	    {
+		ok(false);
+	    }
         });
 
     test("#011 Individual of [v-s:NoMembership] store 3 and read 3 (this no membership)",
