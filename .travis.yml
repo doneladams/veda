@@ -58,9 +58,7 @@ before_script:
 
 # Run API & integration test
 script:
-  - date    
-  - grunt test --force
-  - date    
+  - grunt test --stack --verbose
 #  - grunt coveralls
 #  - node ./qa/testAPI.js
   - node ./qa/testLogin.js
@@ -72,19 +70,18 @@ script:
   - node ./qa/testVersionedDocument.js
   - node ./qa/testJournal.js
   - node ./qa/testAttachment.js
-  - grunt test
-  #- node ./qa/testPager.js
-  #- node ./qa/testSearchRangeOfDates.js
-  #- node ./qa/testAttributiveSearchPerson.js
-  #- node ./qa/testCreatingNetInterface.js
-  #- node ./qa/testRepeatComplexRoute.js
-  #- node ./qa/testNetComplexRoute.js
-  #- node ./qa/testSimpleNet.js
-  #- node ./qa/testSimpleNet2.js
-  #- node ./qa/testSimpleNet3.js
-  #- node ./qa/testSimpleWorkflow.js
-  #- node ./qa/testDelegationDocument.js
-  #- node ./qa/testLanguage.js
+  - node ./qa/testPager.js
+  - node ./qa/testSearchRangeOfDates.js
+  - node ./qa/testAttributiveSearchPerson.js
+  - node ./qa/testCreatingNetInterface.js
+  - node ./qa/testRepeatComplexRoute.js
+  - node ./qa/testNetComplexRoute.js
+  - node ./qa/testSimpleNet.js
+  - node ./qa/testSimpleNet2.js
+  - node ./qa/testSimpleNet3.js
+  - node ./qa/testSimpleWorkflow.js
+  - node ./qa/testDelegationDocument.js
+  - node ./qa/testLanguage.js
 
 # Stop deamon and show log
 after_script:
