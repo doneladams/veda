@@ -417,8 +417,8 @@ class PThreadContext : Context
 //        log.trace ("@ get_individual_as_binobj, uri=%s", uri);
         string res;
 
-		if (user_uri is null || user_uri.length < 3)
-			log.trace ("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_uri);
+		if (user_id is null || user_id.length < 3)
+			log.trace ("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_id);
 			
         if (inividuals_storage_r !is null)
             res = inividuals_storage_r.find(true, user_id, uri);
