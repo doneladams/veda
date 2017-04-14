@@ -565,7 +565,7 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
 		            string ticket_id = cast(string)_ticket[ 0.._ticket_length ];
                 	Ticket* ticket = g_context.get_ticket(ticket_id, false);  
                 	if (ticket.user_uri is null || ticket.user_uri.length < 3)
-	                	log.trace ("ERR! v8d_header.read_individual: invalid user: ticket=%s", ticket);
+	                	log.trace ("ERR! v8d_header.read_individual: invalid user: ticket=%s", *ticket);
                     icb = g_context.get_from_individual_storage(ticket.user_uri, uri);
                 }    
 
