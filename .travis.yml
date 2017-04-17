@@ -46,7 +46,7 @@ before_script:
   - cat $PWD/logs/veda-ltr-scripts-stderr.log
   - cat $PWD/logs/veda-scripts-lp-stderr.log
   - cat $PWD/logs/veda-scripts-main-stderr.log
-  - cat $PWD/logs/veda-core-scripts-main*.log
+#  - cat $PWD/logs/veda-core-scripts-main*.log
   - cat $PWD/logs/veda-server-stderr.log
   - cat $PWD/logs/veda-ttlreader-stderr.log
   - cat $PWD/logs/veda-webserver-stderr.log 
@@ -90,13 +90,13 @@ after_script:
   - grunt coveralls
   - date    
   - cat $PWD/veda_s.log
-  - cat logs/veda-core-_*.log 
-  - cat logs/veda-core-fanout_*.log
-  - cat logs/veda-core-fulltext_indexer_*.log
-  - cat logs/veda-core-scripts-main*.log
-  - cat logs/veda-core-server_*.log
-  - cat logs/veda-core-ttl_reader_*.log
-  - cat logs/veda-core-webserver_*.log 
+  - cat $PWD/logs/veda-core-_*.log 
+  - cat $PWD/logs/veda-core-fanout_*.log
+  - cat $PWD/logs/veda-core-fulltext_indexer_*.log
+  - cat $PWD/logs/veda-core-scripts-main*.log
+  - cat $PWD/logs/veda-core-server_*.log
+  - cat $PWD/logs/veda-core-ttl_reader_*.log
+  - cat $PWD/logs/veda-core-webserver_*.log 
   - cat $PWD/logs/veda-fanout-email-stderr.log
   - cat $PWD/logs/veda-fanout-sql-stderr.log
   - cat $PWD/logs/veda-ft-indexer-stderr.log
