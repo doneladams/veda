@@ -55,20 +55,6 @@ struct TransactionItem
 TransactionItem *[ string ] transaction_buff;
 TransactionItem *[] transaction_queue;
 
-
-string begin_transaction(P_MODULE storage_id)
-{
-    return "";
-}
-
-void commit_transaction(P_MODULE storage_id, string transaction_id)
-{
-}
-
-void abort_transaction(P_MODULE storage_id, string transaction_id)
-{
-}
-
 public void freeze(P_MODULE storage_id)
 {
     writeln("FREEZE");
@@ -203,16 +189,14 @@ public long unload(P_MODULE storage_id, string queue_name)
 }
 
 public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
-                      string event_id,
-                      bool ignore_freeze,
-                      out long op_id)
+                      string event_id, string transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
 
     if (tid != Tid.init)
     {
-        send(tid, INDV_OP.PUT, need_auth, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, ignore_freeze, thisTid);
+        send(tid, INDV_OP.PUT, need_auth, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, transaction_id, ignore_freeze, thisTid);
 
         receive((ResultCode _rc, Tid from)
                 {
@@ -225,14 +209,14 @@ public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Reso
     return rc;
 }
 
-public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, bool ignore_freeze, out long op_id)
+public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, string transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
 
     if (tid != Tid.init)
     {
-        send(tid, INDV_OP.REMOVE, user_uri, uri, ignore_freeze, thisTid);
+        send(tid, INDV_OP.REMOVE, user_uri, uri, transaction_id, ignore_freeze, thisTid);
 
         receive((ResultCode _rc, Tid from)
                 {
@@ -402,7 +386,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 send(tid_response_reciever, count);
                             }*/
                         },
-                        (INDV_OP cmd, string user_uri, string uri, bool ignore_freeze, Tid tid_response_reciever)
+                        (INDV_OP cmd, string user_uri, string uri, string transaction_id, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
 
@@ -431,8 +415,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             }
                         },
                         (INDV_OP cmd, bool need_auth, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
-                         bool ignore_freeze,
-                         Tid tid_response_reciever)
+                         string transaction_id, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
 
@@ -463,6 +446,9 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             if (event_id !is null && event_id.length > 0)
                                                 imm.addResource("event_id", Resource(DataType.String, event_id));
 
+                                            if (transaction_id !is null && transaction_id.length > 0)
+                                                imm.addResource("transaction_id", Resource(DataType.String, transaction_id));
+
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
 
@@ -489,8 +475,8 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
                                                 log.trace("ERR!, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
                                             }
-					    else 
-					   {                                            
+										    else 
+											{                                            
                                              rc = request_response.op_rc[0];
                                             //    stderr.writeln("@OK");
 

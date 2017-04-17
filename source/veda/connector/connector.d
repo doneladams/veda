@@ -519,14 +519,14 @@ class Connector
 		if (user_uri is null || user_uri.length < 3)
 		{
 			request_response.common_rc = ResultCode.Not_Authorized;
-			log.trace("ERR! connector.remove, code=%s", request_response.common_rc);
+			log.trace("ERR! connector.remove: need_auth=%s, user_uri=%s, uris=[%s] code=%s", need_auth, user_uri, uris, request_response.common_rc);
 			printPrettyTrace(stderr);			
 			return request_response;
 		}	
 		if (uris.length == 0)
 		{
 			request_response.common_rc = ResultCode.No_Content;
-			log.trace("ERR! connector.remove, code=%s", request_response.common_rc);
+			log.trace("ERR! connector.remove: need_auth=%s, user_uri=%s, uris=[%s] code=%s", need_auth, user_uri, uris, request_response.common_rc);
 			printPrettyTrace(stderr);			
 			return request_response;
 		}	
