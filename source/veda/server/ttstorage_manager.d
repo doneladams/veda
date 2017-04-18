@@ -189,7 +189,7 @@ public long unload(P_MODULE storage_id, string queue_name)
 }
 
 public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
-                      string event_id, string transaction_id, bool ignore_freeze, out long op_id)
+                      string event_id, long transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
@@ -209,7 +209,7 @@ public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Reso
     return rc;
 }
 
-public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, string transaction_id, bool ignore_freeze, out long op_id)
+public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, long transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
@@ -386,7 +386,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 send(tid_response_reciever, count);
                             }*/
                         },
-                        (INDV_OP cmd, string user_uri, string uri, string transaction_id, bool ignore_freeze, Tid tid_response_reciever)
+                        (INDV_OP cmd, string user_uri, string uri, long transaction_id, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
 
@@ -415,7 +415,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             }
                         },
                         (INDV_OP cmd, bool need_auth, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
-                         string transaction_id, bool ignore_freeze, Tid tid_response_reciever)
+                         long transaction_id, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
 
@@ -446,8 +446,8 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             if (event_id !is null && event_id.length > 0)
                                                 imm.addResource("event_id", Resource(DataType.String, event_id));
 
-                                            if (transaction_id !is null && transaction_id.length > 0)
-                                                imm.addResource("transaction_id", Resource(DataType.String, transaction_id));
+                                            if (transaction_id >= 0)
+                                                imm.addResource("tnx_id", Resource(DataType.String, transaction_id));
 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));

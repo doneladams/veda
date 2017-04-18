@@ -87,14 +87,14 @@ void main(char[][] args)
         foreach (uri; uris)
         {
             log.tracec("WARN: [%s] WILL BE REMOVED", uri);
-            context.remove_individual(&sticket, uri, true, "ttl-reader", null, true, false);
+            context.remove_individual(&sticket, uri, true, "ttl-reader", -1, true, false);
         }
 
         uris = context.get_individuals_ids_via_query(&sticket, "'rdf:type' == 'v-s:TTLFile'", null, null, 0, 1000, 1000, null, false).result;
         foreach (uri; uris)
         {
             log.tracec("WARN: [%s] WILL BE REMOVED", uri);
-            res = context.remove_individual(&sticket, uri, true, "ttl-reader", null, true, false);
+            res = context.remove_individual(&sticket, uri, true, "ttl-reader", -1, true, false);
         }
 
         bool complete_ft      = false;
@@ -411,7 +411,7 @@ void processed(string[] changes, Context context, bool is_check_changes)
 
 				string bin = indv.serialize ();
 
-                                ResultCode res = context.put_individual(&sticket, indv.uri, indv, true, null, null, false, false).result;
+                                ResultCode res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, false).result;
                                 if (trace_msg[ 33 ] == 1)
                                     log.trace("file reader:store, uri=%s", indv.uri);
 
@@ -538,7 +538,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 //            }
 //            catch (Exception ex) {}
 
-        OpResult orc = context.put_individual(&sticket, indv_ttl_file.uri, indv_ttl_file, true, null, null, false, false);
+        OpResult orc = context.put_individual(&sticket, indv_ttl_file.uri, indv_ttl_file, true, null, -1, false, false);
 
         //context.reopen_ro_subject_storage_db ();
         //if (trace_msg[ 33 ] == 1)
