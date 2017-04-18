@@ -1,0 +1,12 @@
+[package]
+name = "db_handler"
+version = "0.1.0"
+authors = ["muller95 <muller95@yandex.ru>"]
+
+[lib]
+name = "db_handler"
+path = "src/db_handler.rs"
+crate-type = ["dylib"]
+
+[dependencies]
+rmp = "0.8.5"

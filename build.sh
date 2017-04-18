@@ -70,9 +70,12 @@ if [ -z $1 ] || [ $1 == "ttlreader" ] || [ $1 == "veda-ttlreader" ] ; then
 fi
 
 if [ -z $1 ] || [ $1 == "db_handler" ] ; then
-    cd db_handler
-    make
-    cd ..
+  #  cd db_handler
+  #  make
+  #  cd ..
+  cd rust_db_handler
+  cargo build --release
+  cd ..
 fi
 #sudo ifup -a
 
