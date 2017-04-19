@@ -7,6 +7,6 @@ authors = ["muller95 <muller95@yandex.ru>"]
 name = "db_handler"
 path = "src/db_handler.rs"
 crate-type = ["dylib"]
-
+    
 [dependencies]
 rmp_bind = {path = "../rmp_bind"}

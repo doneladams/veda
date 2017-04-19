@@ -69,7 +69,3 @@ pub fn decode_array(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
         Err(err) => Err(format!("@ERR DECODING ARRAY {0}", err))
     }
 }
-
-pub fn test_fn() {
-    println!("here i am");
-}

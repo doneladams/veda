@@ -5,8 +5,6 @@ mod rest;
 
 use std::io::{ Cursor, Write, stderr };
 use rmp_bind::{ decode, encode };
-// use rest::{ Codes, put };
-// use rest::rmp_bind;
 
 const PUT: u64 = 1;
 const GET: u64 = 2;
@@ -33,8 +31,6 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     }
 
     writeln!(&mut stderr(), "@UNMARSHAL").unwrap();
-    encode::encode_array(resp_msg, 1);
-    encode::encode_uint(resp_msg, rest::Codes::InternalServerError as u64);
     let mut op_code: u64 = 0;
     match decode::decode_uint(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
@@ -48,10 +44,10 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         Ok(v) => (need_auth = v)
     }
     match op_code {
-        PUT => writeln!(&mut stderr(), "PUT").unwrap(),
-        GET => writeln!(&mut stderr(), "GET").unwrap(),
-        AUTHORIZE => writeln!(&mut stderr(), "AUTH").unwrap(),
-        REMOVE => writeln!(&mut stderr(), "REMOVE").unwrap(),
+        PUT => rest::put(cursor, arr_size, need_auth, resp_msg),
+        GET => rest::get(cursor, arr_size, need_auth, resp_msg),
+        AUTHORIZE => rest::auth(cursor, arr_size, need_auth, resp_msg),
+        REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
 }

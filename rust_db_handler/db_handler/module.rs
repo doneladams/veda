@@ -8,6 +8,7 @@
 #[repr(u32)]
 /** Log levels */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum SayLevel {
     Fatal = 0,
     System = 1,
@@ -19,9 +20,12 @@ pub enum SayLevel {
 }
 extern "C" {
 #[link_name = "log_level"]
+#[allow(dead_code)]
 pub static mut log_level: ::std::os::raw::c_int;
+#[allow(dead_code)]
 pub fn say_log_level_is_enabled(level: ::std::os::raw::c_int) -> bool;
 }
+#[allow(dead_code)]
 pub type SayFunc =
 ::core::option::Option<unsafe extern "C" fn(arg1: ::std::os::raw::c_int,
                                             arg2:
@@ -33,6 +37,7 @@ pub type SayFunc =
                                             *const ::std::os::raw::c_char, ...)>;
 extern "C" {
     #[link_name = "_say"]
+    #[allow(dead_code)]
     pub static mut _say: SayFunc;
 }
 
@@ -42,9 +47,11 @@ extern "C" {
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct fiber {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for fiber {
     fn clone(&self) -> Self { *self }
 }
@@ -52,20 +59,24 @@ impl Clone for fiber {
 /* TODO: remove valist */
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct BuiltinVaListTag {
     pub gp_offset: ::std::os::raw::c_uint,
     pub fp_offset: ::std::os::raw::c_uint,
     pub overflow_arg_area: *mut ::std::os::raw::c_void,
     pub reg_save_area: *mut ::std::os::raw::c_void,
 }
+#[allow(dead_code)]
 impl Clone for BuiltinVaListTag {
     fn clone(&self) -> Self { *self }
 }
+#[allow(dead_code)]
 pub type BuiltinVaList = [BuiltinVaListTag; 1usize];
 
 /**
  * Fiber - contains information about fiber
  */
+#[allow(dead_code)]
 pub type FiberFunc =
     ::core::option::Option<unsafe extern "C" fn(arg1: *mut BuiltinVaListTag)
                                -> ::std::os::raw::c_int>;
@@ -88,6 +99,7 @@ extern "C" {
  *
  * \sa fiber_start
  */
+ #[allow(dead_code)]
 pub fn fiber_new(name: *const ::std::os::raw::c_char, f: FiberFunc)
  -> *mut fiber;
 /**
@@ -95,6 +107,7 @@ pub fn fiber_new(name: *const ::std::os::raw::c_char, f: FiberFunc)
  *
  * \sa fiber_wakeup
  */
+#[allow(dead_code)]
 pub fn fiber_yield();
 /**
  * Start execution of created fiber.
@@ -104,12 +117,14 @@ pub fn fiber_yield();
  *
  * \sa fiber_new
  */
+#[allow(dead_code)]
 pub fn fiber_start(callee: *mut fiber, ...);
 /**
  * Interrupt a synchronous wait of a fiber
  *
  * \param f fiber to be woken up
  */
+#[allow(dead_code)]
 pub fn fiber_wakeup(f: *mut fiber);
 /**
  * Cancel the subject fiber. (set FIBER_IS_CANCELLED flag)
@@ -121,6 +136,7 @@ pub fn fiber_wakeup(f: *mut fiber);
  *
  * \param f fiber to be cancelled
  */
+#[allow(dead_code)]
 pub fn fiber_cancel(f: *mut fiber);
 /**
  * Make it possible or not possible to wakeup the current
@@ -129,11 +145,13 @@ pub fn fiber_cancel(f: *mut fiber);
  * @param yesno status to set
  * @return previous state.
  */
+#[allow(dead_code)]
 pub fn fiber_set_cancellable(yesno: bool) -> bool;
 /**
  * Set fiber to be joinable (false by default).
  * \param yesno status to set
  */
+#[allow(dead_code)]
 pub fn fiber_set_joinable(fiber: *mut fiber, yesno: bool);
 /**
  * Wait until the fiber is dead and then move its execution
@@ -144,6 +162,7 @@ pub fn fiber_set_joinable(fiber: *mut fiber, yesno: bool);
  * \param f fiber to be woken up
  * \return fiber function ret code
  */
+#[allow(dead_code)]
 pub fn fiber_join(f: *mut fiber) -> ::std::os::raw::c_int;
 /**
  * Put the current fiber to sleep for at least 's' seconds.
@@ -152,23 +171,28 @@ pub fn fiber_join(f: *mut fiber) -> ::std::os::raw::c_int;
  *
  * \note this is a cancellation point (\sa fiber_is_cancelled)
  */
+#[allow(dead_code)]
 pub fn fiber_sleep(s: f64);
 /**
  * Check current fiber for cancellation (it must be checked
  * manually).
  */
+#[allow(dead_code)]
 pub fn fiber_is_cancelled() -> bool;
 /**
  * Report loop begin time as double (cheap).
  */
+#[allow(dead_code)]
 pub fn fiber_time() -> f64;
 /**
  * Report loop begin time as 64-bit int.
  */
+#[allow(dead_code)]
 pub fn fiber_time64() -> u64;
 /**
  * Reschedule fiber to end of event loop cycle.
  */
+#[allow(dead_code)]
 pub fn fiber_reschedule();
 }
 
@@ -177,18 +201,22 @@ pub fn fiber_reschedule();
  */
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct slab_cache {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for slab_cache {
     fn clone(&self) -> Self { *self }
 }
 extern "C" {
+    #[allow(dead_code)]
     pub fn cord_slab_cache() -> *mut slab_cache;
 }
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum CoioFlags {
     Read = 1,
     Write = 2,
@@ -204,12 +232,14 @@ extern "C" {
  * \retval >0 - returned events. Combination of TNT_IO_READ | TNT_IO_WRITE
  * bit flags.
  */
+#[allow(dead_code)]
 pub fn coio_wait(fd: ::std::os::raw::c_int, event: ::std::os::raw::c_int,
                  timeout: f64) -> ::std::os::raw::c_int;
 /**
  * Close the fd and wake any fiber blocked in
  * coio_wait() call on this fd.
  */
+#[allow(dead_code)]
 pub fn coio_close(fd: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
 /**
  * Create new eio task with specified function and
@@ -237,6 +267,7 @@ pub fn coio_close(fd: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
  *	...
  * @endcode
  */
+#[allow(dead_code)]
 pub fn coio_call(func:
                  ::core::option::Option<unsafe extern "C" fn(arg1:
                                                              *mut BuiltinVaListTag)
@@ -246,9 +277,11 @@ pub fn coio_call(func:
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct addrinfo {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for addrinfo {
     fn clone(&self) -> Self { *self }
 }
@@ -267,6 +300,7 @@ extern "C" {
  *            getaddrinfo(3).
  * @sa getaddrinfo()
  */
+#[allow(dead_code)]
 pub fn coio_getaddrinfo(host: *const ::std::os::raw::c_char,
                         port: *const ::std::os::raw::c_char,
                         hints: *const addrinfo, res: *mut *mut addrinfo,
@@ -281,6 +315,7 @@ extern "C" {
 /**
  * Return true if there is an active transaction.
  */
+#[allow(dead_code)]
 pub fn box_txn() -> bool;
 /**
  * Begin a transaction in the current fiber.
@@ -292,6 +327,7 @@ pub fn box_txn() -> bool;
  * @retval -1 - failed, perhaps a transaction has already been
  * started
  */
+#[allow(dead_code)]
 pub fn box_txn_begin() -> ::std::os::raw::c_int;
 /**
  * Commit the current transaction.
@@ -299,12 +335,14 @@ pub fn box_txn_begin() -> ::std::os::raw::c_int;
  * @retval -1 - failed, perhaps a disk write failure.
  * started
  */
+#[allow(dead_code)]
 pub fn box_txn_commit() -> ::std::os::raw::c_int;
 /**
  * Rollback the current transaction.
  * May fail if called from a nested
  * statement.
  */
+#[allow(dead_code)]
 pub fn box_txn_rollback() -> ::std::os::raw::c_int;
 /**
  * Allocate memory on txn memory pool.
@@ -313,6 +351,7 @@ pub fn box_txn_rollback() -> ::std::os::raw::c_int;
  *
  * @retval NULL out of memory
  */
+#[allow(dead_code)]
 pub fn box_txn_alloc(size: usize) -> *mut ::std::os::raw::c_void;
 }
 
@@ -322,12 +361,15 @@ pub fn box_txn_alloc(size: usize) -> *mut ::std::os::raw::c_void;
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct tuple_format {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for tuple_format {
     fn clone(&self) -> Self { *self }
 }
+#[allow(dead_code)]
 pub type BoxTupleFormat = tuple_format;
 extern "C" {
 /**
@@ -336,19 +378,23 @@ extern "C" {
  * Each Tuple has associated format (class). Default format is used to
  * create tuples which are not attach to any particular space.
  */
+#[allow(dead_code)]
 pub fn box_tuple_format_default() -> *mut BoxTupleFormat;
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct tuple {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for tuple {
     fn clone(&self) -> Self { *self }
 }
 /**
  * Tuple
  */
+#[allow(dead_code)]
 pub type BoxTuple = tuple;
 extern "C" {
 /**
@@ -363,6 +409,7 @@ extern "C" {
  * \pre data, end is valid MsgPack Array
  * \sa \code box.tuple.new(data) \endcode
  */
+#[allow(dead_code)]
 pub fn box_tuple_new(format: *mut BoxTupleFormat,
                      data: *const ::std::os::raw::c_char,
                      end: *const ::std::os::raw::c_char)
@@ -385,6 +432,7 @@ pub fn box_tuple_new(format: *mut BoxTupleFormat,
  * \retval 0 on success
  * \sa box_tuple_unref()
  */
+#[allow(dead_code)]
 pub fn box_tuple_ref(tuple: *mut BoxTuple) -> ::std::os::raw::c_int;
 /**
  * Decrease the reference counter of tuple.
@@ -392,16 +440,19 @@ pub fn box_tuple_ref(tuple: *mut BoxTuple) -> ::std::os::raw::c_int;
  * \param tuple a tuple
  * \sa box_tuple_ref()
  */
+#[allow(dead_code)]
 pub fn box_tuple_unref(tuple: *mut BoxTuple);
 /**
  * Return the number of fields in tuple (the size of MsgPack Array).
  * \param tuple a tuple
  */
+#[allow(dead_code)]
 pub fn box_tuple_field_count(tuple: *const BoxTuple) -> u32;
 /**
  * Return the number of bytes used to store internal tuple data (MsgPack Array).
  * \param tuple a tuple
  */
+#[allow(dead_code)]
 pub fn box_tuple_bsize(tuple: *const BoxTuple) -> usize;
 /**
  * Dump raw MsgPack data to the memory byffer \a buf of size \a size.
@@ -413,6 +464,7 @@ pub fn box_tuple_bsize(tuple: *const BoxTuple) -> usize;
  * If buffer size is not enough then the return value is the number of bytes
  * which would have been written if enough space had been available.
  */
+#[allow(dead_code)]
 pub fn BoxTupleo_buf(tuple: *const BoxTuple,
                      buf: *mut ::std::os::raw::c_char, size: usize)
     -> isize;
@@ -421,6 +473,7 @@ pub fn BoxTupleo_buf(tuple: *const BoxTuple,
  * \param tuple tuple
  * \return tuple_format
  */
+#[allow(dead_code)]
 pub fn box_tuple_format(tuple: *const BoxTuple)
     -> *mut BoxTupleFormat;
 /**
@@ -433,21 +486,25 @@ pub fn box_tuple_format(tuple: *const BoxTuple)
  * \retval NULL if i >= box_tuple_field_count(tuple)
  * \retval msgpack otherwise
  */
+#[allow(dead_code)]
 pub fn box_tuple_field(tuple: *const BoxTuple, fieldno: u32)
     -> *const ::std::os::raw::c_char;
 }
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct tuple_iterator {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for tuple_iterator {
     fn clone(&self) -> Self { *self }
 }
 /**
  * Tuple iterator
  */
+#[allow(dead_code)]
 pub type BoxTupleIterator = tuple_iterator;
 extern "C" {
 /**
@@ -478,11 +535,13 @@ extern "C" {
  *
  * \post box_tuple_position(it) == 0
  */
+#[allow(dead_code)]
 pub fn box_tuple_iterator(tuple: *mut BoxTuple)
     -> *mut BoxTupleIterator;
 /**
  * Destroy and free tuple iterator
  */
+#[allow(dead_code)]
 pub fn box_tuple_iterator_free(it: *mut BoxTupleIterator);
 /**
  * Return zero-based next position in iterator.
@@ -494,6 +553,7 @@ pub fn box_tuple_iterator_free(it: *mut BoxTupleIterator);
  * \param it tuple iterator
  * \returns position.
  */
+#[allow(dead_code)]
 pub fn box_tuple_position(it: *mut BoxTupleIterator) -> u32;
 /**
  * Rewind iterator to the initial position.
@@ -501,6 +561,7 @@ pub fn box_tuple_position(it: *mut BoxTupleIterator) -> u32;
  * \param it tuple iterator
  * \post box_tuple_position(it) == 0
  */
+#[allow(dead_code)]
 pub fn box_tuple_rewind(it: *mut BoxTupleIterator);
 /**
  * Seek the tuple iterator.
@@ -514,6 +575,7 @@ pub fn box_tuple_rewind(it: *mut BoxTupleIterator);
  * \post box_tuple_position(it) == box_tuple_field_count(tuple) if returned
  * value is NULL.
  */
+#[allow(dead_code)]
 pub fn box_tuple_seek(it: *mut BoxTupleIterator, fieldno: u32)
     -> *const ::std::os::raw::c_char;
 /**
@@ -527,16 +589,20 @@ pub fn box_tuple_seek(it: *mut BoxTupleIterator, fieldno: u32)
  * \post box_tuple_position(it) == box_tuple_field_count(tuple) if returned
  * value is NULL.
  */
+#[allow(dead_code)]
 pub fn box_tuple_next(it: *mut BoxTupleIterator)
     -> *const ::std::os::raw::c_char;
+#[allow(dead_code)]
 pub fn box_tuple_update(tuple: *const BoxTuple,
                         expr: *const ::std::os::raw::c_char,
                         expr_end: *const ::std::os::raw::c_char)
     -> *mut BoxTuple;
+#[allow(dead_code)]
 pub fn box_tuple_upsert(tuple: *const BoxTuple,
                         expr: *const ::std::os::raw::c_char,
                         expr_end: *const ::std::os::raw::c_char)
     -> *mut BoxTuple;
+#[allow(dead_code)]
 pub fn box_tuple_extract_key(tuple: *const BoxTuple, space_id: u32,
                              index_id: u32, key_size: *mut u32)
     -> *mut ::std::os::raw::c_char;
@@ -545,31 +611,48 @@ pub fn box_tuple_extract_key(tuple: *const BoxTuple, space_id: u32,
 /* }}} Tuple */
 
 /* {{{ Space */
-
+#[allow(dead_code)]
 pub const BOX_SYSTEM_ID_MIN: u32 = 256;
+#[allow(dead_code)]
 pub const BOX_SCHEMA_ID: u32 = 272;
+#[allow(dead_code)]
 pub const BOX_SPACE_ID: u32 = 280;
+#[allow(dead_code)]
 pub const BOX_VSPACE_ID: u32 = 281;
+#[allow(dead_code)]
 pub const BOX_INDEX_ID: u32 = 288;
+#[allow(dead_code)]
 pub const BOX_VINDEX_ID: u32 = 289;
+#[allow(dead_code)]
 pub const BOX_FUNC_ID: u32 = 296;
+#[allow(dead_code)]
 pub const BOX_VFUNC_ID: u32 = 297;
+#[allow(dead_code)]
 pub const BOX_USER_ID: u32 = 304;
+#[allow(dead_code)]
 pub const BOX_VUSER_ID: u32 = 305;
+#[allow(dead_code)]
 pub const BOX_PRIV_ID: u32 = 312;
+#[allow(dead_code)]
 pub const BOX_VPRIV_ID: u32 = 313;
+#[allow(dead_code)]
 pub const BOX_CLUSTER_ID: u32 = 320;
+#[allow(dead_code)]
 pub const BOX_SYSTEM_ID_MAX: u32 = 511;
+#[allow(dead_code)]
 pub const BOX_ID_NIL: u32 = 2147483647;
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct box_function_ctx {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for box_function_ctx {
     fn clone(&self) -> Self { *self }
 }
+#[allow(dead_code)]
 pub type BoxFunctionCtx = box_function_ctx;
 extern "C" {
 /**
@@ -583,6 +666,7 @@ extern "C" {
  * \retval -1 on error (perhaps, out of memory; check box_error_last())
  * \retval 0 otherwise
  */
+#[allow(dead_code)]
 pub fn box_return_tuple(ctx: *mut BoxFunctionCtx,
                         tuple: *mut BoxTuple) -> ::std::os::raw::c_int;
 /**
@@ -595,6 +679,7 @@ pub fn box_return_tuple(ctx: *mut BoxFunctionCtx,
  * \retval space_id otherwise
  * \sa box_index_id_by_name
  */
+#[allow(dead_code)]
 pub fn box_space_id_by_name(name: *const ::std::os::raw::c_char, len: u32)
     -> u32;
 /**
@@ -608,6 +693,7 @@ pub fn box_space_id_by_name(name: *const ::std::os::raw::c_char, len: u32)
  * \retval index_id otherwise
  * \sa box_space_id_by_name
  */
+#[allow(dead_code)]
 pub fn box_index_id_by_name(space_id: u32,
                             name: *const ::std::os::raw::c_char, len: u32)
     -> u32;
@@ -622,6 +708,7 @@ pub fn box_index_id_by_name(space_id: u32,
  * \retval 0 on success
  * \sa \code box.space[space_id]:insert(tuple) \endcode
  */
+#[allow(dead_code)]
 pub fn box_insert(space_id: u32, tuple: *const ::std::os::raw::c_char,
                   tuple_end: *const ::std::os::raw::c_char,
                   result: *mut *mut BoxTuple) -> ::std::os::raw::c_int;
@@ -636,6 +723,7 @@ pub fn box_insert(space_id: u32, tuple: *const ::std::os::raw::c_char,
  * \retval 0 on success
  * \sa \code box.space[space_id]:replace(tuple) \endcode
  */
+#[allow(dead_code)]
 pub fn box_replace(space_id: u32, tuple: *const ::std::os::raw::c_char,
                    tuple_end: *const ::std::os::raw::c_char,
                    result: *mut *mut BoxTuple)
@@ -652,6 +740,7 @@ pub fn box_replace(space_id: u32, tuple: *const ::std::os::raw::c_char,
  * \retval 0 on success
  * \sa \code box.space[space_id].index[index_id]:delete(key) \endcode
  */
+#[allow(dead_code)]
 pub fn box_delete(space_id: u32, index_id: u32,
                   key: *const ::std::os::raw::c_char,
                   key_end: *const ::std::os::raw::c_char,
@@ -674,6 +763,7 @@ pub fn box_delete(space_id: u32, index_id: u32,
  * \sa \code box.space[space_id].index[index_id]:update(key, ops) \endcode
  * \sa box_upsert()
  */
+#[allow(dead_code)]
 pub fn box_update(space_id: u32, index_id: u32,
                   key: *const ::std::os::raw::c_char,
                   key_end: *const ::std::os::raw::c_char,
@@ -699,6 +789,7 @@ pub fn box_update(space_id: u32, index_id: u32,
  * \sa \code box.space[space_id].index[index_id]:update(key, ops) \endcode
  * \sa box_update()
  */
+#[allow(dead_code)]
 pub fn box_upsert(space_id: u32, index_id: u32,
                   tuple: *const ::std::os::raw::c_char,
                   tuple_end: *const ::std::os::raw::c_char,
@@ -711,6 +802,7 @@ pub fn box_upsert(space_id: u32, index_id: u32,
  *
  * \param space_id space identifier
  */
+#[allow(dead_code)]
 pub fn box_truncate(space_id: u32) -> ::std::os::raw::c_int;
 }
 
@@ -720,13 +812,16 @@ pub fn box_truncate(space_id: u32) -> ::std::os::raw::c_int;
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct iterator {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for iterator {
     fn clone(&self) -> Self { *self }
 }
 /** A space iterator */
+#[allow(dead_code)]
 pub type BoxIterator = iterator;
 #[repr(u32)]
 /**
@@ -750,6 +845,7 @@ pub type BoxIterator = iterator;
  * For ITER_EQ, the key must not be NULL.
  */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum IteratorType {
     EQ = 0,
     REQ = 1,
@@ -780,6 +876,7 @@ extern "C" {
  * \sa box_iterator_next()
  * \sa box_iterator_free()
  */
+#[allow(dead_code)]
 pub fn box_index_iterator(space_id: u32, index_id: u32,
                           type_: ::std::os::raw::c_int,
                           key: *const ::std::os::raw::c_char,
@@ -793,6 +890,7 @@ pub fn box_index_iterator(space_id: u32, index_id: u32,
  * \retval -1 on error (check box_error_last() for details)
  * \retval 0 on success. The end of data is not an error.
  */
+#[allow(dead_code)]
 pub fn box_iterator_next(iterator: *mut BoxIterator,
                          result: *mut *mut BoxTuple)
     -> ::std::os::raw::c_int;
@@ -801,6 +899,7 @@ pub fn box_iterator_next(iterator: *mut BoxIterator,
  *
  * \param iterator an interator returned by box_index_iterator()
  */
+#[allow(dead_code)]
 pub fn box_iterator_free(iterator: *mut BoxIterator);
 /**
  * Return the number of element in the index.
@@ -810,6 +909,7 @@ pub fn box_iterator_free(iterator: *mut BoxIterator);
  * \retval -1 on error (check box_error_last())
  * \retval >= 0 otherwise
  */
+#[allow(dead_code)]
 pub fn box_index_len(space_id: u32, index_id: u32) -> isize;
 /**
  * Return the number of bytes used in memory by the index.
@@ -819,6 +919,7 @@ pub fn box_index_len(space_id: u32, index_id: u32) -> isize;
  * \retval -1 on error (check box_error_last())
  * \retval >= 0 otherwise
  */
+#[allow(dead_code)]
 pub fn box_index_bsize(space_id: u32, index_id: u32) -> isize;
 /**
  * Return a random tuple from the index (useful for statistical analysis).
@@ -831,6 +932,7 @@ pub fn box_index_bsize(space_id: u32, index_id: u32) -> isize;
  * \retval 0 on success
  * \sa \code box.space[space_id].index[index_id]:random(rnd) \endcode
  */
+#[allow(dead_code)]
 pub fn box_index_random(space_id: u32, index_id: u32, rnd: u32,
                         result: *mut *mut BoxTuple)
     -> ::std::os::raw::c_int;
@@ -850,6 +952,7 @@ pub fn box_index_random(space_id: u32, index_id: u32, rnd: u32,
  * \pre key != NULL
  * \sa \code box.space[space_id].index[index_id]:get(key) \endcode
  */
+#[allow(dead_code)]
 pub fn box_index_get(space_id: u32, index_id: u32,
                      key: *const ::std::os::raw::c_char,
                      key_end: *const ::std::os::raw::c_char,
@@ -867,6 +970,7 @@ pub fn box_index_get(space_id: u32, index_id: u32,
  * \retval 0 on success
  * \sa \code box.space[space_id].index[index_id]:min(key) \endcode
  */
+#[allow(dead_code)]
 pub fn box_index_min(space_id: u32, index_id: u32,
                      key: *const ::std::os::raw::c_char,
                      key_end: *const ::std::os::raw::c_char,
@@ -884,6 +988,7 @@ pub fn box_index_min(space_id: u32, index_id: u32,
  * \retval 0 on success
  * \sa \code box.space[space_id].index[index_id]:max(key) \endcode
  */
+#[allow(dead_code)]
 pub fn box_index_max(space_id: u32, index_id: u32,
                      key: *const ::std::os::raw::c_char,
                      key_end: *const ::std::os::raw::c_char,
@@ -902,6 +1007,7 @@ pub fn box_index_max(space_id: u32, index_id: u32,
  * \sa \code box.space[space_id].index[index_id]:count(key,
  *     { iterator = type }) \endcode
  */
+#[allow(dead_code)]
 pub fn box_index_count(space_id: u32, index_id: u32,
                        type_: ::std::os::raw::c_int,
                        key: *const ::std::os::raw::c_char,
@@ -914,15 +1020,18 @@ pub fn box_index_count(space_id: u32, index_id: u32,
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct error {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for error {
     fn clone(&self) -> Self { *self }
 }
 /**
  * Error - contains information about error.
  */
+#[allow(dead_code)]
 pub type BoxError = error;
 extern "C" {
 /**
@@ -930,6 +1039,7 @@ extern "C" {
  * \param error
  * \return not-null string
  */
+#[allow(dead_code)]
 pub fn BoxErrorype(error: *const BoxError)
     -> *const ::std::os::raw::c_char;
 /**
@@ -937,12 +1047,14 @@ pub fn BoxErrorype(error: *const BoxError)
  * \param error error
  * \return enum box_error_code
  */
+#[allow(dead_code)]
 pub fn box_error_code(error: *const BoxError) -> u32;
 /**
  * Return the error message
  * \param error error
  * \return not-null string
  */
+#[allow(dead_code)]
 pub fn box_error_message(error: *const BoxError)
     -> *const ::std::os::raw::c_char;
 /**
@@ -966,10 +1078,12 @@ pub fn box_error_message(error: *const BoxError)
  *
  * \return last error.
  */
+#[allow(dead_code)]
 pub fn box_error_last() -> *mut BoxError;
 /**
  * Clear the last error.
  */
+#[allow(dead_code)]
 pub fn box_error_clear();
 /**
  * Set the last error.
@@ -981,6 +1095,7 @@ pub fn box_error_clear();
  *
  * \sa enum box_error_code
  */
+#[allow(dead_code)]
 pub fn box_error_set(file: *const ::std::os::raw::c_char,
                      line: ::std::os::raw::c_uint, code: u32,
                      format: *const ::std::os::raw::c_char, ...)
@@ -993,26 +1108,31 @@ pub fn box_error_set(file: *const ::std::os::raw::c_char,
 
 #[repr(C)]
 #[derive(Debug, Copy)]
+#[allow(dead_code)]
 pub struct box_latch {
     pub _address: u8,
 }
+#[allow(dead_code)]
 impl Clone for box_latch {
     fn clone(&self) -> Self { *self }
 }
 /**
  * A lock for cooperative multitasking environment
  */
+#[allow(dead_code)]
 pub type BoxLatch = box_latch;
 extern "C" {
 /**
  * Allocate and initialize the new latch.
  * \returns latch
  */
+#[allow(dead_code)]
 pub fn box_latch_new() -> *mut BoxLatch;
 /**
  * Destroy and free the latch.
  * \param latch latch
  */
+#[allow(dead_code)]
 pub fn box_latch_delete(latch: *mut BoxLatch);
 /**
  * Lock a latch. Waits indefinitely until the current fiber can gain access to
@@ -1020,6 +1140,7 @@ pub fn box_latch_delete(latch: *mut BoxLatch);
  *
  * \param latch a latch
  */
+#[allow(dead_code)]
 pub fn box_latch_lock(latch: *mut BoxLatch);
 /**
  * Try to lock a latch. Return immediately if the latch is locked.
@@ -1027,6 +1148,7 @@ pub fn box_latch_lock(latch: *mut BoxLatch);
  * \retval 0 - success
  * \retval 1 - the latch is locked.
  */
+#[allow(dead_code)]
 pub fn BoxLatchrylock(latch: *mut BoxLatch)
     -> ::std::os::raw::c_int;
 /**
@@ -1035,6 +1157,7 @@ pub fn BoxLatchrylock(latch: *mut BoxLatch)
  *
  * \param latch a latch
  */
+#[allow(dead_code)]
 pub fn box_latch_unlock(latch: *mut BoxLatch);
 }
 
@@ -1043,13 +1166,21 @@ pub fn box_latch_unlock(latch: *mut BoxLatch);
 /* {{{ Clock */
 
 extern "C" {
+#[allow(dead_code)]
 pub fn clock_realtime() -> f64;
+#[allow(dead_code)]
 pub fn clock_monotonic() -> f64;
+#[allow(dead_code)]
 pub fn clock_process() -> f64;
+#[allow(dead_code)]
 pub fn clock_thread() -> f64;
+#[allow(dead_code)]
 pub fn clock_realtime64() -> u64;
+#[allow(dead_code)]
 pub fn clock_monotonic64() -> u64;
+#[allow(dead_code)]
 pub fn clock_process64() -> u64;
+#[allow(dead_code)]
 pub fn clock_thread64() -> u64;
 }
 
