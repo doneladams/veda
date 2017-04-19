@@ -73,9 +73,9 @@ if [ -z $1 ] || [ $1 == "db_handler" ] ; then
   #  cd db_handler
   #  make
   #  cd ..
-  cd rust_db_handler
+  cd rust_db_handler/db_handler
   cargo build --release
-  cd ..
+  cd ../..
 fi
 #sudo ifup -a
 

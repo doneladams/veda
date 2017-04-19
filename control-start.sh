@@ -7,7 +7,7 @@ mkdir logs
 mkdir data
 mkdir data/tarantool
 #cp db_handler/db_handler.so data/tarantool/
-cp rust_db_handler/target/release/libdb_handler.so data/tarantool
+cp rust_db_handler/db_handler/target/release/libdb_handler.so data/tarantool
 
 #tarantool ./db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
 tarantool ./rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
