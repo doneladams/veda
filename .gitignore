@@ -41,3 +41,5 @@ veda-bootstrap
 /veda-scripts-lp
 /veda-scripts-main
 /veda-ccus
+/rust_db_handler/db_handler/target/
+/rust_db_handler/rmp_bind/target/
