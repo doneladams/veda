@@ -17,7 +17,7 @@ pub struct Response {
     size: usize
 }
 
-fn fail(resp_msg: &mut Vec<u8>, code: rest::Codes, err_msg: String) {
+pub fn fail(resp_msg: &mut Vec<u8>, code: rest::Codes, err_msg: String) {
     writeln!(&mut stderr(), "{0}", err_msg).unwrap();
     encode::encode_array(resp_msg, 1);
     encode::encode_uint(resp_msg, code as u64);
@@ -26,7 +26,7 @@ fn fail(resp_msg: &mut Vec<u8>, code: rest::Codes, err_msg: String) {
 
 fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
     if arr_size < 4 {
-        fail(resp_msg, rest::Codes::BadRequest, format!("{}", "@INVALID MSGPACK SIZE < 4"));
+        fail(resp_msg, rest::Codes::BadRequest, "@INVALID MSGPACK SIZE < 4".to_string());
         return;
     }
 

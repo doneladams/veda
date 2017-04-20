@@ -69,3 +69,18 @@ pub fn decode_array(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
         Err(err) => Err(format!("@ERR DECODING ARRAY {0}", err))
     }
 }
+
+pub fn decode_string<'b>(cursor: &mut Cursor<&[u8]>, buf: &'b mut Vec<u8>) -> Result<&'b str, String> {
+    let mut len: usize = 0;
+    let curr_position = cursor.position();
+    match decode::read_str_len(cursor) {
+        Err(err) => return Err(format!("@ERR DECODING STRING LENGTH {0}", err)) /*{}*/,
+        Ok(l) => len = l as usize
+    }
+    *buf = vec![0; len];
+    cursor.set_position(curr_position);
+    match decode::read_str(cursor, buf) {
+        Ok(s) => Ok(s),
+        Err(err) => Err(format!("@ERR DECODING STRING {0}", err))
+    }
+} 
