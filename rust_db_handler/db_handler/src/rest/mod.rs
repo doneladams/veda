@@ -1,8 +1,12 @@
 extern crate core;
 extern crate rmp_bind;
 
+mod authorization;
+
 use std::ffi::{ CString, CStr };
 use std::io::{ Write, stderr, Cursor };
+use std::os::raw::c_char;
+use std::ptr::null_mut;
 use rmp_bind::{ encode, decode };
 
 include!("../../module.rs");
@@ -102,21 +106,53 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             let count = box_index_count(conn.individuals_space_id, conn.individuals_index_id,
                 IteratorType::EQ as i32, key_ptr_start, key_ptr_end);
             writeln!(stderr(), "@COUNT {0}", count);
+
+            if count > 0 {
+                if need_auth {
+                    let auth_result = authorization::compute_access(user_id, res_uri, 
+                        conn.acl_space_id, conn.acl_index_id);
+                    let mut access: u8 = 0;
+                    match auth_result {
+                        Ok(a) => access = a,
+                        Err(err) => {
+                            writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
+                                res_uri, err);
+                            encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                            encode::encode_nil(resp_msg);
+                            continue;
+                        }
+                    }
+
+                    if (access & authorization::ACCESS_CAN_READ) == 0 {
+                        encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
+                        encode::encode_nil(resp_msg);
+                        continue;
+                    }
+                }
+
+                let mut get_result: *mut BoxTuple = null_mut();
+                let get_code = box_index_get(conn.individuals_space_id, conn.individuals_index_id,
+                     key_ptr_end, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+                let tuple_size = box_tuple_bsize(get_result);
+                let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
+                box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
+                encode::encode_uint(resp_msg, Codes::Ok as u64);
+                encode::encode_bin(resp_msg, &mut tuple_buf);
+            } else if count == 0 {
+                encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                encode::encode_nil(resp_msg);
+            } else if count < 0 {
+                writeln!(stderr(), "@ERR ON COUNT {0}", res_uri);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                encode::encode_nil(resp_msg);
+            }
         }
 
-        encode::encode_uint(resp_msg, Codes::NotFound as u64);
-        encode::encode_nil(resp_msg);
+        
     }
 }
 
 pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-  /*  let acl_space_id: u32;
-    let acl_index_id: u32;
-    unsafe {
-        acl_space_id = box_space_id_by_name(CString::new("acl").unwrap().as_ptr(), "acl".len() as u32);
-        acl_index_id = box_index_id_by_name(acl_space_id, CString::new("primary").unwrap().as_ptr(), 
-            "primary".len() as u32);
-    }*/
     writeln!(stderr(), "@ERR AUTH IS NOT IMPLEMENTED").unwrap();
     encode::encode_array(resp_msg, 1);
     encode::encode_uint(resp_msg, Codes::NotFound as u64);

@@ -465,7 +465,7 @@ pub fn box_tuple_bsize(tuple: *const BoxTuple) -> usize;
  * which would have been written if enough space had been available.
  */
 #[allow(dead_code)]
-pub fn BoxTupleo_buf(tuple: *const BoxTuple,
+pub fn box_tuple_to_buf(tuple: *const BoxTuple,
                      buf: *mut ::std::os::raw::c_char, size: usize)
     -> isize;
 /**
