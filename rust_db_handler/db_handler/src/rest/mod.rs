@@ -2,7 +2,9 @@ extern crate core;
 extern crate rmp_bind;
 
 mod authorization;
+mod put_routine;
 
+use std;
 use std::ffi::{ CString, CStr };
 use std::io::{ Write, stderr, Cursor };
 use std::os::raw::c_char;
@@ -60,14 +62,7 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
 
 
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-    writeln!(stderr(), "@ERR PUT IS NOT IMPLEMENTED").unwrap();
-    encode::encode_array(resp_msg, 1);
-    encode::encode_uint(resp_msg, Codes::NotFound as u64);
-}
-
-
-pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-    writeln!(stderr(), "@GET").unwrap();
+/*    writeln!(stderr(), "@PUT").unwrap();
     let mut conn: TarantoolConnection;
 
     match connect_to_tarantool() {
@@ -82,8 +77,49 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         Ok(s) => user_id = s
     }
 
+    encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
+    encode::encode_uint(resp_msg, Codes::Ok as u64);
+    for i in 3 .. arr_size {
+        decode::decode_bin(cursor);
+       /* let mut individual_msgpack_buf = Vec::default();    
+        let individual_msgpack: &str;
+
+        match decode::decode_string(cursor, &mut individual_msgpack_buf) {
+            Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+            Ok(s) => individual_msgpack = s
+        }*/
+
+        // writeln!(stderr(), "@INDIVIDUAL {0}", individual_msgpack);
+
+        // decode::decode_type(cursor);
+
+        encode::encode_uint(resp_msg, Codes::NotAuthorized as u64)
+    }*/
+}
+
+
+pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
+    writeln!(stderr(), "@GET").unwrap();
+    let mut conn: TarantoolConnection;
+
+    match connect_to_tarantool() {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(c) => conn = c
+    }
+
+    let mut user_id_buf = Vec::default();
+    let user_id: &str;
+    
+    match decode::decode_string(cursor, &mut user_id_buf) {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(_) => user_id = std::str::from_utf8(&user_id_buf).unwrap()
+    }
+
+    writeln!(stderr(), "@USER ID {0}", user_id);
+    
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
+    
     for i in 3 .. arr_size {
         let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
@@ -92,7 +128,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         match decode::decode_string(cursor, &mut res_uri_buf) {
             Err(err) => { super::fail(resp_msg, Codes::InternalServerError, err); continue; },
-            Ok(s) => res_uri = s
+            Ok(_) => res_uri = std::str::from_utf8(&res_uri_buf).unwrap()
         }
 
         writeln!(stderr(), "@RES URI {0}", res_uri);
@@ -105,7 +141,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             let key_ptr_end = &(*key_ptr_start.offset(request_len));
             let count = box_index_count(conn.individuals_space_id, conn.individuals_index_id,
                 IteratorType::EQ as i32, key_ptr_start, key_ptr_end);
-            writeln!(stderr(), "@COUNT {0}", count);
+            // writeln!(stderr(), "@COUNT {0}", count);
 
             if count > 0 {
                 if need_auth {

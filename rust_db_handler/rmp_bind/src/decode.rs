@@ -70,17 +70,45 @@ pub fn decode_array(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
     }
 }
 
-pub fn decode_string<'b>(cursor: &mut Cursor<&[u8]>, buf: &'b mut Vec<u8>) -> Result<&'b str, String> {
+pub fn decode_string(cursor: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) -> Result<(), String> {
     let mut len: usize = 0;
-    let curr_position = cursor.position();
-    match decode::read_str_len(cursor) {
+    /*match decode::read_str_len(cursor) {
         Err(err) => return Err(format!("@ERR DECODING STRING LENGTH {0}", err)) /*{}*/,
         Ok(l) => len = l as usize
-    }
-    *buf = vec![0; len];
-    cursor.set_position(curr_position);
-    match decode::read_str(cursor, buf) {
+    }*/
+    // *buf = vec![0; len];
+    // cursor.set_position(curr_position);
+    // return Ok(decode::read_str(cursor, buf).unwrap());
+    /*match decode::read_str(cursor, buf) {
         Ok(s) => Ok(s),
+        Err(err) => Err(format!("@ERR DECODING STRING {0}", err))
+    }*/ 
+    writeln!(stderr(), "@PREV POS {0}", cursor.position());
+    match decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]) {
+        Ok(s) => {
+            decode::read_str_len(cursor);
+            let curr_position = cursor.position();
+            cursor.set_position(curr_position + s.len() as u64);
+            writeln!(stderr(), "@CURR POS {0} : INNER LEN {1}", cursor.position(), 
+                cursor.get_ref()[..].len()); 
+            *buf = s[..].to_vec();
+            return Ok(());
+        },
         Err(err) => Err(format!("@ERR DECODING STRING {0}", err))
     }
 } 
+
+pub fn decode_type(cursor: &mut Cursor<&[u8]>) {
+    let curr_position = cursor.position();
+    let marker = decode::read_marker(cursor).unwrap();
+    cursor.set_position(curr_position);
+    writeln!(&mut stderr(), "marker = {:?}", marker); 
+}
+
+pub fn decode_bin(cursor: &mut Cursor<&[u8]>) {
+    // let buf = cursor.into_inner();
+    // rmp::decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]).unwrap();
+
+    // let bin_len = rmp::decode::read_bin_len(cursor).unwrap();
+    // writeln!(stderr(), "@BIN LEN {0}", bin_len);
+}
