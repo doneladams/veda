@@ -62,7 +62,7 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
 
 
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-/*    writeln!(stderr(), "@PUT").unwrap();
+    writeln!(stderr(), "@PUT").unwrap();
     let mut conn: TarantoolConnection;
 
     match connect_to_tarantool() {
@@ -74,27 +74,29 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     let user_id: &str;
     match decode::decode_string(cursor, &mut user_id_buf) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-        Ok(s) => user_id = s
+        Ok(_) => {}
     }
 
     encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
     for i in 3 .. arr_size {
-        decode::decode_bin(cursor);
-       /* let mut individual_msgpack_buf = Vec::default();    
+        let mut individual_msgpack_buf = Vec::default();    
         let individual_msgpack: &str;
 
         match decode::decode_string(cursor, &mut individual_msgpack_buf) {
             Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-            Ok(s) => individual_msgpack = s
-        }*/
+            Ok(_) => {}
+        }
 
+        let mut individual = put_routine::Individual::new();
+        put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual).unwrap();
+        writeln!(stderr(), "@DECODING DONE\n");
         // writeln!(stderr(), "@INDIVIDUAL {0}", individual_msgpack);
 
         // decode::decode_type(cursor);
 
         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64)
-    }*/
+    }
 }
 
 

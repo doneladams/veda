@@ -6,6 +6,13 @@ use std::fmt;
 use self::rmp::decode;
 use std::io::{Write, stderr};
 
+pub enum Type {
+    ArrayObj,
+    StringObj,
+    UintObj,
+    IntObj
+}
+
 fn decode_uint8(cursor: &mut Cursor<&[u8]>) -> u64 {
     return decode::read_u8(cursor).unwrap() as u64;
 }
@@ -25,9 +32,9 @@ fn decode_uint64(cursor: &mut Cursor<&[u8]>) -> u64 {
 
 fn decode_pfix(cursor: &mut Cursor<&[u8]>, size: u8) -> u64 {
     let mut val: u64 = 0;
-    writeln!(stderr(), "DECODE PFIX {0}", size);
+    // writeln!(stderr(), "DECODE PFIX {0}", size);
     for i in 0 .. size {
-        writeln!(stderr(), "DECODE BYTE {0}", size);
+        // writeln!(stderr(), "DECODE BYTE {0}", size);
         let byte = decode::read_pfix(cursor).unwrap();
         val <<= 8;
         val |= byte as u64;
@@ -72,25 +79,15 @@ pub fn decode_array(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
 
 pub fn decode_string(cursor: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) -> Result<(), String> {
     let mut len: usize = 0;
-    /*match decode::read_str_len(cursor) {
-        Err(err) => return Err(format!("@ERR DECODING STRING LENGTH {0}", err)) /*{}*/,
-        Ok(l) => len = l as usize
-    }*/
-    // *buf = vec![0; len];
-    // cursor.set_position(curr_position);
-    // return Ok(decode::read_str(cursor, buf).unwrap());
-    /*match decode::read_str(cursor, buf) {
-        Ok(s) => Ok(s),
-        Err(err) => Err(format!("@ERR DECODING STRING {0}", err))
-    }*/ 
-    writeln!(stderr(), "@PREV POS {0}", cursor.position());
+
+    // writeln!(stderr(), "@PREV POS {0}", cursor.position());
     match decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]) {
         Ok(s) => {
             decode::read_str_len(cursor);
             let curr_position = cursor.position();
             cursor.set_position(curr_position + s.len() as u64);
-            writeln!(stderr(), "@CURR POS {0} : INNER LEN {1}", cursor.position(), 
-                cursor.get_ref()[..].len()); 
+            // writeln!(stderr(), "@CURR POS {0} : INNER LEN {1}", cursor.position(), 
+                // cursor.get_ref()[..].len()); 
             *buf = s[..].to_vec();
             return Ok(());
         },
@@ -105,10 +102,9 @@ pub fn decode_type(cursor: &mut Cursor<&[u8]>) {
     writeln!(&mut stderr(), "marker = {:?}", marker); 
 }
 
-pub fn decode_bin(cursor: &mut Cursor<&[u8]>) {
-    // let buf = cursor.into_inner();
-    // rmp::decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]).unwrap();
-
-    // let bin_len = rmp::decode::read_bin_len(cursor).unwrap();
-    // writeln!(stderr(), "@BIN LEN {0}", bin_len);
+pub fn decode_map(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
+    match decode::read_map_len(cursor) {
+        Ok(arr_size) => Ok(arr_size as u64),
+        Err(err) => Err(format!("@ERR DECODING ARRAY {0}", err))
+    }
 }

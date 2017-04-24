@@ -16,11 +16,9 @@ pub fn encode_nil(buf: &mut Vec<u8>) {
 }
 
 pub fn encode_string(buf: &mut Vec<u8>, val: &str) {
-    encode::write_str_len(buf, val.len() as u32);
     encode::write_str(buf, val);
 }
 
 pub fn encode_bin(buf: &mut Vec<u8>, val: &Vec<u8>) {
-    encode::write_bin_len(buf, val.len() as u32);
     encode::write_bin(buf, val);
 }

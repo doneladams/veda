@@ -56,7 +56,6 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 pub extern fn handle_request(mut msg: &[u8]) -> Response {
     unsafe {
         let mut cursor = Cursor::new(msg);
-       // let result = decode::decode_array(&mut cursor);
         let resp_msg = &mut Vec::new();
         let mut arr_size: u64 = 0;
         match  decode::decode_array(&mut cursor) {
