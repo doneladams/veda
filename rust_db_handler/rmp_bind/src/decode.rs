@@ -8,9 +8,16 @@ use std::io::{Write, stderr};
 
 pub enum Type {
     ArrayObj,
+    MapObj,
     StringObj,
     UintObj,
-    IntObj
+    IntObj,
+    NilObj,
+    ReservedObj,
+    BoolObj,
+    BinObj,
+    ExtObj,
+    FloatObj
 }
 
 fn decode_uint8(cursor: &mut Cursor<&[u8]>) -> u64 {
@@ -95,11 +102,39 @@ pub fn decode_string(cursor: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) -> Result<()
     }
 } 
 
-pub fn decode_type(cursor: &mut Cursor<&[u8]>) {
+pub fn decode_type(cursor: &mut Cursor<&[u8]>) -> Result<Type, String> {
     let curr_position = cursor.position();
-    let marker = decode::read_marker(cursor).unwrap();
+    let result = decode::read_marker(cursor);
     cursor.set_position(curr_position);
+    let mut marker: rmp::Marker;
+    match result {
+        Ok(m) => marker = m,
+        Err(_) => return Err(format!("@ERR DECODING MARKER"))
+    }
+    writeln!(stderr(), "@GET MARKER");
     writeln!(&mut stderr(), "marker = {:?}", marker); 
+    
+    match marker.to_u8() {
+        0x00 ... 0x7f => Ok(Type::UintObj),
+        0xe0 ... 0xff => Ok(Type::IntObj),
+        0x80 ... 0x8f => Ok(Type::MapObj),
+        0x90 ... 0x9f => Ok(Type::ArrayObj),
+        0xa0 ... 0xbf => Ok(Type::StringObj),
+        0xc0 => Ok(Type::NilObj),
+        // Marked in MessagePack spec as never used.
+        0xc1 => Ok(Type::ReservedObj),
+        0xc2 ... 0xc3 => Ok(Type::BoolObj),
+        0xc4 ... 0xc6 => Ok(Type::BinObj),
+        0xc7 ... 0xc9 => Ok(Type::ExtObj),
+        0xca ... 0xcb => Ok(Type::FloatObj),
+        0xcc ... 0xcf => Ok(Type::UintObj),
+        0xd0 ... 0xd3 => Ok(Type::IntObj),
+        0xd4 ... 0xd8 => Ok(Type::ExtObj),
+        0xd9 ... 0xdb => Ok(Type::StringObj),
+        0xdc ... 0xdd => Ok(Type::ArrayObj),
+        0xde ... 0xdf => Ok(Type::ArrayObj),
+        _ => return Err(format!("@UNSSUPPORTED TYPE {0}", marker.to_u8())),
+    }
 }
 
 pub fn decode_map(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
