@@ -53,6 +53,15 @@ impl Individual {
     }
 }
 
+impl Lang {
+    fn from_u64(val: u64) -> Lang {
+        match val {
+            1 => Lang::LangRu,
+            2 => Lang::LangEn,
+            _ => Lang::LangNone
+        }
+    } 
+}
 
 fn resources_equeal(r1: &Resource, r2: &Resource) -> bool {
     if r1.res_type != r2.res_type {
@@ -107,7 +116,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         Ok(_) => {}
     }
 
-    writeln!(stderr(), "@INDIVIDUAL URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap()).unwrap();
+    // writeln!(stderr(), "@INDIVIDUAL URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap()).unwrap();
 
     let mut map_size: u64;
     match decode::decode_map(cursor) {
@@ -115,7 +124,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         Ok(size) => map_size = size
     }
 
-    writeln!(stderr(), "@MAP LEN {0}", map_size);
+    // writeln!(stderr(), "@MAP LEN {0}", map_size);
 
     for i in 0..map_size {
         let mut key: Vec<u8> = Vec::default();
@@ -125,7 +134,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             Err(err) => return Err(format!("@ERR DECODING INDIVIDUAL URI {0}", err)),
             Ok(_) => {}
         }
-        writeln!(stderr(), "@RESOURCE KEY {0}", std::str::from_utf8(&key[..]).unwrap()).unwrap();
+        // writeln!(stderr(), "@RESOURCE KEY {0}", std::str::from_utf8(&key[..]).unwrap()).unwrap();
         
         let mut res_size: u64;
         match decode::decode_array(cursor) {
@@ -133,7 +142,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             Err(err) => return Err(format!("@ERR DECODING RESOURCES ARRAY {0}", err))
         }
 
-        writeln!(stderr(), "@RESOURCE ARRAY LEN {0}", res_size);
+        // writeln!(stderr(), "@RESOURCE ARRAY LEN {0}", res_size);
         for j in 0.. res_size {
             let mut objtype: decode::Type;
             match decode::decode_type(cursor) {
@@ -144,13 +153,13 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             match objtype {
                 decode::Type::ArrayObj => {
                     let res_arr_size = decode::decode_array(cursor).unwrap();
-                    writeln!(stderr(), "@DECODE RES ARR 2").unwrap();
+                    // writeln!(stderr(), "@DECODE RES ARR 2").unwrap();
                     let mut res_type: u64;
                     match decode::decode_uint(cursor) {
                         Ok(rt) => res_type = rt,
                         Err(err) => return Err(format!("@ERR DECODING RESOURCE TYPE {0}", err))
                     }
-                    writeln!(stderr(), "@RES TYPE {0}", res_type);
+                    // writeln!(stderr(), "@RES TYPE {0}", res_type);
                     if res_arr_size == 2 {
                         if res_type == ResourceType::Datetime as u64 {
                             let mut datetime: u64;
@@ -158,7 +167,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                                 Ok(dt) => datetime = dt,
                                 Err(err) => return Err(format!("@ERR DECODING DATETIME {0}", err))
                             }
-                            writeln!(stderr(), "@DATETIME {0}", datetime);
+                            // writeln!(stderr(), "@DATETIME {0}", datetime);
                             let mut resource = Resource::new();
                             resource.res_type = ResourceType::Datetime;
                             resource.long_data = datetime as i64;
@@ -173,126 +182,114 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                             }
 
                             match decode_type {
-                                decode::Type::StringObj => 
+                                decode::Type::StrObj => 
                                     decode::decode_string(cursor, &mut resource.str_data).unwrap(),
                                 decode::Type::NilObj => {},
                                 _ => return Err("@UNKNOWN TYPE IN STRING RESOURCE".to_string())
                             }
                             resource.lang = Lang::LangNone;
-                            writeln!(stderr(), "@STR DATA {0}", std::str::from_utf8(
-                                    &resource.str_data[..]).unwrap()).unwrap();
+                            // writeln!(stderr(), "@STR DATA {0}", std::str::from_utf8(
+                                    // &resource.str_data[..]).unwrap()).unwrap();
                             resources.push(resource);
                         } else {
                             return Err("@UNKNOWN RESOURCE TYPE".to_string());
                         }
                     } else if res_arr_size == 3 {
-                        /*
-                        if (type == _Decimal) {
-                            long mantissa, exponent;
-                            if (res_arr.ptr[1].type == msgpack::type::POSITIVE_INTEGER)
-                                mantissa = res_arr.ptr[1].via.u64;
-                            else
-                                mantissa = res_arr.ptr[1].via.i64;
-                            if (res_arr.ptr[2].type == msgpack::type::POSITIVE_INTEGER)
-                                exponent = res_arr.ptr[2].via.u64;
-                            else
-                                exponent = res_arr.ptr[2].via.i64;
-
-                            Resource rr;
-                            rr.type                  = _Decimal;
-                            rr.decimal_mantissa_data = mantissa;
-                            rr.decimal_exponent_data = exponent;
-                            resources.push_back(rr);
-                        }
-                        else if (type == _String) {
-                            Resource    rr;
+                        // writeln!(stderr(), "@DECODE RES ARR 3").unwrap();
+                        if res_type == ResourceType::Decimal as u64 {
+                            let mut resource = Resource::new();
                             
-                            rr.type = _String;
-                            if (res_arr.ptr[1].type == msgpack::type::STR)
-                                rr.str_data = string(res_arr.ptr[1].via.str.ptr, 
-                                    res_arr.ptr[1].via.str.size);
-                            else if (res_arr.ptr[1].type == msgpack::type::NIL)
-                                rr.str_data = "";
-                            else {
-                                std::cerr << "@ERR! NOT A STRING IN RESOURCE ARRAY 2" << endl;
-                                return -1;
+                            let mut decode_type: decode::Type;  
+                            match decode::decode_type(cursor) {
+                                Ok(dt) => decode_type = dt,
+                                Err(err) => return Err(format!("@ERR DECODEING MANTISSA TYPE {0}", err))
                             }
-                
-                            long lang = res_arr.ptr[2].via.u64;
-                            rr.lang     = lang;
-                            resources.push_back(rr);
 
-                        } else {
-                            std::cerr << "@2" << endl;
-                            return -1;
-                        } */                       
+                            match decode_type {
+                                decode::Type::UintObj => {
+                                    resource.decimal_mantissa_data = decode::decode_uint(cursor).unwrap() as i64;
+                                },
+                                decode::Type::IntObj => {
+                                    resource.decimal_mantissa_data = decode::decode_int(cursor).unwrap();
+                                },
+                                _ => return Err("@ERR UNSUPPORTED MANTISSA TYPE".to_string())
+                            }
+  
+                            match decode::decode_type(cursor) {
+                                Ok(dt) => decode_type = dt,
+                                Err(err) => return Err(format!("@ERR DECODEING MANTISSA TYPE {0}", err))
+                            }
+
+                            match decode_type {
+                                decode::Type::UintObj => {
+                                    resource.decimal_exponent_data = decode::decode_uint(cursor).unwrap() as i64;
+                                },
+                                decode::Type::IntObj => {
+                                    resource.decimal_exponent_data = decode::decode_int(cursor).unwrap();
+                                },
+                                _ => return Err("@ERR UNSUPPORTED EXPONENT TYPE".to_string())
+                            }
+
+                            resource.res_type = ResourceType::Decimal;
+                            resources.push(resource);
+                        } else if res_type == ResourceType::Str as u64 {
+                            let mut resource = Resource::new();
+
+                            let mut decode_type: decode::Type;
+                            match decode::decode_type(cursor) {
+                                Ok(dt) => decode_type = dt,
+                                Err(err) => return Err(format!("@ERR DECODING STRING RES TYPE {0}", err))
+                            }
+
+                            match decode_type {
+                                decode::Type::StrObj => 
+                                    decode::decode_string(cursor, &mut resource.str_data).unwrap(),
+                                decode::Type::NilObj => {},
+                                _ => return Err("@UNKNOWN TYPE IN STRING RESOURCE".to_string())
+                            }
+
+                            match decode::decode_uint(cursor) {
+                                Ok(l) => resource.lang = Lang::from_u64(l),
+                                Err(err) => return Err(format!("@ERR DECODING LEN {0}", err))
+                            }
+                            resource.res_type = ResourceType::Str;
+                            resources.push(resource);
+                        }                     
                     }
                 }
-                _ => {}
+                decode::Type::StrObj => {
+                    // writeln!(stderr(), "@DECODE STROBJ RESOURCE").unwrap();
+                    let mut resource = Resource::new();
+                    decode::decode_string(cursor, &mut resource.str_data).unwrap();
+                    resource.res_type = ResourceType::Uri;
+                    resources.push(resource);
+                }
+                decode::Type::UintObj => {
+                    // writeln!(stderr(), "@DECODE UINTOBJ RESOURCE").unwrap();
+                    let mut resource = Resource::new();
+                    resource.long_data = decode::decode_uint(cursor).unwrap() as i64;
+                    resource.res_type = ResourceType::Integer;
+                    resources.push(resource);
+                }
+                decode::Type::IntObj => {
+                    // writeln!(stderr(), "@DECODE INTOBJ RESOURCE");
+                    let mut resource = Resource::new();
+                    resource.long_data = decode::decode_int(cursor).unwrap();
+                    resource.res_type = ResourceType::Integer;
+                    resources.push(resource);
+                }
+                decode::Type::BoolObj => {
+                    // writeln!(stderr(), "@DECODE BOOLOBJ RESOURCE");
+                    let mut resource = Resource::new();
+                    resource.bool_data = decode::decode_bool(cursor).unwrap();
+                    resource.res_type = ResourceType::Boolean;
+                    resources.push(resource);
+                }
+               _ => return Err("@UNSUPPORTED RESOURCE TYPE".to_string())
             }
         }
 
-        
-/*  msgpack::object_kv pair = map.ptr[i];
-       
-        
-
-        for (int j = 0; j < res_objs.size; j++) {
-            msgpack::object value = res_objs.ptr[j];
-            
-            switch (value.type) {
-
-                case msgpack::type::STR: {
-                    Resource    rr;
-                    rr.type = _Uri;
-                    rr.str_data = string(string(value.via.str.ptr, value.via.str.size));
-                    resources.push_back(rr);
-                    break;
-                }
-
-                case msgpack::type::POSITIVE_INTEGER: {
-                    Resource rr;
-                    rr.type      = _Integer;
-                    rr.long_data = value.via.u64;
-                    resources.push_back(rr);
-                    break;
-                }
-
-                case msgpack::type::NEGATIVE_INTEGER: {
-                    Resource rr;
-                    rr.type      = _Integer;
-                    rr.long_data = value.via.i64;
-                    resources.push_back(rr);
-                    break;
-                }       
-
-                case msgpack::type::BOOLEAN: {
-                    Resource rr;
-                    rr.type      = _Boolean;
-                    rr.bool_data = value.via.boolean;
-                    resources.push_back(rr);
-                    break;
-                } 
-
-                default: {
-                    cerr << "@ERR! UNSUPPORTED RESOURCE TYPE " << value.type << endl;
-                    return -1;  
-                }  
-            }
-        }
-
-        individual->resources[ predicate ] = resources;     */   
+        individual.resources.insert(std::str::from_utf8(&key[..]).unwrap().to_string(), resources);
     }
-
-/*
-    
-   
-    
-    for (int i = 0; i < map.size; i++ ) {
-       
-    }
-
-    return 0;*/
-
     return Ok(());
 }

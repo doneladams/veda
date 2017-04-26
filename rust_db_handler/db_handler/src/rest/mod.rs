@@ -90,10 +90,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         let mut individual = put_routine::Individual::new();
         put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual).unwrap();
-        writeln!(stderr(), "@DECODING DONE\n");
-        // writeln!(stderr(), "@INDIVIDUAL {0}", individual_msgpack);
-
-        // decode::decode_type(cursor);
+        writeln!(stderr(), "@DECODING DONE");
 
         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64)
     }

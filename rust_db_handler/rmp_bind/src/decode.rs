@@ -9,7 +9,7 @@ use std::io::{Write, stderr};
 pub enum Type {
     ArrayObj,
     MapObj,
-    StringObj,
+    StrObj,
     UintObj,
     IntObj,
     NilObj,
@@ -70,6 +70,43 @@ pub fn decode_uint(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
     }
 }
 
+fn decode_int8(cursor: &mut Cursor<&[u8]>) -> i64 {
+    return decode::read_i8(cursor).unwrap() as i64;
+}
+
+fn decode_int16(cursor: &mut Cursor<&[u8]>) -> i64 {
+    // writeln!(&mut stderr(), "marker = {:?}", marker); 
+    return decode::read_i16(cursor).unwrap() as i64;
+}
+
+fn decode_int32(cursor: &mut Cursor<&[u8]>) -> i64 {
+    return decode::read_i32(cursor).unwrap() as i64;
+}
+
+fn decode_int64(cursor: &mut Cursor<&[u8]>) -> i64 {
+    return decode::read_i64(cursor).unwrap();
+}
+
+pub fn decode_int(cursor: &mut Cursor<&[u8]>) -> Result<i64, String> {
+    let curr_position = cursor.position();
+    // return Ok(decode::read_pfix(cursor).unwrap() as u64);
+     
+    let marker = decode::read_marker(cursor).unwrap();
+    cursor.set_position(curr_position);
+    // writeln!(&mut stderr(), "marker = {:?}", marker); 
+    // rmp::Marker::FixPos();
+    match marker {
+        rmp::Marker::I8  => Ok(decode_int8(cursor)),
+        rmp::Marker::I16  => Ok(decode_int16(cursor)),
+        rmp::Marker::I32 => Ok(decode_int32(cursor)),
+        rmp::Marker::I64  => Ok(decode_int64(cursor)),
+        _ => match decode::read_nfix(cursor) {
+            Ok(v)  => Ok(v as i64),
+            Err(_) => Err(format!("@ERR IS NOT INT {:?}", marker))
+        }
+    }
+}
+
 pub fn decode_bool(cursor: &mut Cursor<&[u8]>) -> Result<bool, String> {
     match decode::read_bool(cursor) {
         Ok(v) => Ok(v),
@@ -111,15 +148,15 @@ pub fn decode_type(cursor: &mut Cursor<&[u8]>) -> Result<Type, String> {
         Ok(m) => marker = m,
         Err(_) => return Err(format!("@ERR DECODING MARKER"))
     }
-    writeln!(stderr(), "@GET MARKER");
-    writeln!(&mut stderr(), "marker = {:?}", marker); 
+    // writeln!(stderr(), "@GET MARKER");
+    // writeln!(&mut stderr(), "marker = {:?}", marker); 
     
     match marker.to_u8() {
         0x00 ... 0x7f => Ok(Type::UintObj),
         0xe0 ... 0xff => Ok(Type::IntObj),
         0x80 ... 0x8f => Ok(Type::MapObj),
         0x90 ... 0x9f => Ok(Type::ArrayObj),
-        0xa0 ... 0xbf => Ok(Type::StringObj),
+        0xa0 ... 0xbf => Ok(Type::StrObj),
         0xc0 => Ok(Type::NilObj),
         // Marked in MessagePack spec as never used.
         0xc1 => Ok(Type::ReservedObj),
@@ -130,7 +167,7 @@ pub fn decode_type(cursor: &mut Cursor<&[u8]>) -> Result<Type, String> {
         0xcc ... 0xcf => Ok(Type::UintObj),
         0xd0 ... 0xd3 => Ok(Type::IntObj),
         0xd4 ... 0xd8 => Ok(Type::ExtObj),
-        0xd9 ... 0xdb => Ok(Type::StringObj),
+        0xd9 ... 0xdb => Ok(Type::StrObj),
         0xdc ... 0xdd => Ok(Type::ArrayObj),
         0xde ... 0xdf => Ok(Type::ArrayObj),
         _ => return Err(format!("@UNSSUPPORTED TYPE {0}", marker.to_u8())),
