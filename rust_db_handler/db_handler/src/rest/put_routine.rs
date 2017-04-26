@@ -25,10 +25,10 @@ enum Lang {
 }
 
 #[derive(PartialEq, Eq)]
-struct Resource {
+pub struct Resource {
     res_type: ResourceType,
     lang: Lang,
-    str_data: Vec<u8>,
+    pub str_data: Vec<u8>,
     bool_data: bool,
     long_data: i64,
     decimal_mantissa_data: i64,
@@ -37,7 +37,7 @@ struct Resource {
 
 pub struct Individual {
     uri: Vec<u8>,
-    resources: HashMap<String, Vec<Resource>>    
+    pub resources: HashMap<String, Vec<Resource>>    
 }
 
 impl Resource {

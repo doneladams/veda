@@ -89,9 +89,100 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
 
         let mut individual = put_routine::Individual::new();
-        put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual).unwrap();
+        match put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual) {
+            Ok(_) => {}
+            Err(err) => {
+                writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+            }
+        }
         writeln!(stderr(), "@DECODING DONE");
+        let mut new_state_res: &Vec<put_routine::Resource>;
+        match individual.resources.get(&"new_state".to_string()) {
+            Some(res) => new_state_res = res,
+            _ => {
+                writeln!(stderr(), "@NO NEW_STATE FOUND");
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                return;
+            }
+        }
 
+        writeln!(stderr(), "@CONTAINS NEW_STATE");
+        let mut new_state = put_routine::Individual::new();
+        match put_routine::msgpack_to_individual(&mut Cursor::new(&new_state_res[0].str_data[..]), 
+            &mut new_state) {
+            Ok(_) => {}
+            Err(err) => {
+                writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err);
+                encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+            }
+        }
+        writeln!(stderr(), "@DECODED NEW STATE");
+        let mut rdf_types: &Vec<put_routine::Resource>;
+        match new_state.resources.get(&"rdf:type".to_string()) {
+            Some(res) => rdf_types = res,
+            _ => {
+                writeln!(stderr(), "@NO RDF_TYPE_FOUND FOUND");
+                encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+                return;
+            }
+        }
+
+        writeln!(stderr(), "@RDF:TYPE FOUND");
+/*
+        int res;
+        vector<string> tnt_rdf_types;
+        res = get_rdf_types(new_state->uri, tnt_rdf_types);     
+        if (res < 0) {
+            fprintf (stderr, "@ERR REST! GET RDF TYPES ERR!\n");
+            cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
+            return INTERNAL_SERVER_ERROR;
+        } else if (res > 0 && need_auth) {
+            vector<string>::iterator it;
+            for (int i = 0; i < rdf_type.size(); i++) {
+                it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
+                if (it == tnt_rdf_types.end()) {
+                    is_update = false;
+                    auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
+                        rdf_type[i].str_data.size());
+                    if (auth_result < 0) {
+                        return INTERNAL_SERVER_ERROR;
+                    }
+                    if (!(auth_result & ACCESS_CAN_CREATE)) {
+                        delete new_state;
+                        return NOT_AUTHORIZED;
+                    }
+                }
+            }
+        } else if (res == 0)
+            is_update = false;
+                
+        if (is_update && need_auth) {
+            auth_result = db_auth(user_id.ptr, user_id.size, new_state->uri.c_str(),
+                new_state->uri.size());
+            // fprintf(stderr, "UPDATE AUTH %d\n", auth_result);
+            if (auth_result < 0)
+                return INTERNAL_SERVER_ERROR;
+                
+            if (!(auth_result & ACCESS_CAN_UPDATE)) {
+                delete new_state;
+                return NOT_AUTHORIZED;
+            }
+        }
+
+        // fprintf(stderr, "IS UPDATE %d\n", (int)is_update);
+
+        if (!is_update)
+            put_rdf_types(new_state->uri, rdf_type);
+            
+        
+        if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
+            delete new_state;
+            cerr << "@ERR REST: ERR ON INSERTING MSGPACK" << endl;
+            return INTERNAL_SERVER_ERROR;
+        }
+
+        */
         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64)
     }
 }
