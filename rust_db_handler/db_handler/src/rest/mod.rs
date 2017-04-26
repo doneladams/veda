@@ -22,27 +22,18 @@ pub enum Codes {
 }
 
 #[derive(Default)]
-struct TarantoolConnection {
+pub struct TarantoolConnection {
     acl_space_id: u32,
     acl_index_id: u32,
     individuals_space_id: u32,
-    individuals_index_id: u32
+    individuals_index_id: u32,
+    rdf_types_space_id: u32,
+    rdf_types_index_id: u32
 }
 
 fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
     let mut conn: TarantoolConnection = Default::default();
     unsafe {
-        conn.acl_space_id = box_space_id_by_name(CString::new("acl").unwrap().as_ptr(), "acl".len() as u32);
-        if conn.acl_space_id == BOX_ID_NIL {
-            return Err("@ERR NO SPACE acl".to_string());
-        }
-        
-        conn.acl_index_id = box_index_id_by_name(conn.acl_space_id, CString::new("primary").unwrap().as_ptr(), 
-            "primary".len() as u32);
-        if conn.acl_index_id == BOX_ID_NIL {
-            return Err("@ERR NO INDEX primary IN acl".to_string());
-        }
-
         conn.individuals_space_id = box_space_id_by_name(CString::new("individuals").unwrap().as_ptr(), 
             "individuals".len() as u32);
         if conn.acl_space_id == BOX_ID_NIL {
@@ -56,10 +47,32 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
             return Err("@ERR NO INDEX primary IN individuals".to_string());
         }
 
+        conn.acl_space_id = box_space_id_by_name(CString::new("acl").unwrap().as_ptr(), "acl".len() as u32);
+        if conn.acl_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE acl".to_string());
+        }
+        
+        conn.acl_index_id = box_index_id_by_name(conn.acl_space_id, CString::new("primary").unwrap().as_ptr(), 
+            "primary".len() as u32);
+        if conn.acl_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN acl".to_string());
+        }
+
+        conn.rdf_types_space_id = box_space_id_by_name(CString::new("rdf_types").unwrap().as_ptr(), 
+            "rdf_types".len() as u32);
+        if conn.acl_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE rdf_types".to_string());
+        }
+        
+        conn.rdf_types_index_id = box_index_id_by_name(conn.rdf_types_space_id, 
+            CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
+        if conn.acl_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN rdf_types".to_string());
+        }
+
         return Ok(conn);
     }
 }
-
 
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     writeln!(stderr(), "@PUT").unwrap();
@@ -71,7 +84,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     }
 
     let mut user_id_buf = Vec::default();
-    let user_id: &str;
+    let mut user_id: &str;
     match decode::decode_string(cursor, &mut user_id_buf) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
         Ok(_) => {}
@@ -85,7 +98,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         match decode::decode_string(cursor, &mut individual_msgpack_buf) {
             Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-            Ok(_) => {}
+            Ok(_) => user_id = std::str::from_utf8(&user_id_buf).unwrap()
         }
 
         let mut individual = put_routine::Individual::new();
@@ -129,16 +142,19 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
 
         writeln!(stderr(), "@RDF:TYPE FOUND");
-/*
-        int res;
-        vector<string> tnt_rdf_types;
-        res = get_rdf_types(new_state->uri, tnt_rdf_types);     
-        if (res < 0) {
-            fprintf (stderr, "@ERR REST! GET RDF TYPES ERR!\n");
-            cerr << "@ERR REST! GET RDF TYPES ERR!" << endl;
-            return INTERNAL_SERVER_ERROR;
-        } else if (res > 0 && need_auth) {
-            vector<string>::iterator it;
+        let mut tnt_rdf_types: Vec<Vec<u8>> = Vec::default();
+        match put_routine::get_rdf_types(&new_state.uri, &mut tnt_rdf_types, &conn) {
+            Ok(_) => {}
+            Err(err) => {
+                writeln!(stderr(), "@ERR READING RDF:TYPE IN TARANTOOL {0}", err);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+            }
+        }
+
+        writeln!(stderr(), "@TNT RDF:TYPE LEN {0}", tnt_rdf_types.len());
+        let mut is_update: bool = true;
+        if (tnt_rdf_types.len() > 0 && need_auth) {
+            /*vector<string>::iterator it;
             for (int i = 0; i < rdf_type.size(); i++) {
                 it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
                 if (it == tnt_rdf_types.end()) {
@@ -153,25 +169,34 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                         return NOT_AUTHORIZED;
                     }
                 }
-            }
-        } else if (res == 0)
+            }*/
+        } else {
             is_update = false;
-                
+        }
+
         if (is_update && need_auth) {
-            auth_result = db_auth(user_id.ptr, user_id.size, new_state->uri.c_str(),
-                new_state->uri.size());
-            // fprintf(stderr, "UPDATE AUTH %d\n", auth_result);
-            if (auth_result < 0)
-                return INTERNAL_SERVER_ERROR;
-                
-            if (!(auth_result & ACCESS_CAN_UPDATE)) {
-                delete new_state;
-                return NOT_AUTHORIZED;
+            let mut auth_result: u8;
+            match authorization::compute_access(user_id, 
+                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn) {
+                Err(err) => {
+                    writeln!(stderr(), "@ERR UN UPDATE AUTH {0}", err).unwrap();
+                    encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                    return;
+                }
+                Ok(ac) => auth_result = ac
+            }
+
+            if (auth_result & authorization::ACCESS_CAN_UPDATE == 0) {
+                writeln!(stderr(), "@NOT AUTH UPDATE");
+                encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
             }
         }
 
-        // fprintf(stderr, "IS UPDATE %d\n", (int)is_update);
-
+        writeln!(stderr(), "@CHECKED RIGHTS");  
+        if (!is_update) {
+            put_routine::put_rdf_types(&new_state.uri, rdf_types, &conn);
+        }
+/*
         if (!is_update)
             put_rdf_types(new_state->uri, rdf_type);
             
@@ -235,8 +260,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
             if count > 0 {
                 if need_auth {
-                    let auth_result = authorization::compute_access(user_id, res_uri, 
-                        conn.acl_space_id, conn.acl_index_id);
+                    let auth_result = authorization::compute_access(user_id, res_uri, &conn);
                     let mut access: u8 = 0;
                     match auth_result {
                         Ok(a) => access = a,

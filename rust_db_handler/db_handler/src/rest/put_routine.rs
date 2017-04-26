@@ -4,8 +4,13 @@ extern crate rmp_bind;
 use std;
 use std::collections::HashMap;
 use std::cmp::Eq;
+use std::ffi::{ CString, CStr };
 use std::io::{ Write, stderr, Cursor };
+use std::os::raw::c_char;
+use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
+
+include!("../../module.rs");
 
 #[derive(PartialEq, Eq)]
 enum ResourceType {
@@ -36,7 +41,7 @@ pub struct Resource {
 }
 
 pub struct Individual {
-    uri: Vec<u8>,
+    pub uri: Vec<u8>,
     pub resources: HashMap<String, Vec<Resource>>    
 }
 
@@ -292,4 +297,63 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         individual.resources.insert(std::str::from_utf8(&key[..]).unwrap().to_string(), resources);
     }
     return Ok(());
+}
+
+pub fn get_rdf_types(uri: &Vec<u8>, rdf_types: &mut Vec<Vec<u8>>, conn: &super::TarantoolConnection) 
+    -> Result<(), String> {
+    writeln!(stderr(), "@TRY GET RDF TYPES");
+    let mut request = Vec::new();
+
+    encode::encode_array(&mut request, 1);
+    writeln!(stderr(), "@REQ LEN {0}", request.len()).unwrap();
+    encode::encode_string(&mut request, &std::str::from_utf8(uri).unwrap());
+    writeln!(stderr(), "@REQ LEN1 {0}", request.len()).unwrap();
+    unsafe {
+        let request_len = request.len() as isize;
+        let key_ptr_start = request[..].as_ptr() as *const i8;
+        let key_ptr_end = request[..].as_ptr().offset(request_len) as *const i8;
+
+        let mut get_result: *mut BoxTuple = null_mut();
+        let get_code = box_index_get(conn.rdf_types_space_id, conn.rdf_types_index_id,
+           key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+       
+        if get_code < 0 {
+            writeln!(stderr(), "{0}",
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            return Err("@ERR READING RDF TYPES".to_string());
+        } else if get_result != null_mut() {
+            writeln!(stderr(), "@GET RDF TYPES");
+        }
+    }
+
+    writeln!(stderr(), "@RETURN RDF TYPES");
+    return Ok(());
+}
+
+pub fn put_rdf_types(uri: &Vec<u8>, rdf_types: &Vec<Resource>, conn: &super::TarantoolConnection) {
+    let mut request = Vec::new();
+    encode::encode_array(&mut request, rdf_types.len() as u32 + 1);
+    writeln!(stderr(), "@ENCODE URI {0}", std::str::from_utf8(&uri[..]).unwrap());
+    encode::encode_string_bytes(&mut request, &uri);
+    for i in 0 .. rdf_types.len() {
+        encode::encode_string_bytes(&mut request, &rdf_types[i].str_data);
+        writeln!(stderr(), "@ENCODE RDF TYPE {0}", std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap());
+    }
+
+    unsafe {
+        let request_len = request.len() as isize;
+        writeln!(stderr(), "@REPLACE REQ LEN {0}", request_len);
+        let key_ptr_start = request[..].as_ptr() as *const i8;
+        let key_ptr_end = request[..].as_ptr().offset(request_len) as *const i8;
+        writeln!(stderr(), "@START POINTS AT {0} {1}", *key_ptr_start as u8, request[0]);
+        writeln!(stderr(), "@END POINTS AT {0} {1}", *(key_ptr_end.offset(-1)) as u8, request[request.len() - 1]);
+        writeln!(stderr(), "@TRY REPLACE RDF TYPES");
+        let replace_code = box_replace(conn.rdf_types_space_id, key_ptr_start, key_ptr_end, 
+            &mut null_mut() as *mut *mut BoxTuple);
+        if replace_code < 0 {
+            writeln!(stderr(), "{0}",
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+        }
+        writeln!(stderr(), "@REPLACE CODE {0}", replace_code);
+    }
 }
