@@ -78,6 +78,7 @@ function handle_request(s)
         resp = db_handler.handle_request(c_str, size)
         log.info('resp=[%s]', resp)
         log.info('resp.size=[%d]', resp.size)
+        log.info('resp.msg=[%s]', ffi.string(resp.msg, resp.size));
 
         resp_size_str = string.char(bit.band(bit.rshift(resp.size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp.size, 16), 255)) ..
@@ -85,7 +86,7 @@ function handle_request(s)
             string.char(bit.band(resp.size, 255))
 --        log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
         --  s:send(resp_size_str..resp)
-        s:send(ffi.string(resp.msg, resp.size))
+        s:send(resp_size_str..ffi.string(resp.msg, resp.size))
 --        log.info('END')
     end
 end

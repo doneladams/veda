@@ -148,28 +148,42 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Err(err) => {
                 writeln!(stderr(), "@ERR READING RDF:TYPE IN TARANTOOL {0}", err);
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                // rdf_types[i].str+
             }
         }
 
         writeln!(stderr(), "@TNT RDF:TYPE LEN {0}", tnt_rdf_types.len());
         let mut is_update: bool = true;
         if (tnt_rdf_types.len() > 0 && need_auth) {
-            /*vector<string>::iterator it;
-            for (int i = 0; i < rdf_type.size(); i++) {
-                it = find(tnt_rdf_types.begin(), tnt_rdf_types.end(), rdf_type[i].str_data);
-                if (it == tnt_rdf_types.end()) {
-                    is_update = false;
-                    auth_result = db_auth(user_id.ptr, user_id.size, rdf_type[i].str_data.c_str(), 
-                        rdf_type[i].str_data.size());
-                    if (auth_result < 0) {
-                        return INTERNAL_SERVER_ERROR;
+            for i in 0 .. rdf_types.len() {
+                // individual_msgpack_buf.as
+                writeln!(stderr(), "@TRY TO FIND {0}", 
+                    std::str::from_utf8(rdf_types[i].str_data.as_ref()).unwrap());
+                match tnt_rdf_types.iter().find(|&rdf_type| rdf_type.as_slice() == 
+                    rdf_types[i].str_data.as_slice()) {
+                        None => {
+                            writeln!(stderr(), "@NOT FOUND").unwrap();
+                            is_update = false;
+                            let auth_result = authorization::compute_access(user_id, 
+                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn);
+                            let mut auth_result: u8;
+                            match authorization::compute_access(user_id, 
+                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn) {
+                                Err(err) => {
+                                    writeln!(stderr(), "@ERR UN UPDATE AUTH {0}", err).unwrap();
+                                    encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                                    return;
+                                }
+                                Ok(ac) => auth_result = ac
+                            }
+                            if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
+                                encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
+                                return;
+                            } 
+                        }
+                        Some(_) => {}
                     }
-                    if (!(auth_result & ACCESS_CAN_CREATE)) {
-                        delete new_state;
-                        return NOT_AUTHORIZED;
-                    }
-                }
-            }*/
+            }
         } else {
             is_update = false;
         }
@@ -196,19 +210,51 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         if (!is_update) {
             put_routine::put_rdf_types(&new_state.uri, rdf_types, &conn);
         }
-/*
-        if (!is_update)
-            put_rdf_types(new_state->uri, rdf_type);
-            
-        
-        if (box_replace(individuals_space_id, tmp_ptr, tmp_ptr + tmp_len, NULL) < 0) {
-            delete new_state;
-            cerr << "@ERR REST: ERR ON INSERTING MSGPACK" << endl;
-            return INTERNAL_SERVER_ERROR;
+      
+        unsafe {
+            writeln!(stderr(), "@REPLACE NEW STATE IN TARANTOOL").unwrap();
+            let request_len = new_state_res[0].str_data[..].len() as isize;
+            writeln!(stderr(), "@REPLACE NEW STATE LEN {0}", request_len);
+            let key_ptr_start = new_state_res[0].str_data[..].as_ptr() as *const i8;
+            let key_ptr_end = key_ptr_start.offset(request_len);
+            writeln!(stderr(), "@TRY REPLACE NEW STATE");
+            let replace_code = box_replace(conn.individuals_space_id, key_ptr_start, key_ptr_end, 
+                &mut null_mut() as *mut *mut BoxTuple);
+            if replace_code < 0 {
+                writeln!(stderr(), "{0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
         }
 
-        */
-        encode::encode_uint(resp_msg, Codes::NotAuthorized as u64)
+        /*it = individual->resources.find("prev_state");
+    prev_state = new Individual();
+    if(it != individual->resources.end()) {
+        const char *tmp_ptr;
+        uint32_t tmp_len;
+
+        tmp_vec  = it->second;
+        tmp_ptr = tmp_vec[0].str_data.c_str();
+        tmp_len = tmp_vec[0].str_data.length();
+        if (msgpack_to_individual(prev_state, tmp_ptr, tmp_len) < 0) {
+            delete prev_state;
+            delete new_state;
+            cerr << "@ERR REST! ERR ON DECODING PREV_STATE" << endl;
+            return BAD_REQUEST;
+        }
+    }
+    
+    it = new_state->resources.find("rdf:type");
+    if (it != new_state->resources.end()) {
+        if (it->second[0].str_data == "v-s:PermissionStatement") 
+            prepare_right_set(prev_state, new_state, "v-s:permissionObject", 
+                "v-s:permissionSubject", PERMISSION_PREFIX);
+        else if (it->second[0].str_data == "v-s:Membership")
+            prepare_right_set(prev_state, new_state, "v-s:resource", "v-s:memberOf", 
+                MEMBERSHIP_PREFIX);
+    }*/
+
+        
+        encode::encode_uint(resp_msg, Codes::Ok as u64)
     }
 }
 
@@ -233,13 +279,13 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     writeln!(stderr(), "@USER ID {0}", user_id);
     
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
+    // encode::encode_array(resp_msg, (1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
-    
+
     for i in 3 .. arr_size {
         let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
         let mut request = Vec::new();
-
 
         match decode::decode_string(cursor, &mut res_uri_buf) {
             Err(err) => { super::fail(resp_msg, Codes::InternalServerError, err); continue; },
@@ -252,8 +298,8 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         encode::encode_string(&mut request, res_uri);
         unsafe {
             let request_len = request.len() as isize;
-            let key_ptr_start = CString::new(request).unwrap().as_ptr();
-            let key_ptr_end = &(*key_ptr_start.offset(request_len));
+            let key_ptr_start = request[..].as_ptr() as *const i8;
+            let key_ptr_end = key_ptr_start.offset(request_len);
             let count = box_index_count(conn.individuals_space_id, conn.individuals_index_id,
                 IteratorType::EQ as i32, key_ptr_start, key_ptr_end);
             // writeln!(stderr(), "@COUNT {0}", count);
@@ -279,16 +325,19 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                         continue;
                     }
                 }
-
+                writeln!(stderr(), "@TRY GET INDIVIDUAL").unwrap();
                 let mut get_result: *mut BoxTuple = null_mut();
                 let get_code = box_index_get(conn.individuals_space_id, conn.individuals_index_id,
                      key_ptr_end, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
                 let tuple_size = box_tuple_bsize(get_result);
                 let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
                 box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
-                encode::encode_uint(resp_msg, Codes::Ok as u64);
-                encode::encode_bin(resp_msg, &mut tuple_buf);
+            //    encode::encode_uint(resp_msg, Codes::Ok as u64);
+              //  encode::encode_string_bytes(resp_msg, &mut tuple_buf);
+                encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                encode::encode_nil(resp_msg);
             } else if count == 0 {
+                writeln!(stderr(), "@NOT FOUND");
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
             } else if count < 0 {

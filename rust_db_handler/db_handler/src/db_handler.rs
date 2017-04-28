@@ -3,8 +3,10 @@ extern crate rmp_bind;
 
 mod rest;
 
+use std::os::raw::c_char;
 use std::io::{ Cursor, Write, stderr };
 use rmp_bind::{ decode, encode };
+use std::ffi::{ CString, CStr };
 
 const PUT: u64 = 1;
 const GET: u64 = 2;
@@ -13,7 +15,7 @@ const REMOVE: u64 = 51;
 
 #[repr(C)]
 pub struct Response {
-    msg: *const u8,
+    msg: *const c_char,
     size: usize
 }
 
@@ -53,18 +55,18 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 }
 
 #[no_mangle]
-pub extern fn handle_request(mut msg: &[u8]) -> Response {
+pub extern fn handle_request(mut msg: &[u8], mut msg_size: i32, resp_size: &mut [i32]) -> Response {
     unsafe {
         let mut cursor = Cursor::new(msg);
-        let resp_msg = &mut Vec::new();
+        let mut resp_msg = Vec::new();
         let mut arr_size: u64 = 0;
         match  decode::decode_array(&mut cursor) {
-            Err(err) => fail(resp_msg, rest::Codes::InternalServerError, err),
-            Ok(arr_size) => unmarshal_request(&mut cursor, arr_size, resp_msg)
+            Err(err) => fail(&mut resp_msg, rest::Codes::InternalServerError, err),
+            Ok(arr_size) => unmarshal_request(&mut cursor, arr_size, &mut resp_msg)
         }
         
-
-        writeln!(&mut stderr(), "ENDING").unwrap();
-        return Response { msg: &resp_msg[0], size: resp_msg.len() } ;
+        let response = Response { msg: resp_msg[..].as_ptr() as *const i8, size: resp_msg.len() };
+        std::mem::forget(resp_msg);
+        return  response;
     }
 }
