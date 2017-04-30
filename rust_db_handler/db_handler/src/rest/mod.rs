@@ -75,6 +75,7 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
 }
 
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
+
     writeln!(stderr(), "@PUT").unwrap();
     let mut conn: TarantoolConnection;
 
@@ -85,22 +86,29 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
     let mut user_id_buf = Vec::default();
     let mut user_id: &str;
+    writeln!(stderr(), "@DECODE USER ID");
     match decode::decode_string(cursor, &mut user_id_buf) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-        Ok(_) => {}
+        Ok(_) => {user_id = std::str::from_utf8(&user_id_buf).unwrap()}
     }
+    writeln!(stderr(), "@DECODED USER ID");
+    
 
     encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
+
     for i in 3 .. arr_size {
         let mut individual_msgpack_buf = Vec::default();    
         let individual_msgpack: &str;
-
+        
+        writeln!(stderr(), "@DECODE INDIVIDUAL").unwrap();
         match decode::decode_string(cursor, &mut individual_msgpack_buf) {
             Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-            Ok(_) => user_id = std::str::from_utf8(&user_id_buf).unwrap()
+            Ok(_) => {}
         }
+        writeln!(stderr(), "@DECODED INDIVIDUAL").unwrap();
 
+        writeln!(stderr(), "@INDIVIDUAL TO MSGPACK").unwrap();
         let mut individual = put_routine::Individual::new();
         match put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual) {
             Ok(_) => {}
@@ -109,7 +117,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
             }
         }
-        writeln!(stderr(), "@DECODING DONE");
+        writeln!(stderr(), "@INDIVIDUAL TO MSGPACK DONE").unwrap();
+        
         let mut new_state_res: &Vec<put_routine::Resource>;
         match individual.resources.get(&"new_state".to_string()) {
             Some(res) => new_state_res = res,
@@ -126,7 +135,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             &mut new_state) {
             Ok(_) => {}
             Err(err) => {
-                writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err);
+                writeln!(stderr(), "@ERR DECODING NEW STATE {0}", err);
                 encode::encode_uint(resp_msg, Codes::BadRequest as u64);
             }
         }
@@ -187,7 +196,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         } else {
             is_update = false;
         }
-
+        writeln!(stderr(), "@IS UPDATE {0}", is_update);
         if (is_update && need_auth) {
             let mut auth_result: u8;
             match authorization::compute_access(user_id, 
@@ -226,23 +235,28 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             }
         }
 
-        /*it = individual->resources.find("prev_state");
-    prev_state = new Individual();
-    if(it != individual->resources.end()) {
-        const char *tmp_ptr;
-        uint32_t tmp_len;
-
-        tmp_vec  = it->second;
-        tmp_ptr = tmp_vec[0].str_data.c_str();
-        tmp_len = tmp_vec[0].str_data.length();
-        if (msgpack_to_individual(prev_state, tmp_ptr, tmp_len) < 0) {
-            delete prev_state;
-            delete new_state;
-            cerr << "@ERR REST! ERR ON DECODING PREV_STATE" << endl;
-            return BAD_REQUEST;
+        let mut prev_state_res: &Vec<put_routine::Resource>;
+        let mut prev_state = put_routine::Individual::new();
+        match individual.resources.get(&"prev_state".to_string()) {
+            Some(res) => {
+                prev_state_res = res;
+                writeln!(stderr(), "@CONTAINS PREV_STATE");
+                match put_routine::msgpack_to_individual(&mut Cursor::new(&prev_state_res[0].str_data[..]), 
+                    &mut prev_state) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        writeln!(stderr(), "@ERR DECODING PREV_STATE {0}", err);
+                        encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+                    }
+                }
+            }
+            _ => {}
         }
-    }
-    
+
+        
+
+
+    /*    
     it = new_state->resources.find("rdf:type");
     if (it != new_state->resources.end()) {
         if (it->second[0].str_data == "v-s:PermissionStatement") 
@@ -279,7 +293,6 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     writeln!(stderr(), "@USER ID {0}", user_id);
     
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
-    // encode::encode_array(resp_msg, (1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
     for i in 3 .. arr_size {
@@ -332,10 +345,8 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 let tuple_size = box_tuple_bsize(get_result);
                 let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
                 box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
-            //    encode::encode_uint(resp_msg, Codes::Ok as u64);
-              //  encode::encode_string_bytes(resp_msg, &mut tuple_buf);
-                encode::encode_uint(resp_msg, Codes::NotFound as u64);
-                encode::encode_nil(resp_msg);
+                encode::encode_uint(resp_msg, Codes::Ok as u64);
+                encode::encode_string_bytes(resp_msg, &mut tuple_buf);
             } else if count == 0 {
                 writeln!(stderr(), "@NOT FOUND");
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);

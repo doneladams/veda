@@ -121,7 +121,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         Ok(_) => {}
     }
 
-    // writeln!(stderr(), "@INDIVIDUAL URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap()).unwrap();
+    writeln!(stderr(), "@INDIVIDUAL URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap()).unwrap();
 
     let mut map_size: u64;
     match decode::decode_map(cursor) {
@@ -129,7 +129,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         Ok(size) => map_size = size
     }
 
-    // writeln!(stderr(), "@MAP LEN {0}", map_size);
+    writeln!(stderr(), "@MAP LEN {0}", map_size);
 
     for i in 0..map_size {
         let mut key: Vec<u8> = Vec::default();
@@ -139,7 +139,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             Err(err) => return Err(format!("@ERR DECODING INDIVIDUAL URI {0}", err)),
             Ok(_) => {}
         }
-        // writeln!(stderr(), "@RESOURCE KEY {0}", std::str::from_utf8(&key[..]).unwrap()).unwrap();
+        writeln!(stderr(), "@RESOURCE KEY {0}", std::str::from_utf8(&key[..]).unwrap()).unwrap();
         
         let mut res_size: u64;
         match decode::decode_array(cursor) {
@@ -147,7 +147,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             Err(err) => return Err(format!("@ERR DECODING RESOURCES ARRAY {0}", err))
         }
 
-        // writeln!(stderr(), "@RESOURCE ARRAY LEN {0}", res_size);
+        writeln!(stderr(), "@RESOURCE ARRAY LEN {0}", res_size);
         for j in 0.. res_size {
             let mut objtype: decode::Type;
             match decode::decode_type(cursor) {
@@ -158,13 +158,13 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
             match objtype {
                 decode::Type::ArrayObj => {
                     let res_arr_size = decode::decode_array(cursor).unwrap();
-                    // writeln!(stderr(), "@DECODE RES ARR 2").unwrap();
+                    writeln!(stderr(), "@DECODE RES ARR 2").unwrap();
                     let mut res_type: u64;
                     match decode::decode_uint(cursor) {
                         Ok(rt) => res_type = rt,
                         Err(err) => return Err(format!("@ERR DECODING RESOURCE TYPE {0}", err))
                     }
-                    // writeln!(stderr(), "@RES TYPE {0}", res_type);
+                    writeln!(stderr(), "@RES TYPE {0}", res_type);
                     if res_arr_size == 2 {
                         if res_type == ResourceType::Datetime as u64 {
                             let mut datetime: u64;
@@ -172,7 +172,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                                 Ok(dt) => datetime = dt,
                                 Err(err) => return Err(format!("@ERR DECODING DATETIME {0}", err))
                             }
-                            // writeln!(stderr(), "@DATETIME {0}", datetime);
+                            writeln!(stderr(), "@DATETIME {0}", datetime);
                             let mut resource = Resource::new();
                             resource.res_type = ResourceType::Datetime;
                             resource.long_data = datetime as i64;
@@ -189,7 +189,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                             match decode_type {
                                 decode::Type::StrObj => 
                                     decode::decode_string(cursor, &mut resource.str_data).unwrap(),
-                                decode::Type::NilObj => {},
+                                decode::Type::NilObj => decode::decode_nil(cursor).unwrap(),
                                 _ => return Err("@UNKNOWN TYPE IN STRING RESOURCE".to_string())
                             }
                             resource.lang = Lang::LangNone;
@@ -249,7 +249,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                             match decode_type {
                                 decode::Type::StrObj => 
                                     decode::decode_string(cursor, &mut resource.str_data).unwrap(),
-                                decode::Type::NilObj => {},
+                                decode::Type::NilObj => decode::decode_nil(cursor).unwrap(),
                                 _ => return Err("@UNKNOWN TYPE IN STRING RESOURCE".to_string())
                             }
 

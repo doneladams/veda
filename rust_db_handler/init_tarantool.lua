@@ -28,14 +28,16 @@ socket = require('socket')
 ffi = require('ffi')
 db_handler = ffi.load('./libdb_handler.so')
 ffi.cdef('struct Response {char *msg; int size;};')
-ffi.cdef('struct Response handle_request(char *msg, size_t msg_size)')
+-- ffi.cdef('struct Response handle_request(char *msg, size_t msg_size)')
+ffi.cdef('void handle_request(char *msg, size_t msg_size, int fd)')
+ffi.cdef('void free(void *)')
 
 function handle_request(s) 
     s:nonblock(true)
     while true do
 --        log.info('start loop')
         local size_str, size, op, op_str, msg, resp
-        local resp_size_str
+        local resp_size_str, resp_str
         local peer_info
         local c_str
 
@@ -75,18 +77,22 @@ function handle_request(s)
         -- resp = db_handle_request(msg);
         c_str=ffi.new("char[?]", size)
         ffi.copy(c_str, msg)
-        resp = db_handler.handle_request(c_str, size)
-        log.info('resp=[%s]', resp)
+        -- resp = db_handler.handle_request(c_str, size)
+        db_handler.handle_request(c_str, size, s:fd())
+        --[[log.info('resp=[%s]', resp)
         log.info('resp.size=[%d]', resp.size)
-        log.info('resp.msg=[%s]', ffi.string(resp.msg, resp.size));
+        log.info('resp.msg=[%s]', ffi.string(resp.msg, resp.size));]]
 
-        resp_size_str = string.char(bit.band(bit.rshift(resp.size, 24), 255)) ..
+        --[[resp_size_str = string.char(bit.band(bit.rshift(resp.size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp.size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp.size, 8), 255)) ..
-            string.char(bit.band(resp.size, 255))
---        log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
+            string.char(bit.band(resp.size, 255))]]
+        -- log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
         --  s:send(resp_size_str..resp)
-        s:send(resp_size_str..ffi.string(resp.msg, resp.size))
+        
+        --[[resp_str = ffi.string(resp.msg, resp.size)
+        s:send(resp_size_str..resp_str)
+        ffi.C.free(resp.msg); ]]       
 --        log.info('END')
     end
 end

@@ -274,7 +274,6 @@ class Connector
 	        if (trace)
 		        log.trace("connector.get SEND %s", buf);
 
-
             version (WebServer)
             {
                 buf.length = 4;
@@ -292,7 +291,7 @@ class Connector
                 log.trace("connector.get RECEIVE SIZE BUF %d", receive_size);
 
             if (trace)
-                log.trace("connector.get RESPONSE SIZE BUF %s", buf);
+                log.trace("connector.get RESPONSE SIZE BUF %s", buf);                
                 
             long response_size = 0;
             for (int i = 0; i < 4; i++)
@@ -338,7 +337,6 @@ class Connector
 
         StreamingUnpacker unpacker =
             StreamingUnpacker(response);
-
         if (unpacker.execute())
         {
             auto obj = unpacker.unpacked[ 0 ];
@@ -642,6 +640,7 @@ class Connector
 
             if (trace)
                 log.trace("connector.remove OP RESULT = %d", obj.via.uinteger);
+            stderr.writefln("connector.remove OP RESULT = %d", obj.via.uinteger);
                 
             for (int i = 1; i < unpacker.unpacked.length; i++)
             {

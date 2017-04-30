@@ -115,17 +115,34 @@ pub fn decode_bool(cursor: &mut Cursor<&[u8]>) -> Result<bool, String> {
 }
 
 pub fn decode_array(cursor: &mut Cursor<&[u8]>) -> Result<u64, String> {
-    match decode::read_array_len(cursor) {
+    return Ok(decode::read_array_len(cursor).unwrap() as u64);
+    
+   /* match decode::read_array_len(cursor) {
         Ok(arr_size) => Ok(arr_size as u64),
         Err(err) => Err(format!("@ERR DECODING ARRAY {0}", err))
+    }*/
+}
+
+pub fn decode_nil(cursor: &mut Cursor<&[u8]>) -> Result<(), String> {
+    match decode::read_nil(cursor) {
+        Ok(arr_size) => Ok(()),
+        Err(err) => Err(format!("@ERR DECODING NIL {0}", err))
     }
 }
 
 pub fn decode_string(cursor: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) -> Result<(), String> {
     let mut len: usize = 0;
+    let s = decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]).unwrap();
+    decode::read_str_len(cursor).unwrap();
+    let curr_position = cursor.position();
+    cursor.set_position(curr_position + s.len() as u64);
+    // writeln!(stderr(), "@CURR POS {0} : INNER LEN {1}", cursor.position(), 
+    // cursor.get_ref()[..].len()); 
+    *buf = s[..].to_vec();
+    return Ok(());
 
     // writeln!(stderr(), "@PREV POS {0}", cursor.position());
-    match decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]) {
+    /*match decode::read_str_ref(&cursor.get_ref()[cursor.position() as usize ..]) {
         Ok(s) => {
             decode::read_str_len(cursor);
             let curr_position = cursor.position();
@@ -136,7 +153,7 @@ pub fn decode_string(cursor: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) -> Result<()
             return Ok(());
         },
         Err(err) => Err(format!("@ERR DECODING STRING {0}", err))
-    }
+    }*/
 } 
 
 pub fn decode_type(cursor: &mut Cursor<&[u8]>) -> Result<Type, String> {
