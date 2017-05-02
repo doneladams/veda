@@ -9,4 +9,5 @@ path = "src/db_handler.rs"
 crate-type = ["dylib"]
     
 [dependencies]
-rmp_bind = {path = "../rmp_bind"}
+rmp_bind = { path = "../rmp_bind" }
+libc = "0.2"

@@ -25,21 +25,18 @@ if box.space.acl_cache == nil then
 end
 
 socket = require('socket')
-ffi = require('ffi')
-db_handler = ffi.load('./libdb_handler.so')
-ffi.cdef('struct Response {char *msg; int size;};')
--- ffi.cdef('struct Response handle_request(char *msg, size_t msg_size)')
-ffi.cdef('void handle_request(char *msg, size_t msg_size, int fd)')
-ffi.cdef('void free(void *)')
+require('db_handler')
+msgpack = require('msgpack')
 
 function handle_request(s) 
+     print('connect nonblock=')
+     print(s:nonblock())
     s:nonblock(true)
     while true do
 --        log.info('start loop')
-        local size_str, size, op, op_str, msg, resp
-        local resp_size_str, resp_str
+        local size_str, size, op, op_str, msg, resp, resp_size
+        local resp_size_str, msg_table, zero_count, zero_pos
         local peer_info
-        local c_str
 
 --        log.info('#1 s=%s', s)
         local res= s:readable()
@@ -74,25 +71,20 @@ function handle_request(s)
         end
         
 --        log.info('lua msg=[%s]', msg)
-        -- resp = db_handle_request(msg);
-        c_str=ffi.new("char[?]", size)
-        ffi.copy(c_str, msg)
-        -- resp = db_handler.handle_request(c_str, size)
-        db_handler.handle_request(c_str, size, s:fd())
-        --[[log.info('resp=[%s]', resp)
-        log.info('resp.size=[%d]', resp.size)
-        log.info('resp.msg=[%s]', ffi.string(resp.msg, resp.size));]]
-
-        --[[resp_size_str = string.char(bit.band(bit.rshift(resp.size, 24), 255)) ..
-            string.char(bit.band(bit.rshift(resp.size, 16), 255)) ..
-            string.char(bit.band(bit.rshift(resp.size, 8), 255)) ..
-            string.char(bit.band(resp.size, 255))]]
-        -- log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
-        --  s:send(resp_size_str..resp)
-        
-        --[[resp_str = ffi.string(resp.msg, resp.size)
-        s:send(resp_size_str..resp_str)
-        ffi.C.free(resp.msg); ]]       
+        resp = db_handle_request(msg);
+        log.info(resp);
+        resp_size = string.len(resp)
+--        log.info('resp_len=%d', resp_size)
+--        log.info('resp=[%s]', resp)
+        -- obj = msgpack.decode(resp)
+        -- print("obj ".. obj)
+        resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
+            string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
+            string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
+            string.char(bit.band(resp_size, 255))
+--        log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
+         s:send(resp_size_str..resp)
+--         s:send(resp)
 --        log.info('END')
     end
 end

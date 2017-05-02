@@ -25,7 +25,7 @@ if box.space.acl_cache == nil then
 end
 
 socket = require('socket')
-require('db_handler')
+handler = require('db_handler')
 msgpack = require('msgpack')
 
 function handle_request(s) 
@@ -71,19 +71,19 @@ function handle_request(s)
         end
         
 --        log.info('lua msg=[%s]', msg)
-        resp = db_handle_request(msg);
+        resp = handler.db_handle_request(msg);
         log.info(resp);
         -- resp_size = string.len(resp)
 --        log.info('resp_len=%d', resp_size)
 --        log.info('resp=[%s]', resp)
         -- obj = msgpack.decode(resp)
         -- print("obj ".. obj)
-        --[[resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
+        resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
             string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
-            string.char(bit.band(resp_size, 255))]]
+            string.char(bit.band(resp_size, 255))
 --        log.info('resp_size_str=[%d][%d][%d][%d]', bit.band(bit.rshift(resp_size, 24), 255), bit.band(bit.rshift(resp_size, 16), 255), bit.band(bit.rshift(resp_size, 8), 255), bit.band(resp_size, 255))
-        --  s:send(resp_size_str..resp)
+         s:send(resp_size_str..resp)
 --         s:send(resp)
 --        log.info('END')
     end

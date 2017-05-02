@@ -341,12 +341,20 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 writeln!(stderr(), "@TRY GET INDIVIDUAL").unwrap();
                 let mut get_result: *mut BoxTuple = null_mut();
                 let get_code = box_index_get(conn.individuals_space_id, conn.individuals_index_id,
-                     key_ptr_end, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+                     key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+            
+                if get_code < 0 {
+                    writeln!(stderr(), "{0}",
+                        CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                }
                 let tuple_size = box_tuple_bsize(get_result);
                 let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
                 box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
+                
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 encode::encode_string_bytes(resp_msg, &mut tuple_buf);
+                // encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                // encode::encode_nil(resp_msg);
             } else if count == 0 {
                 writeln!(stderr(), "@NOT FOUND");
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
@@ -364,8 +372,34 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
 pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     writeln!(stderr(), "@ERR AUTH IS NOT IMPLEMENTED").unwrap();
-    encode::encode_array(resp_msg, 1);
-    encode::encode_uint(resp_msg, Codes::NotFound as u64);
+    writeln!(stderr(), "@GET").unwrap();
+    let mut conn: TarantoolConnection;
+
+    match connect_to_tarantool() {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(c) => conn = c
+    }
+
+    let mut user_id_buf = Vec::default();
+    let user_id: &str;
+    
+    match decode::decode_string(cursor, &mut user_id_buf) {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(_) => user_id = std::str::from_utf8(&user_id_buf).unwrap()
+    }
+
+    writeln!(stderr(), "@USER ID {0}", user_id);
+    
+    encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
+    encode::encode_uint(resp_msg, Codes::Ok as u64);
+
+    for i in 3 .. arr_size {
+     /*   let mut res_uri_buf = Vec::default();    
+        let res_uri: &str;
+        let mut request = Vec::new();*/
+        encode::encode_uint(resp_msg, Codes::Ok as u64);
+        encode::encode_uint(resp_msg, 15);
+    }
 }
 
 pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
