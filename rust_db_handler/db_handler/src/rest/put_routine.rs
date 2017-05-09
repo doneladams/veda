@@ -1,6 +1,7 @@
 extern crate core;
 extern crate rmp_bind;
 
+
 use std;
 use std::collections::HashMap;
 use std::cmp::Eq;
@@ -9,10 +10,11 @@ use std::io::{ Write, stderr, Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
+use super::authorization;
 
 include!("../../module.rs");
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy)]
 enum ResourceType {
     Uri = 1,
     Str = 2,
@@ -22,7 +24,7 @@ enum ResourceType {
     Boolean = 64
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy)]
 enum Lang {
     LangNone = 0,
     LangRu  = 1,
@@ -40,6 +42,25 @@ pub struct Resource {
     decimal_exponent_data: i64,
 }
 
+#[derive(Hash, Eq, PartialEq)]
+struct Right {
+    id: Vec<u8>,
+    access: u8,
+    is_deleted: bool
+}
+
+impl Clone for ResourceType {
+    fn clone(&self) -> ResourceType {
+        *self
+    }
+}
+
+impl Clone for Lang {
+    fn clone(&self) -> Lang {
+        *self
+    }
+}
+
 pub struct Individual {
     pub uri: Vec<u8>,
     pub resources: HashMap<String, Vec<Resource>>    
@@ -50,6 +71,19 @@ impl Resource {
         return Resource { res_type: ResourceType::Uri, lang: Lang::LangNone, str_data: Vec::default(),
             bool_data: false, long_data: 0, decimal_mantissa_data: 0, decimal_exponent_data: 0};
     }
+
+    fn clone(&self) -> Resource {
+        return Resource { res_type: self.res_type, lang: self.lang, str_data: self.str_data.clone(),
+            bool_data: self.bool_data, long_data: self.long_data, 
+            decimal_mantissa_data: self.decimal_mantissa_data, decimal_exponent_data: 
+            self.decimal_exponent_data};
+    }
+}
+
+impl Right {
+    pub fn new() -> Right {
+        return Right { id: Vec::default(), access: 0, is_deleted: false };
+    } 
 }
 
 impl Individual {
@@ -363,9 +397,232 @@ pub fn put_rdf_types(uri: &Vec<u8>, rdf_types: &Vec<Resource>, conn: &super::Tar
         let replace_code = box_replace(conn.rdf_types_space_id, key_ptr_start, key_ptr_end, 
             &mut null_mut() as *mut *mut BoxTuple);
         if replace_code < 0 {
-            writeln!(stderr(), "{0}",
+            writeln!(stderr(), "@ERR PUT RDF TYPE {0}",
                 CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
         }
         writeln!(stderr(), "@REPLACE CODE {0}", replace_code);
+    }
+}
+
+fn peek_from_tarantool(key: &Vec<u8>, new_right_set: &mut HashMap<String, Right>, 
+    space_id: u32, index_id: u32) {
+    unsafe {
+        let mut request = Vec::new();
+        encode::encode_array(&mut request, 1);
+        encode::encode_string_bytes(&mut request, key);
+
+        let request_len = request.len() as isize;
+        let key_ptr_start = request[..].as_ptr() as *const i8;
+        let key_ptr_end = key_ptr_start.offset(request_len);
+
+        let mut get_result: *mut BoxTuple = null_mut();
+        let get_code = box_index_get(space_id, index_id, key_ptr_start, key_ptr_end, 
+            &mut get_result as *mut *mut BoxTuple);
+
+        if get_code < 0 {
+            writeln!(stderr(), "@ERR PEEK RIGHTS FROM TARANTOOL {0}",
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+        } else if get_result != null_mut() {
+            let tuple_size = box_tuple_bsize(get_result);
+            let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
+            box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
+            let mut cursor = Cursor::new(&tuple_buf[..]);
+
+            let arr_size = decode::decode_array(&mut cursor).unwrap();
+            writeln!(stderr(), "@RIGHTS ARR LEN {0}", arr_size);
+            
+            let mut right_uri: Vec<u8> = Vec::default();
+            decode::decode_string(&mut cursor, &mut right_uri).unwrap();
+            writeln!(stderr(), "@RIGHT URI {0}", std::str::from_utf8(&right_uri[..]).unwrap());
+
+            let mut i = 1;
+            while i < arr_size {
+                let mut right: Right = Right::new();
+                decode::decode_string(&mut cursor, &mut right.id);
+                writeln!(stderr(), "@RIGHT ID {0}", std::str::from_utf8(&right.id[..]).unwrap());
+                right.access = decode::decode_uint(&mut cursor).unwrap() as u8;
+                writeln!(stderr(), "@RIGHT ACCESS {0}", right.access);
+                new_right_set.insert(std::str::from_utf8(&right.id[..]).unwrap().to_string(), right);
+                i += 2;
+            }
+        }
+    }
+}
+
+fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_id: u32, index_id: u32) {
+    let mut arr_size = new_right_set.len() * 2 + 1;
+    // iterate over everything.
+    writeln!(stderr(), "@NEW RIGHT SET LEN {0}", new_right_set.len());
+    for (right_id, right) in new_right_set {
+        if right.is_deleted {
+            arr_size -= 2;
+        }
+    }
+
+    let mut request = Vec::new();
+    encode::encode_array(&mut request, arr_size as u32);
+    encode::encode_string(&mut request, key);
+    for (right_id, right) in new_right_set {
+        writeln!(stderr(), "@PUSH RIGHT ID {0}", right_id);
+        encode::encode_string_bytes(&mut request, &right.id);
+        encode::encode_uint(&mut request, right.access as u64);
+    }
+
+    unsafe {
+        let request_len = request.len() as isize;
+        writeln!(stderr(), "@REPLACE REQ LEN {0}", request_len);
+        let key_ptr_start = request[..].as_ptr() as *const i8;
+        let key_ptr_end = key_ptr_start.offset(request_len);
+
+        if arr_size > 1 {
+            writeln!(stderr(), "@REPLACE RIGHT SET");
+            let replace_code = box_replace(space_id, key_ptr_start, key_ptr_end, 
+            &mut null_mut() as *mut *mut BoxTuple);
+            if replace_code < 0 {
+                writeln!(stderr(), "@ERR PUT RIGHT SET {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
+        } else {
+            writeln!(stderr(), "@DELETE RIGHT SET");
+            let delete_code = box_delete(space_id, index_id, key_ptr_start, key_ptr_end, 
+                &mut null_mut() as *mut *mut BoxTuple);
+            if delete_code < 0 {
+                writeln!(stderr(), "@ERR DELETE RIGHT SET {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
+        }
+
+        /*
+        writeln!(stderr(), "@TRY REPLACE RDF TYPES");
+        let replace_code = box_replace(conn.rdf_types_space_id, key_ptr_start, key_ptr_end, 
+            &mut null_mut() as *mut *mut BoxTuple);
+        if replace_code < 0 {
+            writeln!(stderr(), "@ERR PUT RDF TYPE {0}",
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+        }
+        writeln!(stderr(), "@REPLACE CODE {0}", replace_code);*/
+    }
+   /* 
+    if (arr_size > 1) {
+        if (box_replace(acl_space_id, buffer.data(), buffer.data() + buffer.size(), NULL) < 0)
+            cerr << "LISTENER: Error on inserting acl msgpack " << buffer.data() << endl;
+    } else if (box_delete(acl_space_id, acl_index_id, buffer.data(), 
+        buffer.data() + buffer.size(), NULL) < 0)
+            cerr << "LISTENER: Error on deleting acl msgpack " << buffer.data() << endl;
+            */
+}
+
+fn update_right_set(resource: &Vec<Resource>, in_set: &Vec<Resource>, is_deleted: bool, 
+    space_id: u32, index_id: u32, access: u8) {
+    for i in 0 .. resource.len() {
+        let mut new_right_set: HashMap<String, Right> = HashMap::new(); 
+        let key = std::str::from_utf8(&resource[i].str_data[..]).unwrap();
+        peek_from_tarantool(&resource[i].str_data, &mut new_right_set, space_id, index_id);
+        for j in 0 .. in_set.len() {
+            let in_set_key = std::str::from_utf8(&in_set[j].str_data[..]).unwrap();
+            if new_right_set.contains_key(in_set_key) {
+                let right = new_right_set.get_mut(in_set_key).unwrap();
+                right.is_deleted = is_deleted;
+                right.access |= access;
+            } else {
+                let right = Right { id: in_set_key.as_bytes().to_vec(), access: access, 
+                        is_deleted: is_deleted };
+                    new_right_set.insert(in_set_key.to_string(), right);
+            }
+            
+            push_into_tarantool(&key, &new_right_set, space_id, index_id);
+       }
+    }
+}
+
+pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_resource: &str, 
+    p_in_set: &str, space_id: u32, index_id: u32) -> Result<(), String> {
+    let mut is_deleted = false;
+    let mut access: u8 = 0;
+
+    match new_state.resources.get(&"v-s:deleted".to_string()) {
+        Some(res) => is_deleted = res[0].bool_data,
+        _ => {}
+    }
+
+    match new_state.resources.get(&"v-s:canCreate".to_string()) {
+        Some(res) => {
+            if res[0].bool_data {
+                access |= authorization::ACCESS_CAN_CREATE; 
+            } else {
+                access |= authorization::ACCESS_CAN_NOT_CREATE;
+            }
+        },
+        _ => {}
+    }
+
+    match new_state.resources.get(&"v-s:canRead".to_string()) {
+        Some(res) => {
+            if res[0].bool_data {
+                access |= authorization::ACCESS_CAN_READ; 
+            } else {
+                access |= authorization::ACCESS_CAN_NOT_READ;
+            }
+        },
+        _ => {}
+    }
+
+    match new_state.resources.get(&"v-s:canUpdate".to_string()) {
+        Some(res) => {
+            if res[0].bool_data {
+                access |= authorization::ACCESS_CAN_UPDATE; 
+            } else {
+                access |= authorization::ACCESS_CAN_NOT_UPDATE;
+            }
+        },
+        _ => {}
+    }
+
+    match new_state.resources.get(&"v-s:canDelete".to_string()) {
+        Some(res) => {
+            if res[0].bool_data {
+                access |= authorization::ACCESS_CAN_DELETE; 
+            } else {
+                access |= authorization::ACCESS_CAN_NOT_DELETE;
+            }
+        },
+        _ => {}
+    }
+
+    access = if access > 0 { access } else { authorization::DEFAULT_ACCESS };
+    
+    let new_resource = new_state.resources.get(p_resource).unwrap();
+    let new_in_set = new_state.resources.get(p_in_set).unwrap();
+    
+    let mut prev_resource = &Vec::default();    
+    match prev_state.resources.get(p_resource) {
+        Some(res) => prev_resource = res,
+        _ => {}
+    }
+
+    let mut delta: Vec<Resource> = Vec::default();
+    get_delta(prev_resource, new_resource, &mut delta);
+    update_right_set(new_resource, new_in_set, is_deleted, space_id, index_id, access);
+    if delta.len() > 0 {
+        update_right_set(&delta, new_in_set, true, space_id, index_id, access);
+    }
+    
+    return Ok(());
+}
+
+fn get_delta(a: &Vec<Resource>, b: &Vec<Resource>, delta: &mut Vec<Resource>) {
+    let vec_len = a.len();
+    for i in 0 .. vec_len {
+        let mut j = 0;
+        while j < b.len() {
+            if (a[i] == b[j]) {
+                break;
+            }
+            j += 1;
+        }
+
+        if (j < b.len()) {
+            delta.push(a[i].clone());
+        }
     }
 }

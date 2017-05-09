@@ -23,12 +23,14 @@ pub enum Codes {
 
 #[derive(Default)]
 pub struct TarantoolConnection {
-    acl_space_id: u32,
-    acl_index_id: u32,
     individuals_space_id: u32,
     individuals_index_id: u32,
     rdf_types_space_id: u32,
-    rdf_types_index_id: u32
+    rdf_types_index_id: u32,
+    permissions_space_id: u32,
+    permissions_index_id: u32,
+    memberships_space_id: u32,
+    memberships_index_id: u32
 }
 
 fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
@@ -36,39 +38,54 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
     unsafe {
         conn.individuals_space_id = box_space_id_by_name(CString::new("individuals").unwrap().as_ptr(), 
             "individuals".len() as u32);
-        if conn.acl_space_id == BOX_ID_NIL {
+        if conn.individuals_space_id == BOX_ID_NIL {
             return Err("@ERR NO SPACE individuals".to_string());
         }
         
         conn.individuals_index_id = box_index_id_by_name(conn.individuals_space_id, 
             CString::new("primary").unwrap().as_ptr(), 
             "primary".len() as u32);
-        if conn.acl_index_id == BOX_ID_NIL {
+        if conn.individuals_index_id == BOX_ID_NIL {
             return Err("@ERR NO INDEX primary IN individuals".to_string());
-        }
-
-        conn.acl_space_id = box_space_id_by_name(CString::new("acl").unwrap().as_ptr(), "acl".len() as u32);
-        if conn.acl_space_id == BOX_ID_NIL {
-            return Err("@ERR NO SPACE acl".to_string());
-        }
-        
-        conn.acl_index_id = box_index_id_by_name(conn.acl_space_id, CString::new("primary").unwrap().as_ptr(), 
-            "primary".len() as u32);
-        if conn.acl_index_id == BOX_ID_NIL {
-            return Err("@ERR NO INDEX primary IN acl".to_string());
         }
 
         conn.rdf_types_space_id = box_space_id_by_name(CString::new("rdf_types").unwrap().as_ptr(), 
             "rdf_types".len() as u32);
-        if conn.acl_space_id == BOX_ID_NIL {
+        if conn.rdf_types_space_id == BOX_ID_NIL {
             return Err("@ERR NO SPACE rdf_types".to_string());
         }
         
         conn.rdf_types_index_id = box_index_id_by_name(conn.rdf_types_space_id, 
             CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
-        if conn.acl_index_id == BOX_ID_NIL {
+        if conn.rdf_types_index_id == BOX_ID_NIL {
             return Err("@ERR NO INDEX primary IN rdf_types".to_string());
         }
+
+        conn.permissions_space_id = box_space_id_by_name(CString::new("permissions").unwrap().as_ptr(), 
+            "permissions".len() as u32);
+        if conn.permissions_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE permissions".to_string());
+        }
+        
+        conn.permissions_index_id = box_index_id_by_name(conn.permissions_space_id, 
+            CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
+        if conn.permissions_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN permissions".to_string());
+        }
+
+        conn.memberships_space_id = box_space_id_by_name(CString::new("memberships").unwrap().as_ptr(), 
+            "memberships".len() as u32);
+        if conn.memberships_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE memberships".to_string());
+        }
+        
+        conn.memberships_index_id = box_index_id_by_name(conn.memberships_space_id, 
+            CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
+        if conn.memberships_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN memberships".to_string());
+        }
+
+        
 
         return Ok(conn);
     }
@@ -101,9 +118,13 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         let mut individual_msgpack_buf = Vec::default();    
         let individual_msgpack: &str;
         
-        writeln!(stderr(), "@DECODE INDIVIDUAL").unwrap();
+        writeln!(stderr(), "@DECODE INDIVIDUAL MSGPACK").unwrap();
         match decode::decode_string(cursor, &mut individual_msgpack_buf) {
-            Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+            Err(err) => {
+                writeln!(stderr(), "@ERR DECODING INDIVIDUAL MSGPACK {0}", err);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                return;
+            }
             Ok(_) => {}
         }
         writeln!(stderr(), "@DECODED INDIVIDUAL").unwrap();
@@ -115,6 +136,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Err(err) => {
                 writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err);
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                return;
             }
         }
         writeln!(stderr(), "@INDIVIDUAL TO MSGPACK DONE").unwrap();
@@ -124,7 +146,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Some(res) => new_state_res = res,
             _ => {
                 writeln!(stderr(), "@NO NEW_STATE FOUND");
-                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                encode::encode_uint(resp_msg, Codes::BadRequest as u64);
                 return;
             }
         }
@@ -136,7 +158,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Ok(_) => {}
             Err(err) => {
                 writeln!(stderr(), "@ERR DECODING NEW STATE {0}", err);
-                encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                return;
             }
         }
         writeln!(stderr(), "@DECODED NEW STATE");
@@ -157,7 +180,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Err(err) => {
                 writeln!(stderr(), "@ERR READING RDF:TYPE IN TARANTOOL {0}", err);
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                // rdf_types[i].str+
+                return;
             }
         }
 
@@ -165,7 +188,6 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         let mut is_update: bool = true;
         if (tnt_rdf_types.len() > 0 && need_auth) {
             for i in 0 .. rdf_types.len() {
-                // individual_msgpack_buf.as
                 writeln!(stderr(), "@TRY TO FIND {0}", 
                     std::str::from_utf8(rdf_types[i].str_data.as_ref()).unwrap());
                 match tnt_rdf_types.iter().find(|&rdf_type| rdf_type.as_slice() == 
@@ -246,27 +268,42 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                     Ok(_) => {}
                     Err(err) => {
                         writeln!(stderr(), "@ERR DECODING PREV_STATE {0}", err);
-                        encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+                        encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                        return;
                     }
                 }
             }
             _ => {}
         }
 
-        
-
-
-    /*    
-    it = new_state->resources.find("rdf:type");
-    if (it != new_state->resources.end()) {
-        if (it->second[0].str_data == "v-s:PermissionStatement") 
-            prepare_right_set(prev_state, new_state, "v-s:permissionObject", 
-                "v-s:permissionSubject", PERMISSION_PREFIX);
-        else if (it->second[0].str_data == "v-s:Membership")
-            prepare_right_set(prev_state, new_state, "v-s:resource", "v-s:memberOf", 
-                MEMBERSHIP_PREFIX);
-    }*/
-
+        writeln!(stderr(), "@RDF TYPE {0}", std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap()).unwrap();
+        match std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() {
+            "v-s:PermissionStatement" => {
+                writeln!(stderr(), "@PERMISSION");
+                match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:permissionObject", 
+                    "v-s:permissionSubject", conn.permissions_space_id, conn.permissions_index_id) {
+                    Err(err) => {
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err);
+                        encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+            "v-s:Membership" => {
+                writeln!(stderr(), "@MEMBERSHIP");
+                match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:resource", 
+                    "v-s:memberOf", conn.memberships_space_id, conn.memberships_index_id) {
+                    Err(err) => {
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err);
+                        encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
         
         encode::encode_uint(resp_msg, Codes::Ok as u64)
     }
@@ -344,7 +381,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                      key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
             
                 if get_code < 0 {
-                    writeln!(stderr(), "{0}",
+                    writeln!(stderr(), "@ERR GET FROM TARANTOOL {0}",
                         CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
                 }
                 let tuple_size = box_tuple_bsize(get_result);
@@ -353,6 +390,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 encode::encode_string_bytes(resp_msg, &mut tuple_buf);
+                writeln!(stderr(), "@GOT INDIVIDUAL");
                 // encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 // encode::encode_nil(resp_msg);
             } else if count == 0 {
@@ -371,8 +409,8 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 }
 
 pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-    writeln!(stderr(), "@ERR AUTH IS NOT IMPLEMENTED").unwrap();
-    writeln!(stderr(), "@GET").unwrap();
+    writeln!(stderr(), "@AUTH IS NOT IMPLEMENTED").unwrap();
+    writeln!(stderr(), "@AUTH").unwrap();
     let mut conn: TarantoolConnection;
 
     match connect_to_tarantool() {
