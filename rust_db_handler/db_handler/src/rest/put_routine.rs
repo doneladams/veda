@@ -201,15 +201,34 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                     writeln!(stderr(), "@RES TYPE {0}", res_type);
                     if res_arr_size == 2 {
                         if res_type == ResourceType::Datetime as u64 {
-                            let mut datetime: u64;
-                            match decode::decode_uint(cursor) {
-                                Ok(dt) => datetime = dt,
-                                Err(err) => return Err(format!("@ERR DECODING DATETIME {0}", err))
+                            let mut datetime: i64 = 0;
+                            let mut decode_type: decode::Type;                   
+                            match decode::decode_type(cursor) {
+                                Ok(dt) => decode_type = dt,
+                                Err(err) => return Err(format!("@ERR DECODING STRING RES TYPE {0}", err))
+                            }
+
+                            match decode_type {
+                                decode::Type::UintObj => {
+                                    match decode::decode_uint(cursor) {
+                                        Ok(dt) => datetime = dt as i64,
+                                        Err(err) => return Err(format!("@ERR DECODING DATETIME {0}", err))
+                                    }
+                                }
+
+                                decode::Type::IntObj => {
+                                    match decode::decode_int(cursor) {
+                                        Ok(dt) => datetime = dt,
+                                        Err(err) => return Err(format!("@ERR DECODING DATETIME {0}", err))
+                                    }
+                                }
+
+                                _ => {}
                             }
                             writeln!(stderr(), "@DATETIME {0}", datetime);
                             let mut resource = Resource::new();
                             resource.res_type = ResourceType::Datetime;
-                            resource.long_data = datetime as i64;
+                            resource.long_data = datetime;
                             resources.push(resource);
                         } else if res_type == ResourceType::Str as u64 {
                             let mut resource = Resource::new();
