@@ -2,35 +2,28 @@ box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, logger='./taranto
 log = require('log')
 
 if box.space.individuals == nil then
-    box.schema.space.create('individuals', {engine='vinyl'})
+    -- box.schema.space.create('individuals', {engine='vinyl'})
+    box.schema.space.create('individuals')
     box.space.individuals:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
 if box.space.rdf_types == nil then
-    box.schema.space.create('rdf_types', {engine='vinyl'})
+    -- box.schema.space.create('rdf_types', {engine='vinyl'})
+    box.schema.space.create('rdf_types')
     box.space.rdf_types:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'rdf_types')
 end
 
---[[if box.space.acl == nil then
-    box.schema.space.create('acl', {engine='vinyl'})
-    box.space.acl:create_index('primary', {parts={1, 'string'}})
-    box.schema.user.grant('guest', 'read,write', 'space', 'acl')
-end
-if box.space.acl_cache == nil then
-    box.schema.space.create('acl_cache')
-    box.space.acl_cache:create_index('primary', {parts={1, 'string'}})
-    box.schema.user.grant('guest', 'read,write', 'space', 'acl_cache')
-end]]
-
 if box.space.permissions == nil then
+    -- box.schema.space.create('permissions', {engine='vinyl'})
     box.schema.space.create('permissions')
     box.space.permissions:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'permissions')
 end
 
 if box.space.memberships == nil then
+    -- box.schema.space.create('memberships', {engine='vinyl'})
     box.schema.space.create('memberships')
     box.space.memberships:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'memberships')
