@@ -1,30 +1,30 @@
-box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, logger='./tarantool.log', memtx_memory=268435456.0}
+box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, log='./tarantool.log', memtx_memory=268435456.0}
 log = require('log')
 
 if box.space.individuals == nil then
-    -- box.schema.space.create('individuals', {engine='vinyl'})
-    box.schema.space.create('individuals')
+    box.schema.space.create('individuals', {engine='vinyl'})
+    -- box.schema.space.create('individuals')
     box.space.individuals:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
 if box.space.rdf_types == nil then
-    -- box.schema.space.create('rdf_types', {engine='vinyl'})
-    box.schema.space.create('rdf_types')
+    box.schema.space.create('rdf_types', {engine='vinyl'})
+    -- box.schema.space.create('rdf_types')
     box.space.rdf_types:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'rdf_types')
 end
 
 if box.space.permissions == nil then
-    -- box.schema.space.create('permissions', {engine='vinyl'})
-    box.schema.space.create('permissions')
+    box.schema.space.create('permissions', {engine='vinyl'})
+    -- box.schema.space.create('permissions')
     box.space.permissions:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'permissions')
 end
 
 if box.space.memberships == nil then
-    -- box.schema.space.create('memberships', {engine='vinyl'})
-    box.schema.space.create('memberships')
+    box.schema.space.create('memberships', {engine='vinyl'})
+    -- box.schema.space.create('memberships')
     box.space.memberships:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'memberships')
 end
@@ -35,8 +35,8 @@ require('db_handler')
 msgpack = require('msgpack')
 
 function handle_request(s) 
-     print('connect nonblock=')
-     print(s:nonblock())
+    --  print('connect nonblock=')
+    --  print(s:nonblock())
     s:nonblock(true)
     while true do
 --        log.info('start loop')
@@ -47,7 +47,7 @@ function handle_request(s)
 --        log.info('#1 s=%s', s)
         local res= s:readable()
 --        log.info('#2 res=%s', res)
-        peer_info = s:peer()
+        -- peer_info = s:peer()
 --        log.info('START')
         size_str = s:read(4)
         if size_str == nil or size_str == "" or string.len(size_str) < 4 then
@@ -78,7 +78,7 @@ function handle_request(s)
         
 --        log.info('lua msg=[%s]', msg)
         resp = db_handle_request(msg);
-        log.info(resp);
+        -- log.info(resp);
         resp_size = string.len(resp)
 --        log.info('resp_len=%d', resp_size)
 --        log.info('resp=[%s]', resp)

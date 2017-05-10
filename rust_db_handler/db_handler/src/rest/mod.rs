@@ -85,8 +85,6 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
             return Err("@ERR NO INDEX primary IN memberships".to_string());
         }
 
-        
-
         return Ok(conn);
     }
 }
@@ -388,7 +386,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
                 
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
-                encode::encode_string_bytes(resp_msg, &mut tuple_buf);
+                encode::encode_string_bytes(resp_msg, &tuple_buf);
                 writeln!(stderr(), "@GOT INDIVIDUAL");
                 // encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 // encode::encode_nil(resp_msg);
@@ -408,7 +406,6 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 }
 
 pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
-    writeln!(stderr(), "@AUTH IS NOT IMPLEMENTED").unwrap();
     writeln!(stderr(), "@AUTH").unwrap();
     let mut conn: TarantoolConnection;
 
@@ -431,11 +428,45 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg:
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
     for i in 3 .. arr_size {
-     /*   let mut res_uri_buf = Vec::default();    
+     let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
-        let mut request = Vec::new();*/
-        encode::encode_uint(resp_msg, Codes::Ok as u64);
-        encode::encode_uint(resp_msg, 15);
+        let mut request = Vec::new();
+
+        match decode::decode_string(cursor, &mut res_uri_buf) {
+            Err(err) => { super::fail(resp_msg, Codes::InternalServerError, err); continue; },
+            Ok(_) => res_uri = std::str::from_utf8(&res_uri_buf).unwrap()
+        }
+
+        writeln!(stderr(), "@RES URI {0}", res_uri);
+
+        encode::encode_array(&mut request, 1);
+        encode::encode_string(&mut request, res_uri);
+        unsafe {
+            let request_len = request.len() as isize;
+            let key_ptr_start = request[..].as_ptr() as *const i8;
+            let key_ptr_end = key_ptr_start.offset(request_len);
+            let count = box_index_count(conn.individuals_space_id, conn.individuals_index_id,
+                IteratorType::EQ as i32, key_ptr_start, key_ptr_end);
+            if count == 0 {
+                encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                encode::encode_uint(resp_msg, 0);
+                return;
+            }
+        }
+
+        let auth_result = authorization::compute_access(user_id, res_uri, &conn);
+        match auth_result {
+            Ok(access) => {
+                encode::encode_uint(resp_msg, Codes::Ok as u64);
+                encode::encode_uint(resp_msg, access as u64);
+            }
+            Err(err) => {
+                writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
+                    res_uri, err);
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                encode::encode_uint(resp_msg, 0);
+            }
+        }
     }
 }
 
@@ -482,54 +513,55 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
 
             if need_auth {
                 let auth_result = authorization::compute_access(user_id, res_uri, &conn);
-                    let mut access: u8 = 0;
-                    match auth_result {
-                        Ok(a) => access = a,
-                        Err(err) => {
-                            writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
-                                res_uri, err);
-                            encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                            encode::encode_nil(resp_msg);
-                            continue;
-                        }
-                    }
-
-                    if (access & authorization::ACCESS_CAN_DELETE) == 0 {
-                        encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
+                let mut access: u8 = 0;
+                match auth_result {
+                    Ok(a) => access = a,
+                    Err(err) => {
+                        writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
+                            res_uri, err);
+                        encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         encode::encode_nil(resp_msg);
                         continue;
                     }
+                }
 
-                    let mut delete_code = box_delete(conn.individuals_space_id, conn.individuals_index_id, 
-                        key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
-                    if delete_code < 0 {
-                        writeln!(stderr(), "@ERR DELETE INDIVIDUAL {0}",
-                            CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
-                    }
+                if (access & authorization::ACCESS_CAN_DELETE) == 0 {
+                    encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
+                    encode::encode_nil(resp_msg);
+                    continue;
+                }
+            }
 
-                    let mut delete_code = box_delete(conn.rdf_types_space_id, conn.rdf_types_index_id, 
-                        key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
-                    if delete_code < 0 {
-                        writeln!(stderr(), "@ERR DELETE RDF TYPES {0}",
-                            CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
-                    }
+            
 
-                    let mut delete_code = box_delete(conn.permissions_space_id, conn.permissions_index_id, 
-                        key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
-                    if delete_code < 0 {
-                        writeln!(stderr(), "@ERR DELETE PERMISSION {0}",
-                            CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
-                    }
+            let mut delete_code = box_delete(conn.individuals_space_id, conn.individuals_index_id, 
+                key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+            if delete_code < 0 {
+                writeln!(stderr(), "@ERR DELETE INDIVIDUAL {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
 
-                    let mut delete_code = box_delete(conn.memberships_space_id, conn.memberships_space_id, 
-                        key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
-                    if delete_code < 0 {
-                        writeln!(stderr(), "@ERR DELETE INDIVIDUAL {0}",
-                            CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
-                    }
-                    
-                    encode::encode_uint(resp_msg, Codes::Ok as u64);
+            let mut delete_code = box_delete(conn.rdf_types_space_id, conn.rdf_types_index_id, 
+                key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+            if delete_code < 0 {
+                writeln!(stderr(), "@ERR DELETE RDF TYPES {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
+
+            let mut delete_code = box_delete(conn.permissions_space_id, conn.permissions_index_id, 
+                key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+            if delete_code < 0 {
+                writeln!(stderr(), "@ERR DELETE PERMISSION {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+            }
+
+            let mut delete_code = box_delete(conn.memberships_space_id, conn.memberships_space_id, 
+                key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+            if delete_code < 0 {
+                writeln!(stderr(), "@ERR DELETE INDIVIDUAL {0}",
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
             }
         }
+        encode::encode_uint(resp_msg, Codes::Ok as u64);        
     }
 }

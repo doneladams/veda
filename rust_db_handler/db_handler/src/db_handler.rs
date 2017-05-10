@@ -37,7 +37,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     }
 
     writeln!(&mut stderr(), "@UNMARSHAL").unwrap();
-    let mut op_code: u64 = 0;
+    let op_code: u64;
     match decode::decode_uint(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
         Ok(op) => (op_code = op)
@@ -62,9 +62,11 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 
 
 #[no_mangle]
-extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
+pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
+    let mut tmp: Vec<u8> = Vec::default();
     let mut msg: Vec<u8> = Vec::default();
-    lua::tolstring(L, -1, &mut msg);
+    lua::tolstring(L, -1, &mut tmp);
+    msg = tmp.clone();
     writeln!(stderr(), "@BEGIN REQUEST");
     let mut cursor = Cursor::new(&msg[..]);
     let mut resp_msg = Vec::new();
