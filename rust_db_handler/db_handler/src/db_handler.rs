@@ -36,13 +36,13 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         return;
     }
 
-    writeln!(&mut stderr(), "@UNMARSHAL").unwrap();
+    // writeln!(&mut stderr(), "@UNMARSHAL").unwrap();
     let op_code: u64;
     match decode::decode_uint(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
         Ok(op) => (op_code = op)
     }
-    writeln!(&mut stderr(), "@op code {0}", op_code).unwrap();
+    // writeln!(&mut stderr(), "@op code {0}", op_code).unwrap();
     let need_auth: bool;
     match decode::decode_bool(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
@@ -55,7 +55,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
-    writeln!(stderr(), "@END REQUEST");
+    // writeln!(stderr(), "@END REQUEST");
 }
 
 
@@ -66,7 +66,7 @@ pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
     let mut msg: Vec<u8> = Vec::default();
     lua::tolstring(L, -1, &mut tmp);
     msg = tmp.clone();
-    writeln!(stderr(), "@BEGIN REQUEST");
+    // writeln!(stderr(), "@BEGIN REQUEST");
     let mut cursor = Cursor::new(&msg[..]);
     let mut resp_msg = Vec::new();
     

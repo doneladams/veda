@@ -2,29 +2,29 @@ box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, log='./tarantool.
 log = require('log')
 
 if box.space.individuals == nil then
-    box.schema.space.create('individuals', {engine='vinyl'})
-    -- box.schema.space.create('individuals')
+    -- box.schema.space.create('individuals', {engine='vinyl'})
+    box.schema.space.create('individuals')
     box.space.individuals:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
 if box.space.rdf_types == nil then
-    box.schema.space.create('rdf_types', {engine='vinyl'})
-    -- box.schema.space.create('rdf_types')
+    -- box.schema.space.create('rdf_types', {engine='vinyl'})
+    box.schema.space.create('rdf_types')
     box.space.rdf_types:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'rdf_types')
 end
 
 if box.space.permissions == nil then
-    box.schema.space.create('permissions', {engine='vinyl'})
-    -- box.schema.space.create('permissions')
+    -- box.schema.space.create('permissions', {engine='vinyl'})
+    box.schema.space.create('permissions')
     box.space.permissions:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'permissions')
 end
 
 if box.space.memberships == nil then
-    box.schema.space.create('memberships', {engine='vinyl'})
-    -- box.schema.space.create('memberships')
+    -- box.schema.space.create('memberships', {engine='vinyl'})
+    box.schema.space.create('memberships')
     box.space.memberships:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'memberships')
 end
