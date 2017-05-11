@@ -43,8 +43,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         Ok(op) => (op_code = op)
     }
     writeln!(&mut stderr(), "@op code {0}", op_code).unwrap();
-    let mut need_auth: bool = false;
-    writeln!(&mut stderr(), "@need_auth {0}", need_auth).unwrap();    
+    let need_auth: bool;
     match decode::decode_bool(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
         Ok(v) => (need_auth = v)

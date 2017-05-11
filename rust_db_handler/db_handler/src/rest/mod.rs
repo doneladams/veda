@@ -194,16 +194,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                             is_update = false;
                             let auth_result = authorization::compute_access(user_id, 
                                 std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn);
-                            let mut auth_result: u8;
-                            match authorization::compute_access(user_id, 
-                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn) {
-                                Err(err) => {
-                                    writeln!(stderr(), "@ERR UN UPDATE AUTH {0}", err).unwrap();
-                                    encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                                    return;
-                                }
-                                Ok(ac) => auth_result = ac
-                            }
+
                             if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
                                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
                                 return;
@@ -217,16 +208,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
         writeln!(stderr(), "@IS UPDATE {0}", is_update);
         if (is_update && need_auth) {
-            let mut auth_result: u8;
-            match authorization::compute_access(user_id, 
-                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn) {
-                Err(err) => {
-                    writeln!(stderr(), "@ERR UN UPDATE AUTH {0}", err).unwrap();
-                    encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                    return;
-                }
-                Ok(ac) => auth_result = ac
-            }
+            let auth_result = authorization::compute_access(user_id, 
+                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn);
 
             if (auth_result & authorization::ACCESS_CAN_UPDATE == 0) {
                 writeln!(stderr(), "@NOT AUTH UPDATE");
@@ -352,21 +335,11 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             // writeln!(stderr(), "@COUNT {0}", count);
 
             if count > 0 {
+                writeln!(stderr(), "@CHECK NEED AUTH {0}", need_auth);
                 if need_auth {
                     let auth_result = authorization::compute_access(user_id, res_uri, &conn);
-                    let mut access: u8 = 0;
-                    match auth_result {
-                        Ok(a) => access = a,
-                        Err(err) => {
-                            writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
-                                res_uri, err);
-                            encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                            encode::encode_nil(resp_msg);
-                            continue;
-                        }
-                    }
 
-                    if (access & authorization::ACCESS_CAN_READ) == 0 {
+                    if (auth_result & authorization::ACCESS_CAN_READ) == 0 {
                         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
                         encode::encode_nil(resp_msg);
                         continue;
@@ -450,23 +423,13 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg:
             if count == 0 {
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_uint(resp_msg, 0);
-                return;
+                continue;
             }
         }
 
         let auth_result = authorization::compute_access(user_id, res_uri, &conn);
-        match auth_result {
-            Ok(access) => {
-                encode::encode_uint(resp_msg, Codes::Ok as u64);
-                encode::encode_uint(resp_msg, access as u64);
-            }
-            Err(err) => {
-                writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
-                    res_uri, err);
-                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                encode::encode_uint(resp_msg, 0);
-            }
-        }
+        encode::encode_uint(resp_msg, Codes::Ok as u64);
+        encode::encode_uint(resp_msg, auth_result as u64);
     }
 }
 
@@ -514,18 +477,8 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
             if need_auth {
                 let auth_result = authorization::compute_access(user_id, res_uri, &conn);
                 let mut access: u8 = 0;
-                match auth_result {
-                    Ok(a) => access = a,
-                    Err(err) => {
-                        writeln!(stderr(), "@ERR ON COMPUTING ACCESS {0} {1} {2}", user_id, 
-                            res_uri, err);
-                        encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
-                        encode::encode_nil(resp_msg);
-                        continue;
-                    }
-                }
 
-                if (access & authorization::ACCESS_CAN_DELETE) == 0 {
+                if (auth_result & authorization::ACCESS_CAN_DELETE) == 0 {
                     encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
                     encode::encode_nil(resp_msg);
                     continue;

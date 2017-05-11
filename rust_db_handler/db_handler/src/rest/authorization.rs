@@ -37,7 +37,7 @@ impl Group {
     }
 }
 
-fn get_tuple(key: &str, group: &mut Group, space_id: u32, index_id: u32){
+fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
     let mut request = Vec::new();
     encode::encode_array(&mut request, 1);
     encode::encode_string(&mut request, key);
@@ -56,8 +56,8 @@ fn get_tuple(key: &str, group: &mut Group, space_id: u32, index_id: u32){
         }
         
         let tuple_size = box_tuple_bsize(get_result);
-        group.buf = vec![0; tuple_size];
-        box_tuple_to_buf(get_result, group.buf.as_mut_ptr() as *mut c_char, tuple_size);
+        *buf = vec![0; tuple_size];
+        box_tuple_to_buf(get_result, buf.as_mut_ptr() as *mut c_char, tuple_size);
     }
 }
 
@@ -67,7 +67,7 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
     
     groups.push(Group::new());
     groups[0].id = uri.to_string();
-    get_tuple(uri, &mut groups[curr as usize], conn.memberships_space_id, conn.memberships_index_id);
+    get_tuple(uri, &mut groups[curr as usize].buf, conn.memberships_space_id, conn.memberships_index_id);
     writeln!(stderr(), "@FIRST URI {0}", uri);
     if groups[curr as usize].buf.len() == 0 {  
         writeln!(stderr(), "@ZERO BUF");
@@ -75,116 +75,172 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
     }
 
     while curr != -1{
-        let got_next = false;
-        let mut postion: u64 = 0;
-
-        // let curr_group = groups.get_mut(curr_uri).unwrap();      
-        
+        let mut got_next = false;
+        writeln!(stderr(), "@RESET POSITION");
+        let mut postion: u64 = groups[curr as usize].position;
+        writeln!(stderr(), "@CURR {0}", curr);
         if !gone_previous {
+            writeln!(stderr(), "@ASSIGN I");
+            groups[curr as usize].i = 1;
+            writeln!(stderr(), "@GET NELEMS");
             groups[curr as usize].nelems = {
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 let arr_size = decode::decode_array(&mut cursor).unwrap();
                 postion = cursor.position();
                 arr_size
             };
+            writeln!(stderr(), "@GROUP NELEMS {0}", groups[curr as usize].nelems);
             groups[curr as usize].id = {
                 let mut tmp: Vec<u8> = Vec::default();
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
                 let mut tmp: Vec<u8> = Vec::default();
-                decode::decode_string(&mut cursor, &mut tmp);
+                decode::decode_string(&mut cursor, &mut tmp).unwrap();
                 postion = cursor.position();                
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
             };
         
-            writeln!(stderr(), "@GROUP URI {0} NELEMS {1}", groups[curr as usize].id, 
-                groups[curr as usize].nelems);
+            writeln!(stderr(), "@GROUP URI {0}", groups[curr as usize].id);
         }
 
         gone_previous = false;
+        writeln!(stderr(), "@START {0}", curr);
+        writeln!(stderr(), "@{0} FROM {1}", groups[curr as usize].i, groups[curr as usize].nelems);
+        while groups[curr as usize].i < groups[curr as usize].nelems {
+            groups[curr as usize].i += 2;
+            writeln!(stderr(), "\t@BECAME {0} FROM {1}", groups[curr as usize].i, groups[curr as usize].nelems);
+
+            let mut next_group = Group::new();
+            let next = groups.len();
+            let id = {
+                let mut tmp: Vec<u8> = Vec::default();
+                let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
+                cursor.set_position(postion);
+                let mut tmp: Vec<u8> = Vec::default();
+                decode::decode_string(&mut cursor, &mut tmp).unwrap();
+                postion = cursor.position();                
+                std::str::from_utf8(&tmp[..]).unwrap().to_string()
+            };
+            next_group.access = {
+                let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
+                cursor.set_position(postion);
+                let mut tmp = decode::decode_uint(&mut cursor).unwrap();
+                postion = cursor.position();  
+                tmp as u8
+            };
+            writeln!(stderr(), "\t@NEXT GROUP ID {0} ACCESS {1}", next_group.id, next_group.access);
+            next_group.access &= groups[curr as usize].access;
+            let mut found = false;
+            for i in 0 .. groups.len() {
+                if groups[i].id == next_group.id {
+                    found = true;
+                    break;
+                }
+            }
+            writeln!(stderr(), "\t@FINISH CYCLE FIND AND FOUND {0}", found);
+            if found {
+                continue;
+            }
+
+            next_group.parent = curr;
+            get_tuple(&id, &mut next_group.buf, conn.memberships_space_id, conn.memberships_index_id);
+            groups.push(next_group);
+            groups[curr as usize].position = postion;
+            if groups[next as usize].buf.len() == 0 {
+                groups[next as usize].id = id;
+                continue;
+            }
+            curr = groups.len() as i32 - 1;
+            
+
+            got_next = true;
+            break;
+        }
 
         if !got_next {
+            writeln!(stderr(), "\t@NO NEXT FOR {0}", curr);            
             curr = groups[curr as usize].parent;
+            writeln!(stderr(), "\t@NEW CURR {0}", curr);
             gone_previous = true;
+            if curr != -1 {
+                writeln!(stderr(), "@GO BACK TO {0} {1}", groups[curr as usize].id, curr);
+            }
         }
     }
-    /*
-	// fprintf(stderr, "REQUEST URI %s\n", uri);
-	while (curr != -1) {
-		int got_next = 0;
-		int i;
-		uint32_t len;
-		const char *tmp;
-
-
-		gone_previous = 0;
-		
-		for (; rights[curr].i < rights[curr].nelems - 1; rights[curr].i += 2) {
-			int32_t next;
-			uint8_t right_access;
-
-			if (rights_count == MAX_RIGHTS) {
-				fprintf(stderr, "@RIGHTS MAX LIMIT REACHED\n");
-				return -1;
-			}
-			next = rights_count++;
-			// fprintf(stderr, "\ti=%d nelems=%d\n", rights[curr].i, rights[curr].nelems - 1);
-			// fprintf(stderr, "\ttry decode new node\n");
-			tmp = mp_decode_str(&rights[curr].buf, &len);
-			if (len > MAX_URI_LEN) {
-				fprintf(stderr, "@LEN IS GREATER THAN MAX_URI_LEN");
-				return -1;
-			}
-			memcpy(rights[next].id + 1, tmp, len);
-			rights[next].id[0] = MEMBERSHIP_PREFIX;
-			right_access = mp_decode_uint(&rights[curr].buf);
-			// fprintf (stderr, "\tnext uri %s len=%d\n", rights[next].id, len);
-			rights[next].access = rights[curr].access & right_access;
-			rights[next].id[len + 1] = '\0';
-			rights[next].id_len = len + 1;
-			/*fprintf (stderr, "\tnext uri %s\n", rights[next].id);
-			fprintf (stderr, "\tcurr=%u next=%u right_access=%u\n", rights[curr].access, 
-				rights[next].access, right_access);*/
-			for (i = 0; i < rights_count - 1; i++)
-				if (strcmp(rights[i].id, rights[next].id) == 0)
-					break;	
-
-			if (i < rights_count - 1) {
-				rights_count--;
-				continue;
-			}
-
-			rights[next].parent = curr;
-
-			// fprintf (stderr, "\tnew uri %s\n", rights[next].id);
-			rights[next].buf = rights[next].buf_start;
-			// fprintf(stderr, "REQUEST URI %s\n", rights[next].id);
-			get_tuple_res = get_tuple(rights[next].id, rights[next].id_len, 
-				(char *)rights[next].buf);
-			if (get_tuple_res == 0)
-				continue;
-			else if (get_tuple_res  < 0)
-				return -1;
-			
-			rights[curr].i += 2;
-			curr = next;
-			got_next = 1;
-			break;
-		}
-		if (!got_next) {
-			curr = rights[curr].parent;
-			gone_previous = 1;
-		}
-	}*/
 }
 
 #[allow(dead_code)]
-pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection) -> 
-    Result<u8, String> {
+pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection) -> u8{
+    let mut result_access:u8 = 0;
     let mut object_groups: Vec<Group> = Vec::default();
     let mut subject_groups: Vec<Group> = Vec::default();
+    let access_arr: [u8; 4] = [ ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
+	    ACCESS_CAN_DELETE ];
 
     writeln!(stderr(), "@COMPUTE ACCESS");
-    get_groups(&("M".to_string() + user_id), &mut object_groups, &conn);
-    return Ok(15);
+    get_groups(user_id, &mut subject_groups, &conn);
+    get_groups(res_uri, &mut object_groups, &conn);
+
+    
+    let mut extra_group = Group::new();
+    extra_group.id = "v-s:AllResourcesGroup".to_string();
+    object_groups.push(extra_group);
+
+    writeln!(stderr(), "@OBJECT-------------------------------------------------");
+    for i in 0 .. object_groups.len() {
+        writeln!(stderr(), "\t {0} {1}", object_groups[i].id, object_groups[i].access);
+    }    
+    writeln!(stderr(), "--------------------------------------------------------");
+
+    writeln!(stderr(), "@SUBJECT-------------------------------------------------");
+    for i in 0 .. subject_groups.len() {
+        writeln!(stderr(), "\t {0} {1}", subject_groups[i].id, subject_groups[i].access);
+    }    
+    writeln!(stderr(), "--------------------------------------------------------");
+
+    writeln!(stderr(), "!!!@PERMISSIONS");
+    for i in 0 .. object_groups.len() {
+        let mut perm_buf: Vec<u8> = Vec::default();
+        let object_access = object_groups[i].access;
+        get_tuple(&object_groups[i].id, &mut perm_buf, conn.permissions_space_id, conn.permissions_index_id);
+        if perm_buf.len() == 0 {
+            continue;
+        }
+        let mut cursor:Cursor<&[u8]> = Cursor::new(&perm_buf[..]);
+        let nperms = decode::decode_array(&mut cursor).unwrap();
+        writeln!(stderr(), "@NPERMS {0} FOR {1}", nperms, object_groups[i].id);
+        decode::decode_string(&mut cursor, &mut Vec::default());
+        let mut j = 1;
+        while j < nperms {
+            j += 2;
+            let perm_uri = {
+                let mut tmp: Vec<u8> = Vec::default();
+                decode::decode_string(&mut cursor, &mut tmp);
+                std::str::from_utf8(&tmp[..]).unwrap().to_string()
+            };
+
+            let mut perm_access = decode::decode_uint(&mut cursor).unwrap() as u8;
+            writeln!(stderr(), "\t@PERM {0} WITH ACCESS {1}", perm_uri, perm_access);
+            perm_access = (((perm_access & 0xF0) >> 4) ^ 0x0F) & perm_access;
+            let mut idx = 0;
+            while idx < subject_groups.len() {
+                if (perm_uri == subject_groups[idx].id) {
+                    break;
+                }
+                idx += 1;
+            }
+
+            if idx < subject_groups.len() {
+                writeln!(stderr(), "\t\t@FOUND {0}", perm_uri);
+                for k in 0 .. 4 {
+                    if (access_arr[k] & object_access) > 0 {
+                        result_access |= access_arr[k] & perm_access;
+                    }
+                }
+            }
+        }
+    }
+
+    writeln!(stderr(), "@RESULT ACCESS {0} USER {1} RES {2}", result_access, user_id, res_uri);
+    return result_access;
 }
