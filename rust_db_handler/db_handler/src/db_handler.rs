@@ -51,7 +51,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     match op_code {
         PUT => rest::put(cursor, arr_size, need_auth, resp_msg),
         GET => rest::get(cursor, arr_size, need_auth, resp_msg),
-        AUTHORIZE => rest::auth(cursor, arr_size, need_auth, resp_msg),
+        AUTHORIZE => rest::auth(cursor, arr_size, resp_msg),
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
@@ -62,10 +62,8 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 
 #[no_mangle]
 pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
-    let mut tmp: Vec<u8> = Vec::default();
     let mut msg: Vec<u8> = Vec::default();
-    lua::tolstring(L, -1, &mut tmp);
-    msg = tmp.clone();
+    lua::tolstring(L, -1, &mut msg);
     // writeln!(stderr(), "@BEGIN REQUEST");
     let mut cursor = Cursor::new(&msg[..]);
     let mut resp_msg = Vec::new();

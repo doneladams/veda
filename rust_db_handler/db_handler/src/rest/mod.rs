@@ -91,7 +91,7 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
 
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     // writeln!(stderr(), "@PUT").unwrap();
-    let mut conn: TarantoolConnection;
+    let conn: TarantoolConnection;
 
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -99,7 +99,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     }
 
     let mut user_id_buf = Vec::default();
-    let mut user_id: &str;
+    let user_id: &str;
     // writeln!(stderr(), "@DECODE USER ID");
     match decode::decode_string(cursor, &mut user_id_buf) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -111,14 +111,13 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
-    for i in 3 .. arr_size {
+    for _ in 3 .. arr_size {
         let mut individual_msgpack_buf = Vec::default();    
-        let individual_msgpack: &str;
         
         // writeln!(stderr(), "@DECODE INDIVIDUAL MSGPACK").unwrap();
         match decode::decode_string(cursor, &mut individual_msgpack_buf) {
             Err(err) => {
-                // writeln!(stderr(), "@ERR DECODING INDIVIDUAL MSGPACK {0}", err);
+                writeln!(stderr(), "@ERR DECODING INDIVIDUAL MSGPACK {0}", err).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 return;
             }
@@ -131,18 +130,18 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         match put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual) {
             Ok(_) => {}
             Err(err) => {
-                writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err);
+                writeln!(stderr(), "@ERR DECODING INDIVIDUAL {0}", err).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 return;
             }
         }
         // writeln!(stderr(), "@INDIVIDUAL TO MSGPACK DONE").unwrap();
         
-        let mut new_state_res: &Vec<put_routine::Resource>;
+        let new_state_res: &Vec<put_routine::Resource>;
         match individual.resources.get(&"new_state".to_string()) {
             Some(res) => new_state_res = res,
             _ => {
-                writeln!(stderr(), "@NO NEW_STATE FOUND");
+                writeln!(stderr(), "@NO NEW_STATE FOUND").unwrap();
                 encode::encode_uint(resp_msg, Codes::BadRequest as u64);
                 return;
             }
@@ -154,13 +153,13 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             &mut new_state) {
             Ok(_) => {}
             Err(err) => {
-                writeln!(stderr(), "@ERR DECODING NEW STATE {0}", err);
+                writeln!(stderr(), "@ERR DECODING NEW STATE {0}", err).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 return;
             }
         }
         // writeln!(stderr(), "@DECODED NEW STATE");
-        let mut rdf_types: &Vec<put_routine::Resource>;
+        let rdf_types: &Vec<put_routine::Resource>;
         match new_state.resources.get(&"rdf:type".to_string()) {
             Some(res) => rdf_types = res,
             _ => {
@@ -175,7 +174,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         match put_routine::get_rdf_types(&new_state.uri, &mut tnt_rdf_types, &conn) {
             Ok(_) => {}
             Err(err) => {
-                writeln!(stderr(), "@ERR READING RDF:TYPE IN TARANTOOL {0}", err);
+                writeln!(stderr(), "@ERR READING RDF:TYPE IN TARANTOOL {0}", err).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 return;
             }
@@ -183,7 +182,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         // writeln!(stderr(), "@TNT RDF:TYPE LEN {0}", tnt_rdf_types.len());
         let mut is_update: bool = true;
-        if (tnt_rdf_types.len() > 0 && need_auth) {
+        if tnt_rdf_types.len() > 0 && need_auth {
             for i in 0 .. rdf_types.len() {
                 // writeln!(stderr(), "@TRY TO FIND {0}", 
                     // std::str::from_utf8(rdf_types[i].str_data.as_ref()).unwrap());
@@ -207,18 +206,18 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             is_update = false;
         }
         // writeln!(stderr(), "@IS UPDATE {0}", is_update);
-        if (is_update && need_auth) {
+        if is_update && need_auth {
             let auth_result = authorization::compute_access(user_id, 
                 &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn);
 
-            if (auth_result & authorization::ACCESS_CAN_UPDATE == 0) {
+            if auth_result & authorization::ACCESS_CAN_UPDATE == 0 {
                 // writeln!(stderr(), "@NOT AUTH UPDATE");
                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
             }
         }
 
         // writeln!(stderr(), "@CHECKED RIGHTS");  
-        if (!is_update) {
+            if !is_update {
             put_routine::put_rdf_types(&new_state.uri, rdf_types, &conn);
         }
       
@@ -233,11 +232,11 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 &mut null_mut() as *mut *mut BoxTuple);
             if replace_code < 0 {
                 writeln!(stderr(), "@ERR {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
         }
 
-        let mut prev_state_res: &Vec<put_routine::Resource>;
+        let prev_state_res: &Vec<put_routine::Resource>;
         let mut prev_state = put_routine::Individual::new();
         match individual.resources.get(&"prev_state".to_string()) {
             Some(res) => {
@@ -247,7 +246,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                     &mut prev_state) {
                     Ok(_) => {}
                     Err(err) => {
-                        // writeln!(stderr(), "@ERR DECODING PREV_STATE {0}", err);
+                        writeln!(stderr(), "@ERR DECODING PREV_STATE {0}", err).unwrap();
                         encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         return;
                     }
@@ -263,7 +262,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:permissionObject", 
                     "v-s:permissionSubject", conn.permissions_space_id, conn.permissions_index_id) {
                     Err(err) => {
-                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err);
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err).unwrap();
                         encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         return;
                     }
@@ -275,7 +274,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:resource", 
                     "v-s:memberOf", conn.memberships_space_id, conn.memberships_index_id) {
                     Err(err) => {
-                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err);
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err).unwrap();
                         encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         return;
                     }
@@ -292,7 +291,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
 pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     // writeln!(stderr(), "@GET").unwrap();
-    let mut conn: TarantoolConnection;
+    let conn: TarantoolConnection;
 
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -312,7 +311,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
-    for i in 3 .. arr_size {
+    for _ in 3 .. arr_size {
         let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
         let mut request = Vec::new();
@@ -352,7 +351,8 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             
                 if get_code < 0 {
                     writeln!(stderr(), "@ERR GET FROM TARANTOOL {0}",
-                        CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                        CStr::from_ptr(box_error_message(box_error_last())).to_str().
+                        unwrap().to_string()).unwrap();
                 }
                 let tuple_size = box_tuple_bsize(get_result);
                 let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
@@ -368,7 +368,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
             } else if count < 0 {
-                writeln!(stderr(), "@ERR ON COUNT {0}", res_uri);
+                writeln!(stderr(), "@ERR ON COUNT {0}", res_uri).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 encode::encode_nil(resp_msg);
             }
@@ -378,9 +378,9 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     }
 }
 
-pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
+pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
     // writeln!(stderr(), "@AUTH").unwrap();
-    let mut conn: TarantoolConnection;
+    let conn: TarantoolConnection;
 
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -400,7 +400,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg:
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
-    for i in 3 .. arr_size {
+    for _ in 3 .. arr_size {
      let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
         let mut request = Vec::new();
@@ -435,7 +435,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg:
 
 pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     // writeln!(stderr(), "@REMOVE");
-    let mut conn: TarantoolConnection;
+    let conn: TarantoolConnection;
 
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -443,7 +443,7 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
     }
 
     let mut user_id_buf = Vec::default();
-    let mut user_id: &str;
+    let user_id: &str;
     // writeln!(stderr(), "@DECODE USER ID");
     match decode::decode_string(cursor, &mut user_id_buf) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -455,7 +455,7 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
     encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
-    for i in 3 .. arr_size {
+    for _ in 3 .. arr_size {
         let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
         let mut request = Vec::new();
@@ -476,7 +476,6 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
 
             if need_auth {
                 let auth_result = authorization::compute_access(user_id, res_uri, &conn);
-                let mut access: u8 = 0;
 
                 if (auth_result & authorization::ACCESS_CAN_DELETE) == 0 {
                     encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -491,28 +490,28 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
             if delete_code < 0 {
                 writeln!(stderr(), "@ERR DELETE INDIVIDUAL {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
 
-            let mut delete_code = box_delete(conn.rdf_types_space_id, conn.rdf_types_index_id, 
+            delete_code = box_delete(conn.rdf_types_space_id, conn.rdf_types_index_id, 
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
             if delete_code < 0 {
                 writeln!(stderr(), "@ERR DELETE RDF TYPES {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
 
-            let mut delete_code = box_delete(conn.permissions_space_id, conn.permissions_index_id, 
+            delete_code = box_delete(conn.permissions_space_id, conn.permissions_index_id, 
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
             if delete_code < 0 {
                 writeln!(stderr(), "@ERR DELETE PERMISSION {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
 
-            let mut delete_code = box_delete(conn.memberships_space_id, conn.memberships_index_id, 
+            delete_code = box_delete(conn.memberships_space_id, conn.memberships_index_id, 
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
             if delete_code < 0 {
                 writeln!(stderr(), "@ERR DELETE MEMBERSHIP {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
         }
         encode::encode_uint(resp_msg, Codes::Ok as u64);        

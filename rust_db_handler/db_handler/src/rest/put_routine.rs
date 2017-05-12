@@ -4,8 +4,7 @@ extern crate rmp_bind;
 
 use std;
 use std::collections::HashMap;
-use std::cmp::Eq;
-use std::ffi::{ CString, CStr };
+use std::ffi::{ CStr };
 use std::io::{ Write, stderr, Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
@@ -102,45 +101,8 @@ impl Lang {
     } 
 }
 
-fn resources_equeal(r1: &Resource, r2: &Resource) -> bool {
-    if r1.res_type != r2.res_type {
-        return false;
-    }
-
-    match r1.res_type {
-        ResourceType::Uri => {
-            if r1.str_data == r2.str_data { 
-                return true; 
-            }
-        },
-        ResourceType::Str => { 
-            if r1.str_data == r2.str_data && r1.lang == r2.lang { 
-                return true; 
-            }
-        },
-        ResourceType::Integer | ResourceType::Datetime => { 
-            if r1.long_data == r2.long_data { 
-                return true 
-            }
-        },
-        ResourceType::Decimal => {
-            if r1.decimal_exponent_data == r2.decimal_exponent_data &&
-                r1.decimal_mantissa_data == r2.decimal_mantissa_data { 
-                return true 
-            }
-        },
-        ResourceType::Boolean => { 
-            if r1.bool_data == r2.bool_data {
-                return true;
-            }
-        },
-    }
-
-   return false;
-}
-
 pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Individual) -> Result<(), String> {
-    let mut arr_size: u64;
+    let arr_size: u64;
     match decode::decode_array(cursor) {
         Err(err) => return Err(format!("@ERR DECODING INDIVIDUAL MSGPACK ARRAY {0}", err)),
         Ok(size) => arr_size = size
@@ -157,7 +119,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
 
     // writeln!(stderr(), "@INDIVIDUAL URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap()).unwrap();
 
-    let mut map_size: u64;
+    let map_size: u64;
     match decode::decode_map(cursor) {
         Err(err) => return Err(format!("@ERR DECODING INDIVIDUAL MAP {0}", err)),
         Ok(size) => map_size = size
@@ -165,7 +127,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
 
     // writeln!(stderr(), "@MAP LEN {0}", map_size);
 
-    for i in 0..map_size {
+    for _ in 0..map_size {
         let mut key: Vec<u8> = Vec::default();
         let mut resources: Vec<Resource> = Vec::new();
 
@@ -175,15 +137,15 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
         }
         // writeln!(stderr(), "@RESOURCE KEY {0}", std::str::from_utf8(&key[..]).unwrap()).unwrap();
         
-        let mut res_size: u64;
+        let res_size: u64;
         match decode::decode_array(cursor) {
             Ok(rs) => res_size = rs,
             Err(err) => return Err(format!("@ERR DECODING RESOURCES ARRAY {0}", err))
         }
 
         // writeln!(stderr(), "@RESOURCE ARRAY LEN {0}", res_size);
-        for j in 0.. res_size {
-            let mut objtype: decode::Type;
+        for _ in 0.. res_size {
+            let objtype: decode::Type;
             match decode::decode_type(cursor) {
                 Ok(t) => objtype = t,
                 Err(err) => return Err(format!("@ERR DECODING RESOURCE TYPE {0}", err))
@@ -193,7 +155,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                 decode::Type::ArrayObj => {
                     let res_arr_size = decode::decode_array(cursor).unwrap();
                     // writeln!(stderr(), "@DECODE RES ARR 2").unwrap();
-                    let mut res_type: u64;
+                    let res_type: u64;
                     match decode::decode_uint(cursor) {
                         Ok(rt) => res_type = rt,
                         Err(err) => return Err(format!("@ERR DECODING RESOURCE TYPE {0}", err))
@@ -202,7 +164,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                     if res_arr_size == 2 {
                         if res_type == ResourceType::Datetime as u64 {
                             let mut datetime: i64 = 0;
-                            let mut decode_type: decode::Type;                   
+                            let decode_type: decode::Type;                   
                             match decode::decode_type(cursor) {
                                 Ok(dt) => decode_type = dt,
                                 Err(err) => return Err(format!("@ERR DECODING STRING RES TYPE {0}", err))
@@ -233,7 +195,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                         } else if res_type == ResourceType::Str as u64 {
                             let mut resource = Resource::new();
                             
-                            let mut decode_type: decode::Type;
+                            let decode_type: decode::Type;
                             match decode::decode_type(cursor) {
                                 Ok(dt) => decode_type = dt,
                                 Err(err) => return Err(format!("@ERR DECODING STRING RES TYPE {0}", err))
@@ -293,7 +255,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                         } else if res_type == ResourceType::Str as u64 {
                             let mut resource = Resource::new();
 
-                            let mut decode_type: decode::Type;
+                            let decode_type: decode::Type;
                             match decode::decode_type(cursor) {
                                 Ok(dt) => decode_type = dt,
                                 Err(err) => return Err(format!("@ERR DECODING STRING RES TYPE {0}", err))
@@ -372,7 +334,7 @@ pub fn get_rdf_types(uri: &Vec<u8>, rdf_types: &mut Vec<Vec<u8>>, conn: &super::
        
         if get_code < 0 {
             writeln!(stderr(), "@ERR {0}",
-                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             return Err("@ERR READING RDF TYPES".to_string());
         } else if get_result != null_mut() {
             // writeln!(stderr(), "@GET RDF TYPES");
@@ -384,9 +346,9 @@ pub fn get_rdf_types(uri: &Vec<u8>, rdf_types: &mut Vec<Vec<u8>>, conn: &super::
             let arr_size = decode::decode_array(&mut cursor).unwrap();
             decode::decode_string(&mut cursor, &mut uri).unwrap();
             // writeln!(stderr(), "@RDF TYPE URI {0}", std::str::from_utf8(&uri[..]).unwrap());
-            for i in 1 .. arr_size {
+            for _ in 1 .. arr_size {
                 let mut buf: Vec<u8> = Vec::default();
-                decode::decode_string(&mut cursor, &mut buf);
+                decode::decode_string(&mut cursor, &mut buf).unwrap();
                 rdf_types.push(buf);
             }
             
@@ -417,7 +379,7 @@ pub fn put_rdf_types(uri: &Vec<u8>, rdf_types: &Vec<Resource>, conn: &super::Tar
             &mut null_mut() as *mut *mut BoxTuple);
         if replace_code < 0 {
             writeln!(stderr(), "@ERR PUT RDF TYPE {0}",
-                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
         }
         // writeln!(stderr(), "@REPLACE CODE {0}", replace_code);
     }
@@ -441,7 +403,7 @@ fn peek_from_tarantool(key: &str, new_right_set: &mut HashMap<String, Right>,
 
         if get_code < 0 {
             writeln!(stderr(), "@ERR PEEK RIGHTS FROM TARANTOOL {0}",
-                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
         } else if get_result != null_mut() {
             let tuple_size = box_tuple_bsize(get_result);
             let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
@@ -458,7 +420,7 @@ fn peek_from_tarantool(key: &str, new_right_set: &mut HashMap<String, Right>,
             let mut i = 1;
             while i < arr_size {
                 let mut right: Right = Right::new();
-                decode::decode_string(&mut cursor, &mut right.id);
+                decode::decode_string(&mut cursor, &mut right.id).unwrap();
                 // writeln!(stderr(), "@RIGHT ID {0}", std::str::from_utf8(&right.id[..]).unwrap());
                 right.access = decode::decode_uint(&mut cursor).unwrap() as u8;
                 // writeln!(stderr(), "@RIGHT ACCESS {0}", right.access);
@@ -473,7 +435,7 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
     let mut arr_size = new_right_set.len() * 2 + 1;
     // iterate over everything.
     // writeln!(stderr(), "@NEW RIGHT SET LEN {0}", new_right_set.len());
-    for (right_id, right) in new_right_set {
+    for (_, right) in new_right_set {
         if right.is_deleted {
             arr_size -= 2;
         }
@@ -484,7 +446,7 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
     encode::encode_array(&mut request, arr_size as u32);
     // writeln!(stderr(), "@REQUEST KEY {0}", key);    
     encode::encode_string(&mut request, key);
-    for (right_id, right) in new_right_set {
+    for (_, right) in new_right_set {
         if !right.is_deleted {
             // writeln!(stderr(), "@PUSH RIGHT ID {0}", right_id);
             encode::encode_string_bytes(&mut request, &right.id);
@@ -504,7 +466,7 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
             &mut null_mut() as *mut *mut BoxTuple);
             if replace_code < 0 {
                 writeln!(stderr(), "@ERR PUT RIGHT SET {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
         } else {
             // writeln!(stderr(), "@DELETE RIGHT SET");
@@ -512,7 +474,7 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
                 &mut null_mut() as *mut *mut BoxTuple);
             if delete_code < 0 {
                 writeln!(stderr(), "@ERR DELETE RIGHT SET {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string());
+                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
             }
         }
     }
@@ -624,13 +586,13 @@ fn get_delta(a: &Vec<Resource>, b: &Vec<Resource>, delta: &mut Vec<Resource>) {
     for i in 0 .. vec_len {
         let mut j = 0;
         while j < b.len() {
-            if (a[i] == b[j]) {
+            if a[i] == b[j] {
                 break;
             }
             j += 1;
         }
 
-        if (j == b.len()) {
+        if j == b.len() {
             delta.push(a[i].clone());
         }
     }

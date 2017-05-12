@@ -2,8 +2,7 @@ extern crate core;
 extern crate rmp_bind;
 
 use std;
-use std::collections::HashMap;
-use std::io::{ Cursor, Write, stderr };
+use std::io::{ Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
@@ -48,7 +47,7 @@ fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
         let key_ptr_end = key_ptr_start.offset(request_len);
 
         let mut get_result: *mut BoxTuple = null_mut();
-        let get_code = box_index_get(space_id, index_id, key_ptr_start, key_ptr_end, 
+        box_index_get(space_id, index_id, key_ptr_start, key_ptr_end, 
             &mut get_result as *mut *mut BoxTuple);
         
         if get_result == null_mut() {
@@ -94,7 +93,6 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 let mut tmp: Vec<u8> = Vec::default();
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
-                let mut tmp: Vec<u8> = Vec::default();
                 decode::decode_string(&mut cursor, &mut tmp).unwrap();
                 postion = cursor.position();                
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
@@ -116,7 +114,6 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 let mut tmp: Vec<u8> = Vec::default();
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
-                let mut tmp: Vec<u8> = Vec::default();
                 decode::decode_string(&mut cursor, &mut tmp).unwrap();
                 postion = cursor.position();                
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
@@ -124,7 +121,7 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             next_group.access = {
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
-                let mut tmp = decode::decode_uint(&mut cursor).unwrap();
+                let tmp = decode::decode_uint(&mut cursor).unwrap();
                 postion = cursor.position();  
                 tmp as u8
             };
@@ -209,13 +206,13 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         let mut cursor:Cursor<&[u8]> = Cursor::new(&perm_buf[..]);
         let nperms = decode::decode_array(&mut cursor).unwrap();
         // writeln!(stderr(), "@NPERMS {0} FOR {1}", nperms, object_groups[i].id);
-        decode::decode_string(&mut cursor, &mut Vec::default());
+        decode::decode_string(&mut cursor, &mut Vec::default()).unwrap();
         let mut j = 1;
         while j < nperms {
             j += 2;
             let perm_uri = {
                 let mut tmp: Vec<u8> = Vec::default();
-                decode::decode_string(&mut cursor, &mut tmp);
+                decode::decode_string(&mut cursor, &mut tmp).unwrap();
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
             };
 
@@ -224,7 +221,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             perm_access = (((perm_access & 0xF0) >> 4) ^ 0x0F) & perm_access;
             let mut idx = 0;
             while idx < subject_groups.len() {
-                if (perm_uri == subject_groups[idx].id) {
+                if perm_uri == subject_groups[idx].id {
                     break;
                 }
                 idx += 1;

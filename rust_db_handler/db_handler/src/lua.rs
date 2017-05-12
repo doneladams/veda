@@ -1,8 +1,10 @@
 extern crate libc;
 
+use std::os::raw::c_void;
 use self::libc::{ ptrdiff_t, size_t };
 
-pub struct lua_State;
+#[repr(C)]
+pub struct lua_State (c_void);
 pub type Function = extern "C" fn(L: *mut lua_State) -> i32;
 
 use std;
@@ -20,7 +22,7 @@ extern "C" {
     fn  lua_pushlstring(L: *mut lua_State, s: *const c_char, l: size_t);
 } 
 
-
+#[allow(dead_code)]
 pub fn register(L: *mut lua_State, name: &str, func: Function) {
     unsafe {
         lua_pushcclosure(L, func, 0);
@@ -28,12 +30,14 @@ pub fn register(L: *mut lua_State, name: &str, func: Function) {
     }
 }
 
+#[allow(dead_code)]
 pub fn tointeger(L: *mut lua_State, idx: i32) -> i64 {
     unsafe {
         return lua_tointeger(L, idx) as i64;
     }
 }
 
+#[allow(dead_code)]
 pub fn tolstring(L: *mut lua_State, idx: i32, buf: &mut Vec<u8>) {
     unsafe {
         let mut str_len: size_t = 0;
@@ -42,6 +46,7 @@ pub fn tolstring(L: *mut lua_State, idx: i32, buf: &mut Vec<u8>) {
     }
 }
 
+#[allow(dead_code)]
 pub fn pushlstring(L: *mut lua_State, buf: &Vec<u8>) {
     unsafe {
         let s = buf[..].as_ptr() as *const c_char;
