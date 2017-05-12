@@ -1,3 +1,5 @@
+/// This module gives function to check access of user to individual
+
 extern crate core;
 extern crate rmp_bind;
 
@@ -36,6 +38,7 @@ impl Group {
     }
 }
 
+/// Get tuple with key form Tarantool if exists
 fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
     let mut request = Vec::new();
     encode::encode_array(&mut request, 1);
@@ -60,35 +63,34 @@ fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
     }
 }
 
+/// Finds tree of groups for uri (object or subject)
 fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnection) {
     let mut curr: i32 = 0;
     let mut gone_previous = false;
     
+    /// Creates root group and saves it
     groups.push(Group::new());
     groups[0].id = uri.to_string();
     get_tuple(uri, &mut groups[curr as usize].buf, conn.memberships_space_id, conn.memberships_index_id);
-    // writeln!(stderr(), "@FIRST URI {0}", uri);
     if groups[curr as usize].buf.len() == 0 {  
-        // writeln!(stderr(), "@ZERO BUF");
+        /// If no child nodes than return
         return;
     }
 
-    while curr != -1{
+    /// Iterative computation of tree while is not out of root
+    while curr != -1 {
         let mut got_next = false;
-        // writeln!(stderr(), "@RESET POSITION");
+        /// Restores position of reader in msgpack buffer
+        /// and check if found a new root
         let mut postion: u64 = groups[curr as usize].position;
-        // writeln!(stderr(), "@CURR {0}", curr);
         if !gone_previous {
-            // writeln!(stderr(), "@ASSIGN I");
             groups[curr as usize].i = 1;
-            // writeln!(stderr(), "@GET NELEMS");
             groups[curr as usize].nelems = {
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 let arr_size = decode::decode_array(&mut cursor).unwrap();
                 postion = cursor.position();
                 arr_size
             };
-            // writeln!(stderr(), "@GROUP NELEMS {0}", groups[curr as usize].nelems);
             groups[curr as usize].id = {
                 let mut tmp: Vec<u8> = Vec::default();
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
@@ -97,17 +99,13 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 postion = cursor.position();                
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
             };
-        
-            // writeln!(stderr(), "@GROUP URI {0}", groups[curr as usize].id);
         }
 
         gone_previous = false;
-        // writeln!(stderr(), "@START {0}", curr);
-        // writeln!(stderr(), "@{0} FROM {1}", groups[curr as usize].i, groups[curr as usize].nelems);
         while groups[curr as usize].i < groups[curr as usize].nelems {
             groups[curr as usize].i += 2;
-            // writeln!(stderr(), "\t@BECAME {0} FROM {1}", groups[curr as usize].i, groups[curr as usize].nelems);
 
+            /// Creates new group and decodes its id
             let mut next_group = Group::new();
             let next = groups.len();
             let id = {
@@ -119,27 +117,29 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 std::str::from_utf8(&tmp[..]).unwrap().to_string()
             };
             next_group.access = {
+                /// Decodes right set access and computes group access according to parent node
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
                 let tmp = decode::decode_uint(&mut cursor).unwrap();
                 postion = cursor.position();  
-                tmp as u8
+                tmp as u8 & groups[curr as usize].access
             };
-            // writeln!(stderr(), "\t@NEXT GROUP ID {0} ACCESS {1}", next_group.id, next_group.access);
-            next_group.access &= groups[curr as usize].access;
+
             let mut found = false;
+            /// Checks for cycle in tree with new node
             for i in 0 .. groups.len() {
                 if groups[i].id == next_group.id {
                     found = true;
                     break;
                 }
             }
-            // writeln!(stderr(), "\t@FINISH CYCLE FIND AND FOUND {0}", found);
+
             if found {
                 continue;
             }
 
             next_group.parent = curr;
+            /// Get msgpack buffer if exists and save to vector or just continue
             get_tuple(&id, &mut next_group.buf, conn.memberships_space_id, conn.memberships_index_id);
             groups.push(next_group);
             groups[curr as usize].position = postion;
@@ -147,26 +147,20 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 groups[next as usize].id = id;
                 continue;
             }
-            curr = groups.len() as i32 - 1;
-            
 
+            curr = groups.len() as i32 - 1;
             got_next = true;
             break;
         }
 
         if !got_next {
-            // writeln!(stderr(), "\t@NO NEXT FOR {0}", curr);            
             curr = groups[curr as usize].parent;
-            // writeln!(stderr(), "\t@NEW CURR {0}", curr);
             gone_previous = true;
-            if curr != -1 {
-                // writeln!(stderr(), "@GO BACK TO {0} {1}", groups[curr as usize].id, curr);
-            }
         }
     }
 }
 
-#[allow(dead_code)]
+/// Function to compute access
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection) -> u8{
     let mut result_access:u8 = 0;
     let mut object_groups: Vec<Group> = Vec::default();
@@ -174,40 +168,29 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     let access_arr: [u8; 4] = [ ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	    ACCESS_CAN_DELETE ];
 
-    // writeln!(stderr(), "@COMPUTE ACCESS");
+    /// Computes access of object and subject
     get_groups(user_id, &mut subject_groups, &conn);
     get_groups(res_uri, &mut object_groups, &conn);
 
-    
+    /// Add extra group which is not stored in space
     let mut extra_group = Group::new();
     extra_group.id = "v-s:AllResourcesGroup".to_string();
     object_groups.push(extra_group);
 
-/*    writeln!(stderr(), "@OBJECT-------------------------------------------------");
-    for i in 0 .. object_groups.len() {
-        writeln!(stderr(), "\t {0} {1}", object_groups[i].id, object_groups[i].access);
-    }    
-    writeln!(stderr(), "--------------------------------------------------------");
-
-    writeln!(stderr(), "@SUBJECT-------------------------------------------------");
-    for i in 0 .. subject_groups.len() {
-        writeln!(stderr(), "\t {0} {1}", subject_groups[i].id, subject_groups[i].access);
-    }    
-    writeln!(stderr(), "--------------------------------------------------------");
-*/
-    // writeln!(stderr(), "!!!@PERMISSIONS");
+    /// Computes access in cycle
     for i in 0 .. object_groups.len() {
         let mut perm_buf: Vec<u8> = Vec::default();
         let object_access = object_groups[i].access;
+        /// Gets permission right set buffer
         get_tuple(&object_groups[i].id, &mut perm_buf, conn.permissions_space_id, conn.permissions_index_id);
         if perm_buf.len() == 0 {
             continue;
         }
         let mut cursor:Cursor<&[u8]> = Cursor::new(&perm_buf[..]);
         let nperms = decode::decode_array(&mut cursor).unwrap();
-        // writeln!(stderr(), "@NPERMS {0} FOR {1}", nperms, object_groups[i].id);
         decode::decode_string(&mut cursor, &mut Vec::default()).unwrap();
         let mut j = 1;
+        /// For each permission to object tries to find it in subjects
         while j < nperms {
             j += 2;
             let perm_uri = {
@@ -217,7 +200,6 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             };
 
             let mut perm_access = decode::decode_uint(&mut cursor).unwrap() as u8;
-            // writeln!(stderr(), "\t@PERM {0} WITH ACCESS {1}", perm_uri, perm_access);
             perm_access = (((perm_access & 0xF0) >> 4) ^ 0x0F) & perm_access;
             let mut idx = 0;
             while idx < subject_groups.len() {
@@ -228,7 +210,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             }
 
             if idx < subject_groups.len() {
-                // writeln!(stderr(), "\t\t@FOUND {0}", perm_uri);
+                // If found, check access of subject in group to object
                 for k in 0 .. 4 {
                     if (access_arr[k] & object_access) > 0 {
                         result_access |= access_arr[k] & perm_access;
@@ -238,6 +220,5 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         }
     }
 
-    // writeln!(stderr(), "@RESULT ACCESS {0} USER {1} RES {2}", result_access, user_id, res_uri);
     return result_access;
 }

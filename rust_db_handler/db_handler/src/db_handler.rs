@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+/// This module represents handler for REST requests in Tarantool
 
 extern crate core;
 extern crate rmp_bind;
@@ -30,19 +31,21 @@ pub fn fail(resp_msg: &mut Vec<u8>, code: rest::Codes, err_msg: String) {
 }
 
 
+/// According to docs size must be at least for elements, else you get fail
 fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
     if arr_size < 4 {
         fail(resp_msg, rest::Codes::BadRequest, "@INVALID MSGPACK SIZE < 4".to_string());
         return;
     }
 
-    // writeln!(&mut stderr(), "@UNMARSHAL").unwrap();
+    /// First for all requests its operation code
     let op_code: u64;
     match decode::decode_uint(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
         Ok(op) => (op_code = op)
     }
-    // writeln!(&mut stderr(), "@op code {0}", op_code).unwrap();
+
+    /// Second if flag for authorization
     let need_auth: bool;
     match decode::decode_bool(cursor) {
         Err(err) => return fail(resp_msg, rest::Codes::BadRequest, err),
@@ -51,6 +54,8 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     match op_code {
         PUT => rest::put(cursor, arr_size, need_auth, resp_msg),
         GET => rest::get(cursor, arr_size, need_auth, resp_msg),
+        /// Auth request don't need need_auth flag
+        /// But for the sake of generality request contains it always
         AUTHORIZE => rest::auth(cursor, arr_size, resp_msg),
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
@@ -59,8 +64,9 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 }
 
 
-
 #[no_mangle]
+/// Represents main entry from lua interpretator in Tarantool
+/// Parses request array and gets it size
 pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
     let mut msg: Vec<u8> = Vec::default();
     lua::tolstring(L, -1, &mut msg);

@@ -1,3 +1,6 @@
+/// This module gives bingings to C lua library
+/// Each function name copies macros or function in lua lib
+
 extern crate libc;
 
 use std::os::raw::c_void;
