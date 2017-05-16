@@ -238,7 +238,7 @@ shared static this()
             {
                 if (transport.data() == "http")
                 {
-                    http_port         = cast(ushort)connection.getFirstInteger("v-s:port", 8080);
+                    http_port         = 8100/*cast(ushort)connection.getFirstInteger("v-s:port", 8080)*/;
                     is_exist_listener = start_http_listener(context, http_port);
                 }
             }

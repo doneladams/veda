@@ -36,7 +36,9 @@ pub struct TarantoolConnection {
     permissions_space_id: u32,
     permissions_index_id: u32,
     memberships_space_id: u32,
-    memberships_index_id: u32
+    memberships_index_id: u32,
+    tickets_space_id: u32,
+    tickets_index_id: u32,
 }
 
 
@@ -91,6 +93,18 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
             CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
         if conn.memberships_index_id == BOX_ID_NIL {
             return Err("@ERR NO INDEX primary IN memberships".to_string());
+        }
+
+        conn.tickets_space_id = box_space_id_by_name(CString::new("tickets").unwrap().as_ptr(), 
+            "tickets".len() as u32);
+        if conn.tickets_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE tickets".to_string());
+        }
+        
+        conn.tickets_index_id = box_index_id_by_name(conn.tickets_space_id, 
+            CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
+        if conn.memberships_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN tickets".to_string());
         }
 
         return Ok(conn);
@@ -174,11 +188,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             }
         }
 
-        if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
-            writeln!(stderr(), "@TICKET CAUGHT").unwrap();
-            encode::encode_uint(resp_msg, Codes::Ok as u64);
-            return
-        }
+        
 
         let mut tnt_rdf_types: Vec<Vec<u8>> = Vec::with_capacity(MAX_VECTOR_SIZE);
         put_routine::get_rdf_types(&new_state.uri, &mut tnt_rdf_types, &conn);
@@ -226,11 +236,15 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             let request_len = new_state_res[0].str_data[..].len() as isize;
             let key_ptr_start = new_state_res[0].str_data[..].as_ptr() as *const i8;
             let key_ptr_end = key_ptr_start.offset(request_len);
-            let replace_code = box_replace(conn.individuals_space_id, key_ptr_start, key_ptr_end, 
-                &mut null_mut() as *mut *mut BoxTuple);
-            if replace_code < 0 {
-                writeln!(stderr(), "@ERR {0}",
-                    CStr::from_ptr(box_error_message(box_error_last())).to_str().unwrap().to_string()).unwrap();
+
+            if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
+                box_replace(conn.tickets_space_id, key_ptr_start, key_ptr_end, 
+                    &mut null_mut() as *mut *mut BoxTuple);
+                encode::encode_uint(resp_msg, Codes::Ok as u64);
+                return
+            } else {
+                box_replace(conn.individuals_space_id, key_ptr_start, key_ptr_end, 
+                    &mut null_mut() as *mut *mut BoxTuple);
             }
         }
 
