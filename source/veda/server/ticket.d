@@ -5,6 +5,7 @@ import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.com
 import veda.core.util.utils;
 
 alias veda.server.storage_manager ticket_storage_module;
+alias veda.server.tt_storage_manager subject_storage_module;
 
 public Ticket create_new_ticket(string user_id, string duration, string ticket_id)
 {
@@ -40,6 +41,10 @@ public Ticket create_new_ticket(string user_id, string duration, string ticket_i
     {
         subject2Ticket(new_ticket, &ticket);
         //user_of_ticket[ ticket.id ] = new Ticket(ticket);
+        
+		//log.trace("server:send ticket to TT %s", new_ticket);
+        //subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+        //                                  op_id);        
     }
 
     return ticket;

@@ -565,11 +565,15 @@ class PThreadContext : Context
             {
                 subject2Ticket(new_ticket, &ticket);
                 user_of_ticket[ ticket.id ] = new Ticket(ticket);
+
+				log.trace("context:send ticket to TT %s", new_ticket);
+                subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+                                          op_id);
             }
 
             log.trace("create new ticket %s, user=%s, start=%s, end=%s", ticket.id, ticket.user_uri, SysTime(ticket.start_time, UTC()).toISOExtString(
                                                                                                                                                       ),
-                      SysTime(ticket.end_time, UTC()).toISOExtString());
+            SysTime(ticket.end_time, UTC()).toISOExtString());
         }
 
         version (WebServer)
