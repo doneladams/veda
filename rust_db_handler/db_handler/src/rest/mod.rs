@@ -15,6 +15,8 @@ use rmp_bind::{ encode, decode };
 
 include!("../../module.rs");
 
+const MAX_VECTOR_SIZE: usize = 150;
+
 /// REST return codes
 pub enum Codes {
     Ok = 200,
@@ -172,7 +174,13 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             }
         }
 
-        let mut tnt_rdf_types: Vec<Vec<u8>> = Vec::default();
+        if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
+            writeln!(stderr(), "@TICKET CAUGHT").unwrap();
+            encode::encode_uint(resp_msg, Codes::Ok as u64);
+            return
+        }
+
+        let mut tnt_rdf_types: Vec<Vec<u8>> = Vec::with_capacity(MAX_VECTOR_SIZE);
         put_routine::get_rdf_types(&new_state.uri, &mut tnt_rdf_types, &conn);
 
         ///Compare rdf:type stored in Tarantool and in new_state
@@ -269,6 +277,9 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                     }
                     _ => {}
                 }
+            }
+            "ticket:Ticket" => {
+                writeln!(stderr(), "@TICKET").unwrap();
             }
             _ => {}
         }

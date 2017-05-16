@@ -15,6 +15,7 @@ use lua::lua_State;
 
 const PUT: u64 = 1;
 const GET: u64 = 2;
+const GET_TICKET: u64 = 4;
 const AUTHORIZE: u64 = 8;
 const REMOVE: u64 = 51;
 

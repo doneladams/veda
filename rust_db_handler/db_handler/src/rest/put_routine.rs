@@ -14,6 +14,8 @@ use super::authorization;
 
 include!("../../module.rs");
 
+const MAX_VECTOR_SIZE: usize = 150;
+
 #[derive(PartialEq, Eq, Copy)]
 enum ResourceType {
     Uri = 1,
@@ -132,7 +134,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
     /// For each pair in map performs convertion to resource
     for _ in 0..map_size {
         let mut key: Vec<u8> = Vec::default();
-        let mut resources: Vec<Resource> = Vec::new();
+        let mut resources: Vec<Resource> = Vec::with_capacity(MAX_VECTOR_SIZE);
 
         /// Map key is resource
         match decode::decode_string(cursor, &mut key) {
@@ -546,8 +548,8 @@ pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_reso
         _ => {}
     }
 
-    let mut delta: Vec<Resource> = Vec::default();
-    /// Compute delte, store new and delete things that disappeared
+    let mut delta: Vec<Resource> = Vec::with_capacity(MAX_VECTOR_SIZE);
+    /// Compute delta, store new and delete things that disappeared
     get_delta(prev_resource, new_resource, &mut delta);
     update_right_set(new_resource, new_in_set, is_deleted, space_id, index_id, access);
     if delta.len() > 0 {

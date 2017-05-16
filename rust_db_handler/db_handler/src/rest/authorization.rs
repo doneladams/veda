@@ -11,6 +11,8 @@ use rmp_bind:: { decode, encode };
 
 include!("../../module.rs");
 
+const MAX_VECTOR_SIZE: usize = 150;
+
 pub static ACCESS_CAN_CREATE: u8 = 1 << 0;
 pub static ACCESS_CAN_READ: u8 = 1 << 1;
 pub static ACCESS_CAN_UPDATE: u8 = 1 << 2;
@@ -163,8 +165,8 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
 /// Function to compute access
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection) -> u8{
     let mut result_access:u8 = 0;
-    let mut object_groups: Vec<Group> = Vec::default();
-    let mut subject_groups: Vec<Group> = Vec::default();
+    let mut object_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
+    let mut subject_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let access_arr: [u8; 4] = [ ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	    ACCESS_CAN_DELETE ];
 
