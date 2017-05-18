@@ -25,6 +25,8 @@ const (
 	NotFound            ResultCode = 404
 	InternalServerError ResultCode = 50
 	TicketExpired       ResultCode = 471
+	NoContent           ResultCode = 204
+	SizeTooLarge        ResultCode = 1118
 )
 
 type ticket struct {
@@ -40,6 +42,7 @@ const (
 )
 
 var ticketCache map[string]ticket
+var conn Connector
 
 func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 	var ticketMsgpack []byte
@@ -161,6 +164,15 @@ func getIndividual(ctx *fasthttp.RequestCtx) ResultCode {
 		return TicketExpired
 	}
 
+	rr := conn.Get(true, ticket.UserURI, []string{uri}, true)
+	if rr.CommonRC != Ok {
+		log.Println("@ERR GET INDIVIDUAL COMMON ", rr.CommonRC)
+		return rr.CommonRC
+	} else if rr.OpRC[0] != Ok {
+		log.Println("@ERR GET INDIVIDUAL ", rr.OpRC[0])
+		return rr.OpRC[0]
+	}
+
 	return Ok
 }
 
@@ -184,6 +196,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func main() {
+	conn.Connect("127.0.0.1:9999")
+	log.Println("@CONNECTED")
 	ticketCache = make(map[string]ticket)
 	err := fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
 	if err != nil {
