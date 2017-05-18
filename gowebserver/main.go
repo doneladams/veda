@@ -3,34 +3,174 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
+	"bytes"
+
+	"strconv"
+
+	"time"
+
+	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/valyala/fasthttp"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
-func getIndividual(ticket string, uri string, reopen bool, ctx *fasthttp.RequestCtx) {
-	log.Println("@GET INDIVIDUAL")
-	if len(uri) == 0 || ticket == "" {
-		return
+type ResultCode uint32
+
+const (
+	Ok                  ResultCode = 200
+	BadRequest          ResultCode = 400
+	NotAuthorized       ResultCode = 472
+	NotFound            ResultCode = 404
+	InternalServerError ResultCode = 50
+	TicketExpired       ResultCode = 471
+)
+
+type ticket struct {
+	Id        string
+	UserURI   string
+	result    ResultCode
+	StartTime int64
+	EndTime   int64
+}
+
+const (
+	lmdbTicketsDBPath = "./data/lmdb-tickets"
+)
+
+var ticketCache map[string]ticket
+
+func lmdbFindTicket(key string, ticket *ticket) ResultCode {
+	var ticketMsgpack []byte
+
+	if key == "" || key == "systicket" {
+		key = "guest"
 	}
 
+	lmdbEnv, err := lmdb.NewEnv()
+	if err != nil {
+		log.Println("@ERR CREATING LMDB ENV")
+		return InternalServerError
+	}
+
+	err = lmdbEnv.SetMaxDBs(1)
+	if err != nil {
+		log.Println("@ERR SETTING MAX DBS ", err)
+		return InternalServerError
+	}
+	lmdbEnv.Open(lmdbTicketsDBPath, 0, os.ModePerm)
+
+	err = lmdbEnv.View(func(txn *lmdb.Txn) (err error) {
+		dbi, err := txn.OpenDBI("", 0)
+		if err != nil {
+			return err
+		}
+
+		ticketMsgpack, err = txn.Get(dbi, []byte(key[:]))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if lmdb.IsNotFound(err) {
+		return NotFound
+	}
+	if err != nil {
+		log.Println("@ERR ON VIEW ", err)
+		return InternalServerError
+	}
+
+	decoder := msgpack.NewDecoder(bytes.NewReader(ticketMsgpack))
+	decoder.DecodeArrayLen()
+	ticket.Id, _ = decoder.DecodeString()
+	resMapI, _ := decoder.DecodeMap()
+	resMap := resMapI.(map[interface{}]interface{})
+	for mapKeyI, mapValI := range resMap {
+		mapKey := mapKeyI.(string)
+
+		switch mapKey {
+		case "ticket:accessor":
+			ticket.UserURI = mapValI.([]interface{})[0].([]interface{})[1].(string)
+
+		case "ticket:when":
+			startTime, _ := time.Parse("2006-01-02T15:04:05.0000000", mapValI.([]interface{})[0].([]interface{})[1].(string))
+			ticket.StartTime = startTime.Unix()
+
+		case "ticket:duration":
+			endTime, _ := strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
+			ticket.EndTime = ticket.StartTime + endTime
+		}
+	}
+
+	return Ok
+}
+
+func getRequestData(ctx *fasthttp.RequestCtx) (string, string, bool) {
+	var reopen bool
+	var uri, ticket string
+	if string(ctx.Method()[:]) == "GET" {
+		log.Println("@GET QUERY ARGS")
+		log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
+		ticket = string(ctx.QueryArgs().Peek("ticket")[:])
+		uri = string(ctx.QueryArgs().Peek("uri")[:])
+		reopen = ctx.QueryArgs().GetBool("reopen")
+	} else if string(ctx.Method()[:]) == "POST"[:] {
+		log.Println("@POST ARGS")
+		log.Println("@ARGS ", string(ctx.PostArgs().QueryString()[:]))
+		ticket = string(ctx.PostArgs().Peek("ticket")[:])
+		uri = string(ctx.PostArgs().Peek("uri")[:])
+		reopen = ctx.PostArgs().GetBool("reopen")
+	}
+
+	if ticket == "" {
+		ticket = string(ctx.Request.Header.Cookie("ticket")[:])
+	}
+
+	return uri, ticket, reopen
+}
+
+func getIndividual(ctx *fasthttp.RequestCtx) ResultCode {
+	// var reopen bool
+	var uri, ticketKey string
+	var ticket ticket
+
+	uri, ticketKey, _ = getRequestData(ctx)
+	log.Println("@GET INDIVIDUAL")
+	if len(uri) == 0 || ticketKey == "" {
+		return BadRequest
+	}
+
+	rc := InternalServerError
+	if ticketCache[ticketKey].Id != "" {
+		ticket = ticketCache[ticketKey]
+		rc = Ok
+	} else {
+		rc = lmdbFindTicket(ticketKey, &ticket)
+		if rc == Ok {
+			ticketCache[ticketKey] = ticket
+		}
+	}
+
+	if rc != Ok {
+		return rc
+	}
+
+	if time.Now().Unix() > ticket.EndTime {
+		delete(ticketCache, ticketKey)
+		return TicketExpired
+	}
+
+	return Ok
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
+
 	log.Println("@METHOD ", string(ctx.Method()[:]))
 	log.Println("@PATH ", string(ctx.Path()[:]))
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
-		log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
-		ticket := string(ctx.QueryArgs().Peek("ticket")[:])
-		if ticket == "" {
-			ticket = string(ctx.Request.Header.Cookie("ticket")[:])
-		}
-		log.Println("@TICKET ", ticket)
-		reopen := ctx.QueryArgs().GetBool("reopen")
-		log.Println("@REOPEN ", reopen)
-		uri := string(ctx.QueryArgs().Peek("uri")[:])
-		log.Println("@URI ", uri)
-		getIndividual(ticket, uri, reopen, ctx)
+		getIndividual(ctx)
 	case "/get_individuals":
 		log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
 		fmt.Println("get_individuals")
@@ -44,7 +184,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func main() {
-	if err := fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler); err != nil {
+	ticketCache = make(map[string]ticket)
+	err := fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
+	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
 	}
 }
