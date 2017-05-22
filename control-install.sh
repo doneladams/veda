@@ -269,5 +269,11 @@ fi
 
    cd $SMD/source/lib64/ext-lib-bind-src/v8_d
    make    
-    
+
+   #install HAPROXY
+   sudo add-apt-repository ppa:vbernat/haproxy-1.5
+   sudo apt-get update
+   sudo apt-get install -y haproxy
+   sudo cp ./haproxy.cfg /etc/haproxy/
+   
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
