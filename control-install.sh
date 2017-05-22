@@ -275,7 +275,8 @@ fi
    sudo apt-get update
    sudo apt-get install -y haproxy
    sudo cp ./haproxy.cfg /etc/haproxy/
-
+   sudo service haproxy restart 
+   
    #lmdb-go
    go get github.com/bmatsuo/lmdb-go/lmdb
    
