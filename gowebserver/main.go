@@ -11,6 +11,8 @@ import (
 
 	"time"
 
+	"encoding/json"
+
 	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/valyala/fasthttp"
 	"gopkg.in/vmihailenco/msgpack.v2"
@@ -113,14 +115,14 @@ func getRequestData(ctx *fasthttp.RequestCtx) (string, string, bool) {
 	var reopen bool
 	var uri, ticket string
 	if string(ctx.Method()[:]) == "GET" {
-		log.Println("@GET QUERY ARGS")
-		log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
+		// log.Println("@GET QUERY ARGS")
+		// log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
 		ticket = string(ctx.QueryArgs().Peek("ticket")[:])
 		uri = string(ctx.QueryArgs().Peek("uri")[:])
 		reopen = ctx.QueryArgs().GetBool("reopen")
 	} else if string(ctx.Method()[:]) == "POST"[:] {
-		log.Println("@POST ARGS")
-		log.Println("@ARGS ", string(ctx.PostArgs().QueryString()[:]))
+		// log.Println("@POST ARGS")
+		// log.Println("@ARGS ", string(ctx.PostArgs().QueryString()[:]))
 		ticket = string(ctx.PostArgs().Peek("ticket")[:])
 		uri = string(ctx.PostArgs().Peek("uri")[:])
 		reopen = ctx.PostArgs().GetBool("reopen")
@@ -133,15 +135,15 @@ func getRequestData(ctx *fasthttp.RequestCtx) (string, string, bool) {
 	return uri, ticket, reopen
 }
 
-func getIndividual(ctx *fasthttp.RequestCtx) ResultCode {
+func getIndividual(ctx *fasthttp.RequestCtx) {
 	// var reopen bool
 	var uri, ticketKey string
 	var ticket ticket
 
 	uri, ticketKey, _ = getRequestData(ctx)
-	log.Println("@GET INDIVIDUAL")
 	if len(uri) == 0 || ticketKey == "" {
-		return BadRequest
+		ctx.Response.SetStatusCode(int(BadRequest))
+		return
 	}
 
 	rc := InternalServerError
@@ -156,35 +158,54 @@ func getIndividual(ctx *fasthttp.RequestCtx) ResultCode {
 	}
 
 	if rc != Ok {
-		return rc
+		ctx.Response.SetStatusCode(int(rc))
+		return
 	}
 
 	if time.Now().Unix() > ticket.EndTime {
 		delete(ticketCache, ticketKey)
-		return TicketExpired
+		ctx.Response.SetStatusCode(int(TicketExpired))
+		return
 	}
 
-	rr := conn.Get(true, ticket.UserURI, []string{uri}, true)
+	rr := conn.Get(true, ticket.UserURI, []string{uri}, false)
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET INDIVIDUAL COMMON ", rr.CommonRC)
-		return rr.CommonRC
+		ctx.Response.SetStatusCode(int(rr.CommonRC))
+		return
 	} else if rr.OpRC[0] != Ok {
-		log.Println("@ERR GET INDIVIDUAL ", rr.OpRC[0])
-		return rr.OpRC[0]
+		// log.Println("@ERR GET INDIVIDUAL ", rr.OpRC[0])
+		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
+		return
+	} else {
+		individual := MsgpackToJson(rr.Msgpaks[0])
+		if individual == nil {
+			log.Println("@ERR DECODING INDIVIDUAL")
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+
+		individualJson, err := json.Marshal(individual)
+		if err != nil {
+			log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+		ctx.Write(individualJson)
 	}
 
-	return Ok
+	ctx.Response.SetStatusCode(int(Ok))
+	return
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
 
-	log.Println("@METHOD ", string(ctx.Method()[:]))
-	log.Println("@PATH ", string(ctx.Path()[:]))
+	// log.Println("@METHOD ", string(ctx.Method()[:]))
+	// log.Println("@PATH ", string(ctx.Path()[:]))
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
 		getIndividual(ctx)
 	case "/get_individuals":
-		log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()[:]))
 		fmt.Println("get_individuals")
 	case "/authenticate":
 		fmt.Println("authenticate")

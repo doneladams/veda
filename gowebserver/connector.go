@@ -150,7 +150,6 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 
 	decoder := msgpack.NewDecoder(bytes.NewReader(response))
 	arrLen, _ := decoder.DecodeArrayLen()
-	log.Println("@ARR LEN ", arrLen)
 	rc, _ := decoder.DecodeUint()
 	rr.CommonRC = ResultCode(rc)
 
