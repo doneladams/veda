@@ -117,14 +117,13 @@ func MsgpackToMap(msgpackStr string) map[string]interface{} {
 		resources := make([]interface{}, 0, len(resArr))
 
 		for i := 0; i < len(resArr); i++ {
-			resI := resArr[0]
+			resI := resArr[i]
 			resource := make(map[string]interface{})
 			switch resI.(type) {
 			case []interface{}:
 				resArrI := resI.([]interface{})
 				if len(resArrI) == 2 {
 					resType := DataType(resArrI[0].(uint64))
-
 					if resType == Datetime {
 						switch resArrI[1].(type) {
 						case int64:

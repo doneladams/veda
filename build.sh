@@ -75,8 +75,8 @@ if [ -z $1 ] || [ $1 == "db_handler" ] ; then
   cd ../..
 fi
 
-if [ -z $1 ] || [ $1 == "gowebserver" ] ; then
-    cd gowebserver
+if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
+    cd veda-gowebserver
     go build
     cd ..
 fi

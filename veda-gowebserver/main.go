@@ -112,10 +112,11 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 }
 
 func getIndividual(ctx *fasthttp.RequestCtx) {
-	// var reopen bool
 	var uri string
 	var ticketKey string
 	var ticket ticket
+
+	log.Println("@GET INDIVIDUAL")
 
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
@@ -125,6 +126,8 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return
 	}
+
+	log.Println("@URI ", uri)
 
 	rc := InternalServerError
 	if ticketCache[ticketKey].Id != "" {
@@ -171,6 +174,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			return
 		}
 		ctx.Write(individualJSON)
+		log.Println("@INDIVIDUAL JSON ", string(individualJSON))
 	}
 
 	ctx.Response.SetStatusCode(int(Ok))

@@ -105,7 +105,7 @@ func msgpack2individual(individual *Individual, str string) error {
 		individual.resources[predicate] = make(Resources, len(resArr))
 
 		for i := 0; i < len(resArr); i++ {
-			resI := resArr[0]
+			resI := resArr[i]
 			switch resI.(type) {
 			case []interface{}:
 				resArrI := resI.([]interface{})
