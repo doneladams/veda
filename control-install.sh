@@ -275,5 +275,11 @@ fi
    sudo apt-get update
    sudo apt-get install -y haproxy
    sudo cp ./haproxy.cfg /etc/haproxy/
+
+   #lmdb-go
+   go get github.com/bmatsuo/lmdb-go/lmdb
    
+   #fasthttp
+   go get github.com/valyala/fasthttp
+
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
