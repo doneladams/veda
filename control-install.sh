@@ -271,7 +271,7 @@ fi
    make    
 
    #install HAPROXY
-   sudo add-apt-repository ppa:vbernat/haproxy-1.5
+   sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
    sudo apt-get update
    sudo apt-get install -y haproxy
    sudo cp ./haproxy.cfg /etc/haproxy/

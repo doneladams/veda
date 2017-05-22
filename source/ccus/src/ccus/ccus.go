@@ -166,8 +166,9 @@ func queue_reader(ch_collector_update chan updateInfo) {
 				log.Println(data)
 				continue
 			}
+
 			uri := individual.resources["uri"][0].data.(string)
-			u_count := individual.resources["u_count"][0].data.(uint64)
+			u_count, _ := individual.getFirstInt("u_count")
 			op_id := individual.resources["op_id"][0].data.(uint64)
 			if uri != "" {
 				new_info := updateInfo{uri, int(op_id), int(u_count), nil}

@@ -116,8 +116,16 @@ func (ths *Individual) getFirstInt(predicate string) (int, bool) {
 	}
 
 	if rss[0]._type == Integer {
-		val := int(rss[0].data.(uint64))
-		return val, true
+
+		switch rss[0].data.(type) {
+		case int64:
+			return int(rss[0].data.(int64)), true
+		case uint64:
+			return int(rss[0].data.(uint64)), true
+		default:
+			return 0, false
+		}
+
 	} else {
 		return 0, false
 	}
