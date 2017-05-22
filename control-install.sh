@@ -275,5 +275,6 @@ fi
    sudo apt-get update
    sudo apt-get install -y haproxy
    sudo cp ./haproxy.cfg /etc/haproxy/
+   sudo service haproxy restart 
    
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
