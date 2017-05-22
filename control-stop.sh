@@ -15,7 +15,7 @@ killall -9 veda-server
 killall -9 veda-mstorage
 killall -9 veda-ttlreader
 killall -9 veda-webserver
-killall -9 gowebserver
+killall -9 veda-gowebserver
 # killall -9 tarantool 
 # pkill -f tarantool
 pkill tarantool

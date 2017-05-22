@@ -67,7 +67,10 @@ veda.Module(function Backend(veda) { "use strict";
     if (result.status === 0) {
       serverWatch();
     }
-    if (result.status === 470 || result.status === 471) {
+    if (result.status === 470) {
+      veda.logout();
+    }
+    if (result.status === 471) {
       veda.logout();
     }
   }
