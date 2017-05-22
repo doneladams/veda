@@ -13,7 +13,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/bmatsuo/lmdb-go/lmdb"
+	"github.com/muller95/lmdb-go/lmdb"
 	"github.com/valyala/fasthttp"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -178,8 +178,13 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 }
 
 func getIndividuals(ctx *fasthttp.RequestCtx) {
-	var jsonData map[string]interface{}
 	log.Println("@get_individuals")
+
+	var jsonData map[string]interface{}
+	var uris []string
+	var ticketKey string
+	var ticket ticket
+
 	//{"ticket":"d9dc63c8-446a-4b03-bd85-dabdf6c3d309","uris":["kqlp6xj3ouv9pitrkmmxzhmy","ogds8msd1lf508fjqxc97ai1","ijik8gmj2qzl2bxw6c5azsdh"]}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
@@ -187,8 +192,68 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
-
 	log.Println("@JSON ", jsonData)
+
+	ticketKey = jsonData["ticket"].(string)
+
+	rc := InternalServerError
+	if ticketCache[ticketKey].Id != "" {
+		ticket = ticketCache[ticketKey]
+		rc = Ok
+	} else {
+		rc = lmdbFindTicket(ticketKey, &ticket)
+		if rc == Ok {
+			ticketCache[ticketKey] = ticket
+		}
+	}
+
+	if rc != Ok {
+		ctx.Response.SetStatusCode(int(rc))
+		return
+	}
+
+	if time.Now().Unix() > ticket.EndTime {
+		delete(ticketCache, ticketKey)
+		ctx.Response.SetStatusCode(int(TicketExpired))
+		return
+	}
+
+	for i := 0; i < len(jsonData["uris"].([]interface{})); i++ {
+		uris[i] = jsonData["uris"].([]interface{})[i].(string)
+	}
+	log.Println("@URIS ", uris)
+
+	/*rr := conn.Get(true, ticket.UserURI, uris, false)
+	if rr.CommonRC != Ok {
+		log.Println("@ERR GET INDIVIDUAL COMMON ", rr.CommonRC)
+		ctx.Response.SetStatusCode(int(rr.CommonRC))
+		return
+	} else {
+
+		individuals := make([]interface{}, len(rr.Msgpaks))
+		for i := 0; i < len(rr.Msgpaks); i++ {
+			if rr.OpRC[0] == Ok {
+				individual := MsgpackToJson(rr.Msgpaks[0])
+				if individual == nil {
+					log.Println("@ERR DECODING INDIVIDUAL")
+					ctx.Response.SetStatusCode(int(InternalServerError))
+					return
+				}
+			}
+
+			if err != nil {
+				log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+				ctx.Response.SetStatusCode(int(InternalServerError))
+				return
+			}
+		}
+		individualJson, err := json.Marshal(individual)
+		ctx.Write(individualJson)
+	}*/
+
+	ctx.Response.SetStatusCode(int(Ok))
+	return
+	log.Println("@GET INDIVIDUALS DONE")
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
@@ -199,7 +264,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/get_individual":
 		getIndividual(ctx)
 	case "/get_individuals":
-		getIndividuals(ctx)
+		// getIndividuals(ctx)
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":

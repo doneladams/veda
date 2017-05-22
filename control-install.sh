@@ -278,7 +278,7 @@ fi
    sudo service haproxy restart 
    
    #lmdb-go
-   go get github.com/bmatsuo/lmdb-go/lmdb
+   go get github.com/muller95/lmdb-go/lmdb
    
    #fasthttp
    go get github.com/valyala/fasthttp
