@@ -9,7 +9,10 @@ killall -9 veda-ft-indexer
 killall -9 veda-ltr-scripts
 killall -9 veda-scripts-lp
 killall -9 veda-scripts-main
+killall -9 veda-fanout-sql-lp
+killall -9 veda-fanout-sql-np
 killall -9 veda-server
+killall -9 veda-mstorage
 killall -9 veda-ttlreader
 killall -9 veda-webserver
 killall -9 gowebserver
