@@ -102,7 +102,7 @@ func decimalToString(mantissa, exponent int64) string {
 	return string(res)
 }
 
-func MsgpackToJson(msgpackStr string) map[string]interface{} {
+func MsgpackToMap(msgpackStr string) map[string]interface{} {
 	individual := make(map[string]interface{})
 	decoder := msgpack.NewDecoder(strings.NewReader(msgpackStr))
 	decoder.DecodeArrayLen()

@@ -121,7 +121,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
 	if len(uri) == 0 || ticketKey == "" {
-		log.Println("@zero ticket or uri")
+		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return
 	}
@@ -150,27 +150,27 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 
 	rr := conn.Get(true, ticket.UserURI, []string{uri}, false)
 	if rr.CommonRC != Ok {
-		log.Println("@ERR GET INDIVIDUAL COMMON ", rr.CommonRC)
+		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
 		return
 	} else if rr.OpRC[0] != Ok {
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
 		return
 	} else {
-		individual := MsgpackToJson(rr.Msgpaks[0])
+		individual := MsgpackToMap(rr.Msgpaks[0])
 		if individual == nil {
-			log.Println("@ERR DECODING INDIVIDUAL")
+			log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
 
-		individualJson, err := json.Marshal(individual)
+		individualJSON, err := json.Marshal(individual)
 		if err != nil {
-			log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+			log.Println("@ERR GET_INDIVIDUAL: ENCODING INDIVIDUAL TO JSON ", err)
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
-		ctx.Write(individualJson)
+		ctx.Write(individualJSON)
 	}
 
 	ctx.Response.SetStatusCode(int(Ok))
@@ -178,21 +178,17 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 }
 
 func getIndividuals(ctx *fasthttp.RequestCtx) {
-	log.Println("@get_individuals")
-
 	var jsonData map[string]interface{}
 	var uris []string
 	var ticketKey string
 	var ticket ticket
 
-	//{"ticket":"d9dc63c8-446a-4b03-bd85-dabdf6c3d309","uris":["kqlp6xj3ouv9pitrkmmxzhmy","ogds8msd1lf508fjqxc97ai1","ijik8gmj2qzl2bxw6c5azsdh"]}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
-		log.Println("@ERR DECODING GET INDIVIDUALS JSON REQUEST ", err)
+		log.Println("@ERR: DECODING JSON REQUEST ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
-	log.Println("@JSON ", jsonData)
 
 	ticketKey = jsonData["ticket"].(string)
 
@@ -218,42 +214,45 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	uris = make([]string, len(jsonData["uris"].([]interface{})))
 	for i := 0; i < len(jsonData["uris"].([]interface{})); i++ {
 		uris[i] = jsonData["uris"].([]interface{})[i].(string)
 	}
-	log.Println("@URIS ", uris)
 
-	/*rr := conn.Get(true, ticket.UserURI, uris, false)
+	rr := conn.Get(true, ticket.UserURI, uris, false)
 	if rr.CommonRC != Ok {
-		log.Println("@ERR GET INDIVIDUAL COMMON ", rr.CommonRC)
+		log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
 		return
-	} else {
+	}
 
-		individuals := make([]interface{}, len(rr.Msgpaks))
-		for i := 0; i < len(rr.Msgpaks); i++ {
-			if rr.OpRC[0] == Ok {
-				individual := MsgpackToJson(rr.Msgpaks[0])
-				if individual == nil {
-					log.Println("@ERR DECODING INDIVIDUAL")
-					ctx.Response.SetStatusCode(int(InternalServerError))
-					return
-				}
-			}
-
-			if err != nil {
-				log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+	individuals := make([]interface{}, 0, len(rr.Msgpaks))
+	for i := 0; i < len(rr.Msgpaks); i++ {
+		if rr.OpRC[0] == Ok {
+			individual := MsgpackToMap(rr.Msgpaks[0])
+			if individual == nil {
+				log.Println("@ERR GET_INDIVIDUALS: DECODING INDIVIDUAL")
 				ctx.Response.SetStatusCode(int(InternalServerError))
 				return
 			}
-		}
-		individualJson, err := json.Marshal(individual)
-		ctx.Write(individualJson)
-	}*/
+			individuals = append(individuals, individual)
 
+		}
+
+		if err != nil {
+			log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+
+	}
+	individualsJSON, err := json.Marshal(individuals)
+	if err != nil {
+		log.Println("@ERR GET_INDIVIDUALS: ENCODING INDIVIDUALS JSON ", err)
+	}
+	ctx.Write(individualsJSON)
 	ctx.Response.SetStatusCode(int(Ok))
 	return
-	log.Println("@GET INDIVIDUALS DONE")
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
@@ -264,7 +263,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/get_individual":
 		getIndividual(ctx)
 	case "/get_individuals":
-		// getIndividuals(ctx)
+		getIndividuals(ctx)
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":
