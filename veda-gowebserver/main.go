@@ -131,12 +131,9 @@ func modifyIndividual(cmd, ticketKey string, individualsJSON []map[string]interf
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
-	log.Println("@JSON REQUEST ", string(jsonRequest))
 
 	socket.Send(jsonRequest, 0)
-	log.Println("@WAIT FOR RESPONSE")
 	responseBuf, _ := socket.Recv(0)
-	log.Println("@RESPONSE ", string(responseBuf[:len(responseBuf)-1]))
 	responseJSON := make(map[string]interface{})
 	err = json.Unmarshal(responseBuf[:len(responseBuf)-1], &responseJSON)
 	if err != nil {
@@ -144,14 +141,13 @@ func modifyIndividual(cmd, ticketKey string, individualsJSON []map[string]interf
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
-	log.Println("@RESPONSE JSON ", responseJSON)
 	data := responseJSON["data"].([]interface{})[0].(map[string]interface{})
-	log.Println("@RESPONSE JSON DATA ", int(data["result"].(float64)))
 	ctx.Response.SetStatusCode(int(data["result"].(float64)))
+	dataJSON, _ := json.Marshal(data)
+	ctx.Write(dataJSON)
 }
 
 func putIndividual(ctx *fasthttp.RequestCtx) {
-	log.Println("@PUT INDIVIDUAL")
 	var prepareEvents bool
 	var ticketKey, eventID string
 	var ticket ticket
