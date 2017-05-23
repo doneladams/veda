@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"reflect"
 	"strings"
 	"time"
 
 	"strconv"
+
+	"bytes"
 
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -20,6 +23,7 @@ const (
 	Datetime DataType = 8
 	Decimal  DataType = 32
 	Boolean  DataType = 64
+	Unknown  DataType = 0
 )
 
 type Lang uint8
@@ -100,6 +104,143 @@ func decimalToString(mantissa, exponent int64) string {
 	}
 
 	return string(res)
+}
+
+func stringToDecimal(str string) (int64, int64) {
+	var exponent, mantissa int64
+
+	runes := []rune(str)
+
+	i := 0
+	negative := false
+	if runes[0] == '-' {
+		i++
+		negative = true
+	}
+
+	j := len(runes) - 1
+	for ; j >= i; j-- {
+		if runes[j] != '0' {
+			break
+		}
+
+		exponent += 1
+	}
+
+	expStep := int64(0)
+	for ; i <= j; i++ {
+		if runes[i] == '.' {
+			expStep = -1
+			continue
+		}
+
+		number, _ := strconv.ParseInt(string(runes[i]), 10, 64)
+		mantissa = mantissa*10 + number
+		exponent += expStep
+	}
+
+	if negative {
+		mantissa = -mantissa
+	}
+
+	return mantissa, exponent
+}
+
+func stringToDataType(str string) DataType {
+	switch str {
+	case "Uri":
+		return Uri
+	case "String":
+		return String
+	case "Integer":
+		return Integer
+	case "Datetime":
+		return Datetime
+	case "Decimal":
+		return Decimal
+	case "Boolean":
+		return Boolean
+	}
+
+	log.Println("@ERR UNKNOWN DATA TYPE STRING")
+	return Unknown
+}
+
+func stringToLang(str string) Lang {
+	switch str {
+	case "RU":
+		return LangRu
+	case "EN":
+		return LangEn
+	default:
+		return LangNone
+	}
+}
+
+func MapToMsgpack(jsonMap map[string]interface{}) string {
+	var buf bytes.Buffer
+
+	writer := bufio.NewWriter(&buf)
+	encoder := msgpack.NewEncoder(writer)
+	encoder.EncodeArrayLen(2)
+	encoder.Encode(jsonMap["@"])
+	encoder.EncodeMapLen(len(jsonMap) - 1)
+
+	for k, v := range jsonMap {
+		if k == "@" {
+			continue
+		}
+
+		resources := v.([]interface{})
+		encoder.Encode(k)
+		encoder.EncodeArrayLen(len(resources))
+		for i := 0; i < len(resources); i++ {
+			resource := resources[i].(map[string]interface{})
+			datatype := Unknown
+			switch resource["type"].(type) {
+			case float64:
+				datatype = DataType(resource["type"].(float64))
+			case string:
+				datatype = stringToDataType(resource["type"].(string))
+			}
+
+			switch datatype {
+			case Uri:
+				encoder.Encode(resource["data"].(string))
+			case Integer:
+				encoder.Encode(int64(resource["data"].(float64)))
+			case Datetime:
+				datetime, _ := time.Parse("2006-01-02T15:04:05.000Z", resource["data"].(string))
+				encoder.EncodeArrayLen(2)
+				encoder.Encode(Datetime, datetime)
+			case Decimal:
+				mantissa, exponent := stringToDecimal(resource["data"].(string))
+				encoder.EncodeArrayLen(3)
+				encoder.Encode(Decimal, mantissa, exponent)
+			case Boolean:
+				encoder.Encode(resource["data"].(bool))
+			case String:
+				lang := LangNone
+				switch resource["lang"].(type) {
+				case float64:
+					lang = Lang(resource["lang"].(float64))
+				case string:
+					lang = stringToLang(resource["lang"].(string))
+				}
+
+				if lang != LangNone {
+					encoder.EncodeArrayLen(3)
+					encoder.Encode(String, resource["data"].(string), lang)
+				} else {
+					encoder.EncodeArrayLen(2)
+					encoder.Encode(String, resource["data"].(string))
+				}
+			}
+		}
+	}
+
+	writer.Flush()
+	return string(buf.Bytes())
 }
 
 func MsgpackToMap(msgpackStr string) map[string]interface{} {

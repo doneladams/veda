@@ -44,36 +44,19 @@ func (conn *Connector) Connect(addr string) {
 	}
 }
 
-func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
-	var rr RequestResponse
+func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint) (ResultCode, []byte) {
 	var request bytes.Buffer
 	var response []byte
 
-	if len(userUri) < 3 {
-		rr.CommonRC = NotAuthorized
-		log.Println("@ERR CONNECTOR GET ", uris)
-		return rr
-	}
-
-	if len(uris) == 0 {
-		rr.CommonRC = NoContent
-		return rr
-	}
-
-	if trace {
-		log.Printf("@CONNECTOR GET PACK GET REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
-			needAuth, userUri, uris)
-	}
-
 	writer := bufio.NewWriter(&request)
 	encoder := msgpack.NewEncoder(writer)
-	encoder.EncodeArrayLen(len(uris) + 3)
-	encoder.EncodeUint(Get)
+	encoder.EncodeArrayLen(len(data) + 3)
+	encoder.EncodeUint(op)
 	encoder.EncodeBool(needAuth)
 	encoder.EncodeString(userUri)
 
-	for i := 0; i < len(uris); i++ {
-		encoder.EncodeString(uris[i])
+	for i := 0; i < len(data); i++ {
+		encoder.EncodeString(data[i])
 	}
 
 	writer.Flush()
@@ -94,21 +77,21 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 
 		n, err := conn.conn.Write(buf)
 		if err != nil {
-			log.Println("@ERR ON SEND GET REQUEST ", err)
+			log.Printf("@ERR ON SEND OP %v: REQUEST %v\n", op, err)
 		}
 
 		if trace {
-			log.Println("@CONNECTOR GET SEND ", n)
+			log.Printf("@CONNECTOR OP %v: SEND %v", op, n)
 		}
 
 		buf = make([]byte, 4)
 		n, err = conn.conn.Read(buf)
 		if trace {
-			log.Println("@CONNECTOR GET RESPONSE SIZE BUF", n)
+			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE BUF %v\n", op, n)
 		}
 
 		if err != nil {
-			log.Println("@ERR RECEIVING RESPONSE SIZE BUF ", err)
+			log.Printf("@ERR OP %v: RECEIVING RESPONSE SIZE BUF %v\n", op, err)
 		}
 
 		for i := 0; i < 4; i++ {
@@ -116,45 +99,117 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		}
 
 		if trace {
-			log.Println("@CONNECTOR GET RESPONSE SIZE ", responseSize)
+			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE %v\n", op, responseSize)
 		}
 
 		if responseSize > MaxPacketSize {
-			log.Println("@ERR RESPONSE IS TOO LARGE ", uris)
-			rr.CommonRC = SizeTooLarge
-			return rr
+			log.Printf("@ERR OP %v: RESPONSE IS TOO LARGE %v\n", op, data)
+			return SizeTooLarge, nil
 		}
 
 		response = make([]byte, responseSize)
 		n, err = conn.conn.Read(response)
 
 		if trace {
-			log.Println("@CONNECTOR GET RECEIVE RESPONSE ", n)
+			log.Printf("@CONNECTOR OP %v: RECEIVE RESPONSE %v\n", op, n)
 		}
 
 		if err != nil {
-			log.Println("@ERR RECEIVING GET RESPONSE ", err)
+			log.Printf("@ERR RECEIVING OP %v: RESPONSE %v\n", op, err)
 		}
 
 		if uint32(n) < responseSize || err != nil {
 			time.Sleep(3000 * time.Millisecond)
 			conn.conn, err = net.Dial("tcp", conn.addr)
-			log.Println("@RECONNECT GET REQUEST")
+			log.Printf("@RECONNECT %v REQUEST\n", op)
 		}
 
 		if trace {
-			log.Println("@CONNECTOR GET RECEIVED RESPONSE ", string(response))
+			log.Printf("@CONNECTOR %v RECEIVED RESPONSE %v\n", op, string(response))
 		}
 		break
 	}
 
+	return Ok, response
+}
+
+func (conn *Connector) Put(needAuth bool, userUri string, individuals []string, trace bool) RequestResponse {
+	var rr RequestResponse
+
+	if len(userUri) < 3 {
+		rr.CommonRC = NotAuthorized
+		log.Println("@ERR CONNECTOR PUT: ", individuals)
+		return rr
+	}
+
+	if len(individuals) == 0 {
+		rr.CommonRC = NoContent
+		return rr
+	}
+
+	if trace {
+		log.Printf("@CONNECTOR PUT: PACK PUT REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
+			needAuth, userUri, individuals)
+	}
+
+	rcRequest, response := doRequest(needAuth, userUri, individuals, trace, Put)
+	if rcRequest != Ok {
+		rr.CommonRC = rcRequest
+		return rr
+	}
 	decoder := msgpack.NewDecoder(bytes.NewReader(response))
 	arrLen, _ := decoder.DecodeArrayLen()
 	rc, _ := decoder.DecodeUint()
 	rr.CommonRC = ResultCode(rc)
 
 	if trace {
-		log.Println("@CONNECTOR GET COMMON RC ", rr.CommonRC)
+		log.Println("@CONNECTOR PUT: COMMON RC ", rr.CommonRC)
+	}
+
+	rr.OpRC = make([]ResultCode, len(individuals))
+
+	for i := 1; i < arrLen; i++ {
+		rc, _ = decoder.DecodeUint()
+		rr.OpRC[i-1] = ResultCode(rc)
+		if trace {
+			log.Println("@CONNECTOR PUT: OP CODE ", rr.OpRC[i-1])
+		}
+	}
+
+	return rr
+}
+
+func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
+	var rr RequestResponse
+
+	if len(userUri) < 3 {
+		rr.CommonRC = NotAuthorized
+		log.Println("@ERR CONNECTOR GET: ", uris)
+		return rr
+	}
+
+	if len(uris) == 0 {
+		rr.CommonRC = NoContent
+		return rr
+	}
+
+	if trace {
+		log.Printf("@CONNECTOR GET: PACK GET REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
+			needAuth, userUri, uris)
+	}
+
+	rcRequest, response := doRequest(needAuth, userUri, uris, trace, Get)
+	if rcRequest != Ok {
+		rr.CommonRC = rcRequest
+		return rr
+	}
+	decoder := msgpack.NewDecoder(bytes.NewReader(response))
+	arrLen, _ := decoder.DecodeArrayLen()
+	rc, _ := decoder.DecodeUint()
+	rr.CommonRC = ResultCode(rc)
+
+	if trace {
+		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
 	}
 
 	rr.Msgpaks = make([]string, len(uris))
@@ -164,7 +219,7 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		rc, _ = decoder.DecodeUint()
 		rr.OpRC[j] = ResultCode(rc)
 		if trace {
-			log.Println("@CONNECTOR GET OP CODE ", rr.OpRC[j])
+			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
 		}
 
 		if rr.OpRC[j] == Ok {

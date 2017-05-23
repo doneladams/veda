@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 
 	"github.com/muller95/lmdb-go/lmdb"
+	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -45,6 +46,9 @@ const (
 
 var ticketCache map[string]ticket
 var conn Connector
+var socket *nanomsg.Socket
+var endpoint *nanomsg.Endpoint
+var vedaServerURL = "tcp://127.0.0.1:9112"
 
 func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 	var ticketMsgpack []byte
@@ -111,12 +115,78 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 	return Ok
 }
 
+func modifyIndividual(cmd, ticketKey string, individualsJSON []map[string]interface{}, prepareEvents bool,
+	eventID string, startTime int64, ctx *fasthttp.RequestCtx) {
+	request := make(map[string]interface{})
+
+	request["function"] = cmd
+	request["ticket"] = ticketKey
+	request["individuals"] = individualsJSON
+	request["prepare_events"] = prepareEvents
+	request["event_id"] = eventID
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		log.Printf("@ERR MODIFY INDIVIDUAL CMD %v: ENCODE JSON REQUEST: %v\n", cmd, err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+	log.Println("@JSON REQUEST ", string(jsonRequest))
+
+	socket.Send(jsonRequest, 0)
+	log.Println("@WAIT FOR RESPONSE")
+	response, _ := socket.Recv(0)
+	log.Println("@RESPONSE ", string(response))
+}
+
+func putIndividual(ctx *fasthttp.RequestCtx) {
+	log.Println("@PUT INDIVIDUAL")
+	var prepareEvents bool
+	var ticketKey, eventID string
+	var ticket ticket
+
+	var jsonData map[string]interface{}
+	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
+	if err != nil {
+		log.Println("@ERR PUT_INDIVIDUAL: DECODING JSON REQUEST ", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+
+	ticketKey = jsonData["ticket"].(string)
+	prepareEvents = jsonData["prepare_events"].(bool)
+	eventID = jsonData["event_id"].(string)
+
+	rc := InternalServerError
+	if ticketCache[ticketKey].Id != "" {
+		ticket = ticketCache[ticketKey]
+		rc = Ok
+	} else {
+		rc = lmdbFindTicket(ticketKey, &ticket)
+		if rc == Ok {
+			ticketCache[ticketKey] = ticket
+		}
+	}
+
+	if rc != Ok {
+		ctx.Response.SetStatusCode(int(rc))
+		return
+	}
+
+	if time.Now().Unix() > ticket.EndTime {
+		delete(ticketCache, ticketKey)
+		ctx.Response.SetStatusCode(int(TicketExpired))
+		return
+	}
+
+	modifyIndividual("put", ticketKey, []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+		prepareEvents, eventID, time.Now().Unix(), ctx)
+}
+
 func getIndividual(ctx *fasthttp.RequestCtx) {
 	var uri string
 	var ticketKey string
 	var ticket ticket
-
-	log.Println("@GET INDIVIDUAL")
 
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
@@ -126,8 +196,6 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return
 	}
-
-	log.Println("@URI ", uri)
 
 	rc := InternalServerError
 	if ticketCache[ticketKey].Id != "" {
@@ -174,7 +242,6 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			return
 		}
 		ctx.Write(individualJSON)
-		log.Println("@INDIVIDUAL JSON ", string(individualJSON))
 	}
 
 	ctx.Response.SetStatusCode(int(Ok))
@@ -189,7 +256,7 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
-		log.Println("@ERR: DECODING JSON REQUEST ", err)
+		log.Println("@ERR GET_INDIVIDUALS: DECODING JSON REQUEST ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
@@ -260,14 +327,17 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-
-	// log.Println("@METHOD ", string(ctx.Method()[:]))
-	// log.Println("@PATH ", string(ctx.Path()[:]))
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
 		getIndividual(ctx)
 	case "/get_individuals":
 		getIndividuals(ctx)
+
+	case "/put_individual":
+		putIndividual(ctx)
+	case "/put_individuals":
+		fmt.Println("@PUT INDIVIDUALS")
+
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":
@@ -278,10 +348,22 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func main() {
+	var err error
+	socket, err = nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REP)
+	if err != nil {
+		log.Fatal("@ERR ON CREATING SOCKET")
+	}
+
+	endpoint, err = socket.Connect(vedaServerURL)
+	for err != nil {
+		endpoint, err = socket.Connect(vedaServerURL)
+		time.Sleep(3000 * time.Millisecond)
+	}
+
 	conn.Connect("127.0.0.1:9999")
 	log.Println("@CONNECTED")
 	ticketCache = make(map[string]ticket)
-	err := fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
+	err = fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
 	}

@@ -283,4 +283,7 @@ fi
    #fasthttp
    go get github.com/valyala/fasthttp
 
+   #go-nanomsg
+   go get github.com/op/go-nanomsg
+
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
