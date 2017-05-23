@@ -135,8 +135,19 @@ func modifyIndividual(cmd, ticketKey string, individualsJSON []map[string]interf
 
 	socket.Send(jsonRequest, 0)
 	log.Println("@WAIT FOR RESPONSE")
-	response, _ := socket.Recv(0)
-	log.Println("@RESPONSE ", string(response))
+	responseBuf, _ := socket.Recv(0)
+	log.Println("@RESPONSE ", string(responseBuf[:len(responseBuf)-1]))
+	responseJSON := make(map[string]interface{})
+	err = json.Unmarshal(responseBuf[:len(responseBuf)-1], &responseJSON)
+	if err != nil {
+		log.Printf("@ERR MODIFY INDIVIDUAL CMD %v: DECODE JSON RESPONSE: %v\n", cmd, err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+	log.Println("@RESPONSE JSON ", responseJSON)
+	data := responseJSON["data"].([]interface{})[0].(map[string]interface{})
+	log.Println("@RESPONSE JSON DATA ", int(data["result"].(float64)))
+	ctx.Response.SetStatusCode(int(data["result"].(float64)))
 }
 
 func putIndividual(ctx *fasthttp.RequestCtx) {
@@ -349,7 +360,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 func main() {
 	var err error
-	socket, err = nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REP)
+	socket, err = nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REQ)
 	if err != nil {
 		log.Fatal("@ERR ON CREATING SOCKET")
 	}
