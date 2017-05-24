@@ -447,7 +447,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                                 imm.addResource("event_id", Resource(DataType.String, event_id));
 
                                             if (transaction_id >= 0)
-                                                imm.addResource("tnx_id", Resource(DataType.String, transaction_id));
+                                                imm.addResource("tnx_id", Resource(DataType.String, text (transaction_id)));
 
                                             imm.addResource("op_id", Resource(op_id));
                                             imm.addResource("u_count", Resource(update_counter));
