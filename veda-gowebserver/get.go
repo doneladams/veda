@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"time"
 
 	"github.com/valyala/fasthttp"
 )
@@ -22,25 +21,9 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	rc := InternalServerError
-	if ticketCache[ticketKey].Id != "" {
-		ticket = ticketCache[ticketKey]
-		rc = Ok
-	} else {
-		rc = lmdbFindTicket(ticketKey, &ticket)
-		if rc == Ok {
-			ticketCache[ticketKey] = ticket
-		}
-	}
-
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
-		return
-	}
-
-	if time.Now().Unix() > ticket.EndTime {
-		delete(ticketCache, ticketKey)
-		ctx.Response.SetStatusCode(int(TicketExpired))
 		return
 	}
 
@@ -88,25 +71,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 
 	ticketKey = jsonData["ticket"].(string)
 
-	rc := InternalServerError
-	if ticketCache[ticketKey].Id != "" {
-		ticket = ticketCache[ticketKey]
-		rc = Ok
-	} else {
-		rc = lmdbFindTicket(ticketKey, &ticket)
-		if rc == Ok {
-			ticketCache[ticketKey] = ticket
-		}
-	}
-
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
-		return
-	}
-
-	if time.Now().Unix() > ticket.EndTime {
-		delete(ticketCache, ticketKey)
-		ctx.Response.SetStatusCode(int(TicketExpired))
 		return
 	}
 

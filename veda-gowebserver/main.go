@@ -3,18 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-
-	"bytes"
-
-	"strconv"
-
 	"time"
 
-	"github.com/muller95/lmdb-go/lmdb"
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
-	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type ResultCode uint32
@@ -48,71 +40,6 @@ var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
 
-func lmdbFindTicket(key string, ticket *ticket) ResultCode {
-	var ticketMsgpack []byte
-
-	if key == "" || key == "systicket" {
-		key = "guest"
-	}
-
-	lmdbEnv, err := lmdb.NewEnv()
-	if err != nil {
-		log.Println("@ERR CREATING LMDB ENV")
-		return InternalServerError
-	}
-
-	err = lmdbEnv.SetMaxDBs(1)
-	if err != nil {
-		log.Println("@ERR SETTING MAX DBS ", err)
-		return InternalServerError
-	}
-	lmdbEnv.Open(lmdbTicketsDBPath, 0, os.ModePerm)
-
-	err = lmdbEnv.View(func(txn *lmdb.Txn) (err error) {
-		dbi, err := txn.OpenDBI("", 0)
-		if err != nil {
-			return err
-		}
-
-		ticketMsgpack, err = txn.Get(dbi, []byte(key[:]))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if lmdb.IsNotFound(err) {
-		return NotFound
-	}
-	if err != nil {
-		log.Println("@ERR ON VIEW ", err)
-		return InternalServerError
-	}
-
-	decoder := msgpack.NewDecoder(bytes.NewReader(ticketMsgpack))
-	decoder.DecodeArrayLen()
-	ticket.Id, _ = decoder.DecodeString()
-	resMapI, _ := decoder.DecodeMap()
-	resMap := resMapI.(map[interface{}]interface{})
-	for mapKeyI, mapValI := range resMap {
-		mapKey := mapKeyI.(string)
-
-		switch mapKey {
-		case "ticket:accessor":
-			ticket.UserURI = mapValI.([]interface{})[0].([]interface{})[1].(string)
-
-		case "ticket:when":
-			startTime, _ := time.Parse("2006-01-02T15:04:05.0000000", mapValI.([]interface{})[0].([]interface{})[1].(string))
-			ticket.StartTime = startTime.Unix()
-
-		case "ticket:duration":
-			endTime, _ := strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
-			ticket.EndTime = ticket.StartTime + endTime
-		}
-	}
-
-	return Ok
-}
-
 func requestHandler(ctx *fasthttp.RequestCtx) {
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
@@ -127,6 +54,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	case "/remove_individual":
 		removeIndividual(ctx)
+	case "/remove_from_individual":
+		removeFromIndividual(ctx)
 
 	case "/authenticate":
 		fmt.Println("authenticate")

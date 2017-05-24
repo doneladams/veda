@@ -1235,8 +1235,6 @@ for (i = 0; i < 1; i++)
         //#1
         ok(ticket_user1.id.length > 0);
 
-        var ticket_user2 = get_user2_ticket();
-
         var new_test_doc1_uri_1 = "test21_1:" + guid();
 
         var test_data_uid = guid();
@@ -1268,9 +1266,12 @@ for (i = 0; i < 1; i++)
             'v-s:test_field': newUri(test_data),
             'v-s:test_fieldA': newUri('BBB' + test_data_uid)
         };
-        // var res = put_individuals(ticket_user1.id, [new_test_doc1, new_test_doc2, new_test_doc3], false);
-        // var res = put_individuals(ticket_user1.id, new_test_doc1, false);
-        //#3
-        ok(1==0);
+        var res = put_individuals(ticket_user1.id, [new_test_doc1, new_test_doc2, new_test_doc3], false);
+        var read_individual1 = get_individual(ticket_user1.id, new_test_doc1_uri_1);
+        var read_individual2 = get_individual(ticket_user1.id, new_test_doc1_uri_2);
+        var read_individual3 = get_individual(ticket_user1.id, new_test_doc1_uri_3);
+        //#2
+        ok(compare(new_test_doc1, read_individual1) && compare(new_test_doc2, read_individual2) &&
+            compare(new_test_doc3, read_individual3));
     });
 }
