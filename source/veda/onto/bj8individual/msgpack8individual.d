@@ -69,8 +69,11 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
             // stderr.writef("\tDATATYPE BOOLEAN %s\n", value.get!long);
         }
         else
-        {
-            string svalue = value.get!string.dup;
+        {	    
+            string svalue = value.get!string;
+
+	    	if (svalue is null)
+				svalue = "";
 
             if (value.lang != LANG.NONE)
             {
