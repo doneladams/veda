@@ -125,6 +125,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/put_individuals":
 		putIndividuals(ctx)
 
+	case "/remove_individual":
+		removeIndividual(ctx)
+
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":

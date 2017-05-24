@@ -47,7 +47,7 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	modifyIndividual("put", ticketKey, []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+	modifyIndividual("put", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 }
 
@@ -99,7 +99,7 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	log.Println("@MODIFY")
-	modifyIndividual("put", ticketKey, individuals,
+	modifyIndividual("put", ticketKey, "individuals", individuals,
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 	log.Println("@DONE")
 }

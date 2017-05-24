@@ -1268,7 +1268,7 @@ for (i = 0; i < 1; i++)
             'v-s:test_field': newUri(test_data),
             'v-s:test_fieldA': newUri('BBB' + test_data_uid)
         };
-        var res = put_individuals(ticket_user1.id, [new_test_doc1, new_test_doc2, new_test_doc3], false);
+        // var res = put_individuals(ticket_user1.id, [new_test_doc1, new_test_doc2, new_test_doc3], false);
         // var res = put_individuals(ticket_user1.id, new_test_doc1, false);
         //#3
         ok(1==0);
