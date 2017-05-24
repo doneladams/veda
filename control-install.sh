@@ -274,7 +274,7 @@ fi
    sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
    sudo apt-get update
    sudo apt-get install -y haproxy
-   sudo cp ./haproxy.cfg /etc/haproxy/
+   sudo cp $SMD/haproxy.cfg /etc/haproxy/
    sudo service haproxy restart 
    
    #lmdb-go
