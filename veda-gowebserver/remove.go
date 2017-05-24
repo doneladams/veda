@@ -9,6 +9,10 @@ import (
 )
 
 func removeFromIndividual(ctx *fasthttp.RequestCtx) {
+	var prepareEvents bool
+	var ticketKey, eventID string
+	// var ticket ticket
+
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
@@ -17,7 +21,18 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	log.Println("@REMOVE FROM INDIVIDUAL JSON ", jsonData)
+	ticketKey = jsonData["ticket"].(string)
+	prepareEvents = jsonData["prepare_events"].(bool)
+	eventID = jsonData["event_id"].(string)
+
+	rc, _ := getTicket(ticketKey)
+	if rc != Ok {
+		ctx.Response.SetStatusCode(int(rc))
+		return
+	}
+
+	modifyIndividual("remove_from", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+		prepareEvents, eventID, time.Now().Unix(), ctx)
 }
 
 func removeIndividual(ctx *fasthttp.RequestCtx) {
