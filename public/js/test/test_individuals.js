@@ -1227,4 +1227,50 @@ for (i = 0; i < 1; i++)
         //#1
         ok(res.result.length == 0);
     });
+
+    test("#021 test put_individuals (user1 stores three individuals)", function()
+    {
+        var ticket_user1 = get_user1_ticket();
+
+        //#1
+        ok(ticket_user1.id.length > 0);
+
+        var ticket_user2 = get_user2_ticket();
+
+        var new_test_doc1_uri_1 = "test21_1:" + guid();
+
+        var test_data_uid = guid();
+        var test_data = 'testdata ' + test_data_uid;
+
+        var new_test_doc1 = {
+            '@': new_test_doc1_uri_1,
+            'rdf:type': newUri('rdfs:Resource'),
+            'v-s:author': newUri('td:ValeriyBushenev-Programmer1'),
+            'v-s:test_field': newStr(test_data, 'NONE'),
+            'v-s:test_fieldA': newUri('BBB' + test_data_uid),
+            'v-s:test_fieldB': newUri('CCC' + test_data_uid)
+        };
+
+        // document content author != user1
+        var new_test_doc1_uri_2 = "test21_2:" + guid();
+        var new_test_doc2 = {
+            '@': new_test_doc1_uri_2,
+            'rdf:type': newUri('rdfs:Resource'),
+            'v-s:author': newUri('td:ValeriyBushenev-Programmer1'),
+            'v-s:test_field': newUri(test_data)
+        };
+
+        var new_test_doc1_uri_3 = "test21_3:" + guid();
+        var new_test_doc3 = {
+            '@': new_test_doc1_uri_3,
+            'rdf:type': newUri('rdfs:Resource'),
+            'v-s:author': newUri('td:ValeriyBushenev-Programmer1'),
+            'v-s:test_field': newUri(test_data),
+            'v-s:test_fieldA': newUri('BBB' + test_data_uid)
+        };
+        var res = put_individuals(ticket_user1.id, [new_test_doc1, new_test_doc2, new_test_doc3], false);
+        // var res = put_individuals(ticket_user1.id, new_test_doc1, false);
+        //#3
+        ok(1==0);
+    });
 }
