@@ -65,7 +65,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 
 	individual := make(map[string]interface{})
 	individual["@"] = "_"
-	individual["data"] = []interface{}{map[string]interface{}{"type": "Uri", "data": "v-s:PermissionStatement"}}
+	individual["rdf:type"] = []interface{}{map[string]interface{}{"type": "Uri", "data": "v-s:PermissionStatement"}}
 	if canCreate {
 		individual["v-s:canCreate"] = []interface{}{map[string]interface{}{"type": "Boolean", "data": canCreate}}
 	}
