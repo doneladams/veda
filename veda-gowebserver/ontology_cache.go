@@ -8,11 +8,13 @@ var ontologyRdfType = map[string]bool{
 	"owl:DatatypeProperty": true,
 }
 
-func tryStoreInOntologyCache(uri string, rdfType []interface{}, data []byte) {
+func tryStoreInOntologyCache(individual map[string]interface{}) {
+	uri := individual["@"].(string)
+	rdfType := individual["rdf:type"].([]interface{})
 	for i := 0; i < len(rdfType); i++ {
 		if ontologyRdfType[rdfType[i].(map[string]interface{})["data"].(string)] {
-			ontologyCache[uri] = data
-			return
+			ontologyCache[uri] = individual
+			break
 		}
 	}
 }

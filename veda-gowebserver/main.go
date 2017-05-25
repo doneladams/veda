@@ -34,7 +34,7 @@ const (
 )
 
 var ticketCache map[string]ticket
-var ontologyCache map[string][]byte
+var ontologyCache map[string]map[string]interface{}
 var conn Connector
 var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
@@ -89,7 +89,7 @@ func main() {
 	conn.Connect("127.0.0.1:9999")
 	log.Println("@CONNECTED")
 	ticketCache = make(map[string]ticket)
-	ontologyCache = make(map[string][]byte)
+	ontologyCache = make(map[string]map[string]interface{})
 	err = fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)

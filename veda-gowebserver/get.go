@@ -27,9 +27,16 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	_, ok := ontologyCache[uri]
+	individual, ok := ontologyCache[uri]
 	if ok {
-		ctx.Write(ontologyCache[uri])
+		individualJSON, err := json.Marshal(individual)
+		if err != nil {
+			log.Println("@ERR GET_INDIVIDUAL: ENCODING INDIVIDUAL TO JSON ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+
+		ctx.Write(individualJSON)
 		ctx.Response.SetStatusCode(int(Ok))
 		return
 	}
@@ -43,7 +50,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
 		return
 	} else {
-		individual := MsgpackToMap(rr.Msgpaks[0])
+		individual = MsgpackToMap(rr.Msgpaks[0])
 		if individual == nil {
 			log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 			ctx.Response.SetStatusCode(int(InternalServerError))
@@ -57,7 +64,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
-		tryStoreInOntologyCache(individual["@"].(string), individual["rdf:type"].([]interface{}), individualJSON)
+		tryStoreInOntologyCache(individual)
 		ctx.Write(individualJSON)
 	}
 
@@ -91,14 +98,24 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		uris[i] = jsonData["uris"].([]interface{})[i].(string)
 	}
 
-	rr := conn.Get(true, ticket.UserURI, uris, false)
+	individuals := make([]map[string]interface{}, 0, len(uris))
+	urisToGet := make([]string, 0, len(uris))
+	for i := 0; i < len(uris); i++ {
+		individual, ok := ontologyCache[uris[i]]
+		if ok {
+			individuals = append(individuals, individual)
+		} else {
+			urisToGet = append(urisToGet, uris[i])
+		}
+	}
+
+	rr := conn.Get(true, ticket.UserURI, urisToGet, false)
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
 		return
 	}
 
-	individuals := make([]interface{}, 0, len(rr.Msgpaks))
 	for i := 0; i < len(rr.Msgpaks); i++ {
 		if rr.OpRC[0] == Ok {
 			individual := MsgpackToMap(rr.Msgpaks[0])
@@ -107,8 +124,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 				ctx.Response.SetStatusCode(int(InternalServerError))
 				return
 			}
-			individuals = append(individuals, individual)
 
+			tryStoreInOntologyCache(individual)
+			individuals = append(individuals, individual)
 		}
 
 		if err != nil {
