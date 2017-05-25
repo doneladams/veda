@@ -932,7 +932,7 @@ v-s:PsAlternativeScope
   v-ui:maxCardinality 1 ;
   v-ui:minCardinality 0 ;
   v-ui:tooltip "non-required, single integer value."@en ;
-  v-ui:tooltip "?"@ru ;
+  v-ui:tooltip ""@ru ;
   rdfs:label "Alternative decision property specification for Project class"@en ;
   rdfs:label "Спецификация альтернативных решений и выводов для класса Проект"@ru ;
 .

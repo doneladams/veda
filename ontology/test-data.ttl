@@ -536,7 +536,7 @@ v-s:author cfg:VedaSystemAccount ;
 :net1-fl1
   v-wf:flowsInto :net1-oc;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 ######################## сеть, пример 2 #######################
 
@@ -562,7 +562,7 @@ v-s:author cfg:VedaSystemAccount ;
 :net2-fl1
   v-wf:flowsInto :net2-t1;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net2-t1
   v-wf:hasFlow :net2-fl2;
@@ -573,7 +573,7 @@ v-s:author cfg:VedaSystemAccount ;
 
 :net2-fl2 v-wf:flowsInto :net2-oc;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net2-oc
   v-wf:locationX "376"^^xsd:integer;
@@ -605,7 +605,7 @@ v-s:author cfg:VedaSystemAccount ;
 :net3-fl1
   v-wf:flowsInto :net3-t1;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net3-t1
   v-wf:hasFlow :net3-fl2;
@@ -617,7 +617,7 @@ v-s:author cfg:VedaSystemAccount ;
 
 :net3-fl2 v-wf:flowsInto :net3-oc;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net3-oc
   v-wf:locationX "376"^^xsd:integer;
@@ -649,7 +649,7 @@ v-s:author cfg:VedaSystemAccount ;
 :net4-fl1
   v-wf:flowsInto :net4-t1;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net4-t1
   v-wf:hasFlow :net4-fl2;
@@ -662,7 +662,7 @@ v-s:author cfg:VedaSystemAccount ;
 
 :net4-fl2 v-wf:flowsInto :net4-oc;
   a v-wf:Flow;
-  rdfs:label "?"^^xsd:string.
+  rdfs:label ""^^xsd:string.
 
 :net4-oc
   v-wf:locationX "376"^^xsd:integer;

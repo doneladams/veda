@@ -289,3 +289,40 @@ v-s:OriginalSource
   rdfs:label "Original source"@en ;
   rdfs:label "Источник оригинала"@ru ;
 .
+
+#---------------------------------------------------------
+v-s:PowerOfAttorney
+  rdf:type owl:Class ;
+  rdfs:subClassOf v-s:UserThing ;
+  rdfs:subClassOf v-s:Registered ;
+  rdfs:subClassOf v-s:Deliverable2 ;
+  rdfs:subClassOf v-s:Journaling ; 
+  rdfs:subClassOf v-s:AutomaticallyVersioned ;     
+  rdfs:subClassOf v-s:Temporal ;
+  rdfs:label "Power of attorney"@en ;
+  rdfs:label "Доверенность"@ru ;
+.
+# v-s:registrationNumber
+# v-s:registrationDate
+# v-s:hasComment
+# rdfs:label
+# v-s:grantor
+# v-s:grantee
+
+v-s:grantor
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "Grantor"@en ;
+  rdfs:label "Доверитель"@ru ;
+  rdfs:range v-s:Correspondent ;
+  rdfs:domain v-s:Deliverable2 ;
+.
+v-s:grantee
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "Grantee"@en ;
+  rdfs:label "Доверенный"@ru ;
+  rdfs:range v-s:Correspondent ;
+  rdfs:domain v-s:Deliverable2 ;
+.
+
+
+

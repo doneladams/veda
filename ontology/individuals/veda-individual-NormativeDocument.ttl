@@ -120,60 +120,60 @@ d:c4edc01cf20a4500ba6378ad2ea06a8f
 
 d:397b736683354293a78e70149d867220
   a v-s:NormativeDocument;
-  rdfs:label "\"ГОСТ 12.2.003-91. Система стандартов безопасности труда. Оборудование производственное. Общие требования безопасности\"?"^^xsd:string;
+  rdfs:label "\"ГОСТ 12.2.003-91. Система стандартов безопасности труда. Оборудование производственное. Общие требования безопасности\""^^xsd:string;
   v-s:attachment d:d183adc5-e8a3-437a-bfdc-47d0114f54fc;
   v-s:shortLabel "ГОСТ 12.2.003-91"^^xsd:string;
 .
 
 d:87738d2511b94137a638eb2f0d1b3e2a
   a v-s:NormativeDocument;
-  rdfs:label "\"О регистрации случаев обращения за первой помощью\"?"^^xsd:string;
+  rdfs:label "\"О регистрации случаев обращения за первой помощью\""^^xsd:string;
   v-s:attachment d:17d706f9-c19b-4482-90f6-ddeec576730f;
   v-s:shortLabel "Рапоряжение №20 от 28.02.2007г."^^xsd:string;
 .
 
 d:a00e165bf46d4648bd83d99c5e65934f
   a v-s:NormativeDocument;
-  rdfs:label "\"Об утверждении Федеральных норм и правил в области промышленной безопасности \"Правила безопасности опасных производственных объектов, на которых используются подъемные сооружения\"?"^^xsd:string;
+  rdfs:label "\"Об утверждении Федеральных норм и правил в области промышленной безопасности \"Правила безопасности опасных производственных объектов, на которых используются подъемные сооружения\""^^xsd:string;
   v-s:shortLabel "Приказ Ростехнадзора от 12.11.2013 N 533"^^xsd:string;
 .
 
 d:28ae4144b53740a989e851e8c254296f
   a v-s:NormativeDocument;
-  rdfs:label "\"ПОТ Р М-016-2001. РД 153-34.0-03.150-00. Межотраслевые Правила по охране труда (Правила безопасности) при эксплуатации электроустановок\"?"^^xsd:string;
+  rdfs:label "\"ПОТ Р М-016-2001. РД 153-34.0-03.150-00. Межотраслевые Правила по охране труда (Правила безопасности) при эксплуатации электроустановок\""^^xsd:string;
   v-s:shortLabel "ПОТ Р М-016-2001. РД 153-34.0-03.150-00"^^xsd:string;
 .
 
 d:64ca963b02e24548a6440d664f360515
   a v-s:NormativeDocument;
-  rdfs:label "\"Порядок обучения по охране труда и проверки знаний требований охраны труда работников организаций\"?"^^xsd:string;
+  rdfs:label "\"Порядок обучения по охране труда и проверки знаний требований охраны труда работников организаций\""^^xsd:string;
   v-s:attachment d:320fb5ca-9cba-4d7d-8742-34dbcf49309c;
   v-s:shortLabel "N 1/29"^^xsd:string;
 .
 
 d:78f8099307de4e03a40b251e26c16615
   a v-s:NormativeDocument;
-  rdfs:label "\"СП 9.13130.2009. Свод правил. Техника пожарная. Огнетушители. Требования к эксплуатации\"?"^^xsd:string;
+  rdfs:label "\"СП 9.13130.2009. Свод правил. Техника пожарная. Огнетушители. Требования к эксплуатации\""^^xsd:string;
   v-s:shortLabel "СП 9.13130.2009. "^^xsd:string;
 .
 
 d:a32179c8b355486f84a723092aadb57f
   a v-s:NormativeDocument;
-  rdfs:label "\"Совещание по развитию качества\"?"^^xsd:string;
+  rdfs:label "\"Совещание по развитию качества\""^^xsd:string;
   v-s:attachment d:39808546-0bf9-449e-a486-4bc9065af87d;
   v-s:shortLabel "ИП - инструкция предприятия"^^xsd:string;
 .
 
 d:800ba98606694bf9b5c29ff33fb1a9ac
   a v-s:NormativeDocument;
-  rdfs:label "\"Требования к комплектации изделиями медицинского назначения аптечек для оказания первой помощи работникам \"?"^^xsd:string;
+  rdfs:label "\"Требования к комплектации изделиями медицинского назначения аптечек для оказания первой помощи работникам \""^^xsd:string;
   v-s:attachment d:4e8a5f8f-d283-40f4-835a-95081af07c31;
   v-s:shortLabel "Приказ Минздравсоцразвития России от 5 марта 2011 г. N 169н"^^xsd:string;
 .
 
 d:7ee2f3d4e73e4fcf8847b8847fa38f04
   a v-s:NormativeDocument;
-  rdfs:label "\"Управление внешними нормативными документами\"?"^^xsd:string;
+  rdfs:label "\"Управление внешними нормативными документами\""^^xsd:string;
   v-s:attachment d:0be921ef-1068-4e9a-8956-2d7dc572aeaf;
   v-s:shortLabel "ИИСМ 4.2.3х4.4.5х4.4.5"^^xsd:string;
 .
@@ -267,21 +267,21 @@ d:e21127b5e68d437fa3c2ce69c6bad3ba
 
 d:73d47d0b55f9474ab37c9da072dea7dc
   a v-s:NormativeDocument;
-  rdfs:label "Дополнение к инструкции \"Идентификация законных и других требований, оценка соответствия требованиям\"?"^^xsd:string;
+  rdfs:label "Дополнение к инструкции \"Идентификация законных и других требований, оценка соответствия требованиям\""^^xsd:string;
   v-s:attachment d:81a2f92c-09c7-4efd-8402-02a390482c34, d:65a52e4d-74a1-4805-b8b9-d7c2adfe3dc7;
   v-s:shortLabel "ИИСМ -/4.3.2, 4.5.2/4.3.2, 4.5.2-2010 "^^xsd:string;
 .
 
 d:c6f40b634a7a43b5ab8385516b302e5c
   a v-s:NormativeDocument;
-  rdfs:label "ИИСМ \"Анализ удовлетворенности потребителей\"?"^^xsd:string;
+  rdfs:label "ИИСМ \"Анализ удовлетворенности потребителей\""^^xsd:string;
   v-s:attachment d:fa629309-efce-421d-ab60-341ffcc2005b;
   v-s:shortLabel "8.2.1/ХХХ/ХХХ - V4.2015"^^xsd:string;
 .
 
 d:520f80498f8e4da28c1b93d22bc10777
   a v-s:NormativeDocument;
-  rdfs:label "ИИСМ \"Внутренние аудиты ИСМ\"?"^^xsd:string;
+  rdfs:label "ИИСМ \"Внутренние аудиты ИСМ\""^^xsd:string;
   v-s:attachment d:f281c469-b496-455c-93ef-4297386c17ce;
   v-s:shortLabel "ИИСМ 8.2.2х4.5.5х4.5.5v7"^^xsd:string;
 .
@@ -344,7 +344,7 @@ d:8d1ad5b3535d4a21850ec9128b662452
 
 d:b37c6b74ec3e41f5b0aa0a9a3b919694
   a v-s:NormativeDocument;
-  rdfs:label "Изменение 1 к  инструкции ИСМ \"Управление несоответствующей продукцией, несоответствиями в области качества, экологии и безопасности труда\"?"^^xsd:string;
+  rdfs:label "Изменение 1 к  инструкции ИСМ \"Управление несоответствующей продукцией, несоответствиями в области качества, экологии и безопасности труда\""^^xsd:string;
   v-s:attachment d:7d95077e-5b6b-4cff-9b6d-259e3e76c2e1;
   v-s:shortLabel "ИИСМ 8.3/4.5.3/4.5.3-11"^^xsd:string;
 .
@@ -367,7 +367,7 @@ d:671729594c164330892e49462df44e56
   a v-s:NormativeDocument;
   rdfs:label "Инструкция \"О дополнительных требованиях по обеспечению безопасности в кабине грузового автомобиля\"."^^xsd:string;
   v-s:attachment d:b274690d-4cd3-4de2-898d-ca518ad6b8e2;
-  v-s:shortLabel "САТ Инструкция о дополнительных требованиях по обеспечению безопасности в кабине грузового автомобиля\"?"^^xsd:string;
+  v-s:shortLabel "САТ Инструкция о дополнительных требованиях по обеспечению безопасности в кабине грузового автомобиля\""^^xsd:string;
 .
 
 d:7865827639c84b86be29e4355c2571df
@@ -386,28 +386,28 @@ d:3347282358154d3b8bd40d72c29b6be1
 
 d:1bbd898437034da48afb778db4ded854
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Анализ ИСМ со стороны руководства\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Анализ ИСМ со стороны руководства\""^^xsd:string;
   v-s:attachment d:4ec7ed14-a233-4db0-ba5b-e1afe82588c7;
   v-s:shortLabel "ИИСМ 5.6/4.6/4.6"^^xsd:string;
 .
 
 d:10b4a6b8937e4fb6b4f1c6517ad37120
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Внутренние аудиты ИСМ\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Внутренние аудиты ИСМ\""^^xsd:string;
   v-s:attachment d:c0542c29-1f0c-40ab-9ae4-799f87af4216;
   v-s:shortLabel "ИИСМ 8.2.2/4.5.5/4.5.5"^^xsd:string;
 .
 
 d:d3bf6104e101461fafbb4288d084be59
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Готовность и реагирование на аварийные ситуации\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Готовность и реагирование на аварийные ситуации\""^^xsd:string;
   v-s:attachment d:cbf67186-e145-47eb-9eeb-16a94e1e69fe;
   v-s:shortLabel "ИИСМ ХХХ/4.4.7/4.4.7"^^xsd:string;
 .
 
 d:f04e026b2a5842fa8e0c89d9c9dcf123
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Готовность и реагирование на аварийные ситуации\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Готовность и реагирование на аварийные ситуации\""^^xsd:string;
   v-s:attachment d:34da5c7f-b936-4143-9daf-66f5236f58e7;
   v-s:shortLabel "ИИСМ ХХХ/4.4.7/4.4.7 v6"^^xsd:string;
 .
@@ -421,28 +421,28 @@ d:be5ee883271d42aebc66cbffcedfbb3c
 
 d:88701182030841928c060f402f4d6693
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Идентификация, оценка значимости экологических аспектов\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Идентификация, оценка значимости экологических аспектов\""^^xsd:string;
   v-s:attachment d:baa83ccc-df96-4773-8959-3ad08e6e31be;
   v-s:shortLabel "ИИСМ ХХХ/4.3.1/ХХХ"^^xsd:string;
 .
 
 d:e2fb3c31da44473a8fa5449e4920c99a
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Корректирующие и предупреждающие действия\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Корректирующие и предупреждающие действия\""^^xsd:string;
   v-s:attachment d:044d52ef-8617-483a-8e88-aebade14eff5;
   v-s:shortLabel "ИИСМ 8.5.2; 8.5.3/4.5.3/4.5.3-11 v4"^^xsd:string;
 .
 
 d:e76e0542651a492aaf2805ae1e00fcfb
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Управление измерительным оборудованием\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Управление измерительным оборудованием\""^^xsd:string;
   v-s:attachment d:7004dd61-db67-4db2-b381-07ee4acfd8d7;
   v-s:shortLabel "ИИСМ 7.6/4.5.1/4.5.1-11v4"^^xsd:string;
 .
 
 d:1bb1ae3c45fe43388a7386e344b31e12
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция ИСМ \"Управление измерительным оборудованием\"?"^^xsd:string;
+  rdfs:label "Инструкция ИСМ \"Управление измерительным оборудованием\""^^xsd:string;
   v-s:attachment d:5b4e6b7c-722f-492b-97e5-dfda16c929a9;
   v-s:shortLabel "ИИСМ 7.6/4.5.1/4.5.1 v4"^^xsd:string;
 .
@@ -463,7 +463,7 @@ d:54b4b5a8f1a045b4b248c5eca3231e7a
 
 d:30c762c289884f7ea1d25bac499192c1
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция интегрированной системы менеджмента \"Управление измерительным оборудованием\"?"^^xsd:string;
+  rdfs:label "Инструкция интегрированной системы менеджмента \"Управление измерительным оборудованием\""^^xsd:string;
   v-s:attachment d:d9ce2c40-c055-42f1-bf41-546040631a70;
   v-s:shortLabel "ИИСМ 7.6х4.5.1х4.5.1 v4"^^xsd:string;
 .
@@ -477,7 +477,7 @@ d:148a3e0b231147059271fa186665054f
 
 d:49506bda89df40fa844f4be49e6c2e24
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция о проведении огневых работ на территории ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Инструкция о проведении огневых работ на территории ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:d48b114b-14d2-427f-beca-26a46196b049;
   v-s:shortLabel "Приказ №564"^^xsd:string;
 .
@@ -525,14 +525,14 @@ d:cabdbf7023674941966883f3317e6597
 
 d:a644c09a56fe4203a3c390e0f3471392
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция предприятия \"Порядок разработки и ввода нового продукта\"?"^^xsd:string;
+  rdfs:label "Инструкция предприятия \"Порядок разработки и ввода нового продукта\""^^xsd:string;
   v-s:attachment d:1d4cd6d6-8cf2-457d-9d50-2014a8ccd6b6;
   v-s:shortLabel "ИП"^^xsd:string;
 .
 
 d:caf7a5e3c8aa483385027d52f8c0d68c
   a v-s:NormativeDocument;
-  rdfs:label "Инструкция предприятия \"Совещание по развитию качества\"?"^^xsd:string;
+  rdfs:label "Инструкция предприятия \"Совещание по развитию качества\""^^xsd:string;
   v-s:attachment d:bb2e4254-acb3-4b8c-91d3-8dbb31b45b6b;
   v-s:shortLabel "ИП"^^xsd:string;
 .
@@ -583,41 +583,41 @@ d:2e4766c469d349aca0a3dc86ae85a94b
 
 d:5c392dbab10e4bb3b4f93ac5d01a465b
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии АО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии АО \"Монди СЛПК\""^^xsd:string;
   v-s:shortLabel "Инструкция предприятия"^^xsd:string;
 .
 
 d:4405488295fd4a26a0ce0e935433f6cc
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:0d6f9996-cedf-4a0b-b77e-86204ed94493;
   v-s:shortLabel "ИП"^^xsd:string;
 .
 
 d:bffa0e0205b9494eaf08da14ce7657d5
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:f3105f14-f876-466e-aa2f-b33c7df67be7;
   v-s:shortLabel "ИП"^^xsd:string;
 .
 
 d:6231945e52cd4d6095e87f6bf898511f
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:ca677181-c148-43b4-82b2-60c38c37f4dd;
   v-s:shortLabel "ИП"^^xsd:string;
 .
 
 d:0323684814784e149c77c387d32b265e
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:f6ba976b-4b07-4949-a62e-9bc340dd8c7b;
   v-s:shortLabel "ИП"^^xsd:string;
 .
 
 d:8ed8b72003d942c690213879266c2a64
   a v-s:NormativeDocument;
-  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Маркировка бумаги и картона на предприятии ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:8c4859dd-6067-4b4e-98a7-6e3a8cbe2a52;
   v-s:shortLabel "ИП"^^xsd:string;
 .
@@ -847,7 +847,7 @@ d:e880c866c09b4045923aa4df023a4269
   a v-s:NormativeDocument;
   rdfs:label "ПОЛОЖЕНИЕ О ПОРЯДКЕ ИДЕНТИФИКАЦИИ И УЧЕТА ПРИЧИН ПРОСТОЕВ ЦЛБ"^^xsd:string;
   v-s:attachment d:399f942f-26af-4317-b507-a505573510dc;
-  v-s:shortLabel "Положение ОАО \"Монди СЛПК\"?"^^xsd:string;
+  v-s:shortLabel "Положение ОАО \"Монди СЛПК\""^^xsd:string;
 .
 
 d:45d328ba9a1d40edacccd66ab2bf368a
@@ -950,7 +950,7 @@ d:bd53556c2070413881ed77e4ae600b2d
 d:fa0a78de9328452b8d61f5569667151f
   a v-s:NormativeDocument;
   rdfs:label "ПУЭ шестое издание"^^xsd:string;
-  v-s:shortLabel "\"Правила устройства электроустановок (ПУЭ). Шестое издание\"?"^^xsd:string;
+  v-s:shortLabel "\"Правила устройства электроустановок (ПУЭ). Шестое издание\""^^xsd:string;
 .
 
 d:829aeb3a8c49457d8f42dd06831905af
@@ -1017,7 +1017,7 @@ d:868f46525e0d43aea0312ba2542c50bb
 
 d:049a6781445a446c8b22ab54688f4c57
   a v-s:NormativeDocument;
-  rdfs:label "Положение о порядке и условиях выплат работникам ОАО \"Монди СЛПК\" за участие в реализации проекта \"Новый взгляд\"?"^^xsd:string;
+  rdfs:label "Положение о порядке и условиях выплат работникам ОАО \"Монди СЛПК\" за участие в реализации проекта \"Новый взгляд\""^^xsd:string;
   v-s:attachment d:f6bf0d11-a01d-4243-b074-cbce562f3691;
   v-s:shortLabel "1"^^xsd:string;
 .
@@ -1038,13 +1038,13 @@ d:b984d020fb93427c90cf821b3bb247dd
 
 d:3b3cf45cd854454b81cd11a62ee5f8a2
   a v-s:NormativeDocument;
-  rdfs:label "Положение по блокировке энергии на ОАО \"Монди СЛПК\"?"^^xsd:string;
-  v-s:shortLabel "Положение по блокировке энергии на ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Положение по блокировке энергии на ОАО \"Монди СЛПК\""^^xsd:string;
+  v-s:shortLabel "Положение по блокировке энергии на ОАО \"Монди СЛПК\""^^xsd:string;
 .
 
 d:fbc2c0e3c1394d519e97cc99e271fc7b
   a v-s:NormativeDocument;
-  rdfs:label "Положение по блокировке энергии на ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Положение по блокировке энергии на ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:shortLabel "176"^^xsd:string;
 .
 
@@ -1306,7 +1306,7 @@ d:f325781edcd4448f8460b9ff048e33e2
   a v-s:NormativeDocument;
   rdfs:label "Приказ №214 от 02 апреля 2013."^^xsd:string;
   v-s:attachment d:0a33f019-7001-4323-bf19-18202ea3ce6f;
-  v-s:shortLabel "\" О несчастном случае с водителем автомобиля ЦУМ\"?"^^xsd:string;
+  v-s:shortLabel "\" О несчастном случае с водителем автомобиля ЦУМ\""^^xsd:string;
 .
 
 d:c61047865ad64ed381243bc754e81365
@@ -1535,14 +1535,14 @@ d:ec070f2368aa4648beb00e9073870ee4
 
 d:a4793a5d47c0423685b2842bfac5e7f2
   a v-s:NormativeDocument;
-  rdfs:label "Стандарт  ОАО \"Монди СЛПК\" \"Щепа технологическая, древесные отходы закупаемые ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Стандарт  ОАО \"Монди СЛПК\" \"Щепа технологическая, древесные отходы закупаемые ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:29613caf-9f4a-49ca-8493-88f9d56cdacb;
   v-s:shortLabel "СТО 00279404-018-2013"^^xsd:string;
 .
 
 d:50d9aaea9bbf4c3e9bee42078cd50a22
   a v-s:NormativeDocument;
-  rdfs:label "Стандарт ОАО \"Монди СЛПК\"  \"Щепа технологическая, кора, опилки закупаемые ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Стандарт ОАО \"Монди СЛПК\"  \"Щепа технологическая, кора, опилки закупаемые ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:8b40987d-20d0-42a8-97fa-159459e38167;
   v-s:shortLabel "СТО 00279404-010-2013"^^xsd:string;
 .
@@ -1576,7 +1576,7 @@ d:d32e44e63aa141ac857b80efcd12b741
 
 d:9ab640f802eb4cec8ccf496ff61f910a
   a v-s:NormativeDocument;
-  rdfs:label "Стандарт предприятия \"Нормативы технического обслуживания технологического оборудования\"?"^^xsd:string;
+  rdfs:label "Стандарт предприятия \"Нормативы технического обслуживания технологического оборудования\""^^xsd:string;
   v-s:attachment d:6df62768-adcb-408b-bb34-f4972961be35;
   v-s:shortLabel "№ LGML1-1 rev 0. "^^xsd:string;
 .
@@ -1660,7 +1660,7 @@ d:53556912cae1458c8b6b1a0856d2324c
 
 d:3dc5ecb1a4034ad5974ad8a20af21820
   a v-s:NormativeDocument;
-  rdfs:label "Технологическая карта проведения комплекса работ  по подъему древесины с воды в период выкатки мостовыми кранами на ДПЦ-2 ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "Технологическая карта проведения комплекса работ  по подъему древесины с воды в период выкатки мостовыми кранами на ДПЦ-2 ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:0ac67a0f-0960-48f9-a485-c226bb90d9ed, d:ab8c2ca4-ad20-4b6a-bef3-ff2a97f24304;
   v-s:shortLabel "ТК"^^xsd:string;
 .
@@ -1784,7 +1784,7 @@ d:dfbed4894a894c21939d8bfe39c41b88
 
 d:19e15f1eea7349a7a32f09d75ce7d2d9
   a v-s:NormativeDocument;
-  rdfs:label "иисм \"Управление измерительным оборудованием\"?"^^xsd:string;
+  rdfs:label "иисм \"Управление измерительным оборудованием\""^^xsd:string;
   v-s:attachment d:dde50bba-e0ea-4f64-929c-3c7f45e09b03;
   v-s:shortLabel "ИИСМ 7.6х4.5.1х4.5.1 v4"^^xsd:string;
 .
@@ -1803,7 +1803,7 @@ d:38111f10d61645818edc9fd21730e51c
 
 d:0e2c8721a63a46889074396f2be29482
   a v-s:NormativeDocument;
-  rdfs:label "положение о проведении инвентаризации лесопродукции ОАО \"Монди СЛПК\"?"^^xsd:string;
+  rdfs:label "положение о проведении инвентаризации лесопродукции ОАО \"Монди СЛПК\""^^xsd:string;
   v-s:attachment d:64ffcad2-213c-4199-b44f-f9f69e04825b, d:741637e2-886e-41ab-9eb1-0e7c69dced08, d:70bbc703-6ec2-4f32-bac9-490ae0b30e21, d:d5bf865e-e857-4fc4-afdc-6a27bbda73ff;
   v-s:attachment d:6754f2fe-cdd6-4705-8d05-ff54c0ff3d64, d:7e5e88b3-742b-4e3f-98c5-3c15514de302, d:eae9a16a-0ccf-4e8e-838f-ce7de9a908b3, d:94d5077f-6bb7-4b15-b2fe-8e632cf6c739;
   v-s:attachment d:84c21fe6-fef6-4256-a371-bafa4a312592, d:5379e7ec-898a-495e-ad9a-999ceb6f273d, d:fc5c441c-cf29-4767-adac-c4a2dc0afd61;

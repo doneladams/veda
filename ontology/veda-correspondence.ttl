@@ -72,6 +72,7 @@ v-s:Letter
   rdf:type owl:Class ;
   rdfs:subClassOf v-s:UserThing ;
   rdfs:subClassOf v-s:Deliverable2 ;
+  rdfs:subClassOf v-s:Journaling ;
   rdfs:label "Letter"@en ;
   rdfs:label "Письмо"@ru ;
   v-ui:hasTemplate v-s:LetterTemplate ;
@@ -89,6 +90,13 @@ v-s:hasLetterRegistrationRecordRecipient
   rdfs:range v-s:LetterRegistrationRecordRecipient ;
   rdfs:label "Регистрационная запись получателя"@ru ;
   rdfs:label "Registration record recipient"@en ;
+.
+v-s:hasRelatedLetter
+  rdf:type owl:ObjectProperty ;
+  rdfs:domain v-s:Letter ;
+  rdfs:range v-s:Letter ;
+  rdfs:label "Связанные письма"@ru ;
+  rdfs:label "Related letter"@en ;
 .
 
 # rdfs:label
@@ -109,10 +117,15 @@ v-s:Delivery
   rdf:type owl:Class ;
   rdfs:subClassOf v-s:UserThing ;
   rdfs:subClassOf v-s:Temporal ;
+  rdfs:subClassOf v-s:BackwardLink ;
   rdfs:subClassOf v-s:Deliverable2 ;
   rdfs:subClassOf v-s:Embedded ;
+  rdfs:subClassOf v-s:BackwardLink ;
+  rdfs:subClassOf v-s:AutomaticallyVersioned ;
+  rdfs:subClassOf v-s:Journaling ;
   rdfs:label "Доставка"@ru ;
   rdfs:label "Delivery"@en ;
+  v-ui:hasTemplate v-s:DeliveryTemplate;
 .
 
 ### -------------------------------------------------------
@@ -163,7 +176,7 @@ v-s:PsHasDocumentKindForLetter
   v-ui:forClass v-s:Letter ;
   v-ui:forProperty v-s:hasDocumentKind ;
   v-ui:minCardinality 0 ;
-  v-ui:maxCardinality 1 ;
+  v-ui:maxCardinality 100 ;
   rdfs:label "v-s:hasDocumentKind specification for v-s:Letter class"@en ;
   rdfs:label "Спецификация v-s:hasDocumentKind для класса v-s:Letter"@ru ;
 .
@@ -205,6 +218,20 @@ v-s:PsOrganizationForCorrespondent
   rdfs:label "v-s:correspondentOrganization specification for v-s:Correspondent class"@en ;
   rdfs:label "Спецификация v-s:correspondentOrganization для класса v-s:Correspondent"@ru ;
 .
+
+v-s:PsDepartmentForCorrespondent
+  rdf:type v-ui:ObjectPropertySpecification ;
+  v-ui:forClass v-s:Correspondent ;
+  v-ui:forProperty v-s:correspondentDepartment ;
+  v-ui:forProperty v-s:correspondentPerson ;
+  v-ui:minCardinality 0 ;
+  v-ui:maxCardinality 100 ;
+  rdfs:label "v-s:correspondentDepartment specification for v-s:Correspondent class"@en ;
+  rdfs:label "Спецификация v-s:correspondentDepartment для класса v-s:Correspondent"@ru ;
+.
+
+
+
 
 # ------------------------------------------------------------ СТРОКИ --
 
@@ -372,8 +399,59 @@ v-s:DeliveryTemplate
   rdfs:label "Delivery template"@en ;
   rdfs:label "Шаблон доставки"@ru ;
   v-ui:template """
+<div>
+  <h3>
+    <span about="v-s:Delivery" property="rdfs:label"></span>
+  </h3>
+  <hr>
+  <div class="row">
+    <div class="col-md-4">
+      <em about="v-s:date" property="rdfs:label"></em>
+      <div property="v-s:date" class="view -edit search"></div>
+      <veda-control property="v-s:date" data-type="date" class="-view edit search"></veda-control>
+    </div>
+    <div class="col-md-4">
+      <em about="v-s:deliverBy" property="rdfs:label"></em>
+      <div rel="v-s:deliverBy" class="view -edit search" data-template="v-ui:LabelTemplate"></div>
+      <veda-control data-type="link" rel="v-s:deliverBy" class="-view edit search fulltext dropdown"></veda-control>
+    </div>
+    <div class="col-md-4">
+      <em about="rdfs:comment" property="rdfs:label"></em>
+      <div property="rdfs:comment" class="view -edit -search"></div>
+      <veda-control property="rdfs:comment" data-type="string" class="-view edit search"></veda-control>
+    </div>
+  </div>
+  <hr>
+  <div id="systemProperties">
+    <div about="@" data-template="v-ui:SystemPropertiesTemplate" data-embedded="true"></div>
+  </div><!--#systemProperties-->
+  <br>
+  <div class="actions view edit -search">
+    <button type="button" class="action btn btn-primary view -edit -search" id="edit" about="v-s:Edit" property="rdfs:label" />
+    <button type="button" class="action btn btn-success -view edit -search" id="save" about="v-s:Save" property="rdfs:label" />
+    <button type="button" class="action btn btn-default -view edit -search" id="cancel" about="v-s:Cancel" property="rdfs:label" />
+    <button type="button" class="action btn btn-default view -edit -search" id="journal" about="v-s:ViewJournal" property="rdfs:label" />
+    <button type="button" class="action btn btn-link view edit -search" id="delete" about="v-s:Delete" property="rdfs:label"/>
+  </div>
+</div>
+
+  """ ;
+.
+
+v-s:DeliveryEmbededTemplate
+  rdf:type v-ui:ClassTemplate ;
+  rdfs:label "Delivery template"@en ;
+  rdfs:label "Вложенный шаблон доставки"@ru ;
+  v-ui:template """
 <div class="panel panel-default">
-  <div class="panel-body bg-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      <span about="@" data-template="v-ui:IconModalTemplate"></span>
+      <span about="v-s:Delivery" property="rdfs:label"></span>
+    </h3>
+    
+  </div>
+  <div class="panel-body">
     <div class="row">
       <div class="col-md-4">
         <em about="v-s:date" property="rdfs:label"></em>

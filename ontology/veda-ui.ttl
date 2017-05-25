@@ -513,7 +513,7 @@ v-ui:PSFromToForLink
   v-ui:forProperty v-s:from, v-s:to ;
   v-ui:minCardinality 1 ;
   v-ui:maxCardinality 1 ;
-#  v-ui:queryPrefix "('rdf:type'=='v-s:Person')"^^xsd:string ;
+  v-ui:queryPrefix "('rdf:type'=='v-s:UserThing')"^^xsd:string ;
 .
 v-ui:LinkTemplate
   rdf:type v-ui:ClassTemplate ;
@@ -761,15 +761,11 @@ v-ui:LabelTemplate
   rdfs:label "Шаблон с меткой"@ru ;
   rdfs:label "Template with label"@en ;
   v-ui:template """
-  <span about="@" property="rdfs:label"></span>
+  <span class="label-template" about="@" property="rdfs:label"></span>
   <script>
     if (!individual.hasValue("rdfs:label")) {
       template.text(individual.id);
     }
-    template.css({
-      "display": "inline-block",
-      "margin-right": "7px"
-    });
     //# sourceURL=v-ui:LabelTemplate
   </script>
   """ ;
@@ -779,7 +775,7 @@ v-ui:LabelTemplateWithEditLink
   rdfs:label "Шаблон с меткой и ссылкой на страницу редактирования"@ru ;
   rdfs:label "Template with label & edit link"@en ;
   v-ui:template """
-  <span>
+  <span class="label-template">
     # <a href="#/@///edit"><span id="label" property="rdfs:label"></span></a>
   </span>
   <script>
@@ -795,7 +791,7 @@ v-ui:LabelLinkTemplate
   rdfs:label "Шаблон с меткой и ссылкой"@ru ;
   rdfs:label "Template with label & link"@en ;
   v-ui:template """
-  <a href="#/@"><span property="rdfs:label"></span></a>
+  <a class="label-template" href="#/@"><span property="rdfs:label"></span></a>
   <script>
     if (!individual.hasValue("rdfs:label")) {
       template.text(individual.id);
@@ -844,11 +840,12 @@ v-ui:IconModalTemplate
     cntr.on("invalid", function () {
     ok.attr("disabled", "disabled");
     });
-    var tmpl = individual["rdf:type"][0].template ? $( individual["rdf:type"][0].template["v-ui:template"][0].toString() ) : undefined;
-
+ // var tmpl = individual["rdf:type"][0].template ? $( individual["rdf:type"][0].template["v-ui:template"][0].toString() ) : undefined;
+    var tmpl = individual["rdf:type"][0].hasValue("v-ui:hasTemplate") ? $( individual["rdf:type"][0]["v-ui:hasTemplate"][0]["v-ui:template"][0].toString() ) : undefined;
+          
     if (newMode === "edit") {
-      $(".actions", tmpl).remove();
       individual.present(cntr, tmpl, newMode);
+      $(".actions", tmpl).remove();
     } else {
       $("#cancel", tmpl).addClass("viev").removeClass("-view");
       individual.present(cntr, tmpl, newMode);
@@ -870,7 +867,7 @@ v-ui:LabelEmptyLinkTemplate
   rdfs:label "Шаблон без имени класса, но с меткой (модальное окно)"@ru ;
   rdfs:label "Template without class name, with label (modal)"@en ;
   v-ui:template """
-<a href="#" property="rdfs:label"></a>
+<a href="#" property="rdfs:label" class="label-template"></a>
 <script>
   if (!individual.hasValue("rdfs:label")) {
     template.text(individual.id);
@@ -898,15 +895,11 @@ v-ui:ClassNameLabelLinkTemplate
   rdfs:label "Шаблон с именем класса и меткой"@ru ;
   rdfs:label "Template with class name and label"@en ;
   v-ui:template """
-  <span><a href="#/@"><span about="@" rel="rdf:type"><span about="@" property="rdfs:label"></span></span>: <span id="label" about="@" property="rdfs:label"></span></a></span>
+  <a class="label-template" href="#/@"><span about="@" rel="rdf:type"><span about="@" property="rdfs:label"></span></span>: <span id="label" about="@" property="rdfs:label"></span></a>
   <script>
     if (!individual.hasValue("rdfs:label")) {
       $("#label", template).text(individual.id);
     }
-    template.css({
-      "display": "inline-block",
-      "margin": "0 7px 7px 0"
-    });
     //# sourceURL=v-ui:ClassNameLabelLinkTemplate
   </script>
   """ ;
@@ -916,15 +909,11 @@ v-ui:ClassNameLabelLinkEditTemplate
   rdfs:label "Шаблон с именем класса и меткой"@ru ;
   rdfs:label "Template with class name and label"@en ;
   v-ui:template """
-  <span><a href="#/@///edit"><span about="@" rel="rdf:type"><span about="@" property="rdfs:label"></span></span>: <span id="label" about="@" property="rdfs:label"></span></a></span>
+  <a class="label-template" href="#/@///edit"><span about="@" rel="rdf:type"><span about="@" property="rdfs:label"></span></span>: <span id="label" about="@" property="rdfs:label"></span></a>
   <script>
     if (!individual.hasValue("rdfs:label")) {
       $("#label", template).text(individual.id);
     }
-    template.css({
-      "display": "inline-block",
-      "margin": "0 7px 7px 0"
-    });
     //# sourceURL=v-ui:ClassNameLabelLinkTemplate
   </script>
   """ ;
@@ -937,22 +926,28 @@ v-ui:RabbitHole
   v-ui:template """
 <script>
   var text = "<span>" + mkLabel(individual) + "</span>";
+  var visited = [ individual.id ];
+
   if (individual.hasValue("v-s:backwardTarget")) {
     travel(individual["v-s:backwardTarget"][0]);
   } else if (individual.hasValue("v-s:parent")) {
     travel(individual["v-s:parent"][0]);
   }
   $("small", template).append(text);
+
   function travel(individual) {
+    if ( visited.indexOf(individual.id) >= 0 ) {
+      return;
+    } else {
+      visited.push(individual.id);
+    }
     text = "<a href='#/" + individual.id + "'>" + mkLabel(individual) + "</a>" + " &rarr; " + text;
-    if (!individual.hasValue("v-s:parent") && !individual.hasValue("v-s:backwardTarget")) { return; }
-
+    if ( !individual.hasValue("v-s:parent") && !individual.hasValue("v-s:backwardTarget") ) { return; }
     if (individual.hasValue("v-s:backwardTarget")) {
-    travel(individual["v-s:backwardTarget"][0]);
-  } else if (individual.hasValue("v-s:parent")) {
-    travel(individual["v-s:parent"][0]);
-  }
-
+      travel(individual["v-s:backwardTarget"][0]);
+    } else if (individual.hasValue("v-s:parent")) {
+      travel(individual["v-s:parent"][0]);
+    }
   }
   function mkLabel(individual) {
     return individual["rdf:type"][0]["rdfs:label"].join(" ")// + ": " + ( individual.hasValue("rdfs:label") ? individual["rdfs:label"].join(" ") : individual.id )
@@ -967,15 +962,11 @@ v-ui:ClassNameLabelTemplate
   rdfs:label "Шаблон с именем класса и меткой"@ru ;
   rdfs:label "Template with class name and label"@en ;
   v-ui:template """
-  <span><span about="@" rel="rdf:type"><span about="@" property="rdfs:label"></span></span>: <span id="label" about="@" property="rdfs:label"></span></span>
+  <span class="label-template"><span about="@" property="rdf:type"></span>: <span id="label" about="@" property="rdfs:label"></span></span>
   <script>
     if (!individual.hasValue("rdfs:label")) {
       $("#label", template).text(individual.id);
     }
-    template.css({
-      "display": "inline-block",
-      "margin": "0 7px 7px 0"
-    });
     //# sourceURL=v-ui:ClassNameLabelTemplate
   </script>
   """ ;
@@ -1289,10 +1280,9 @@ v-ui:FileTemplateWithComment
     <img src="/files/@">
   </div>
   <div class="file-description">
-    <em about="rdfs:comment" property="rdfs:label" class="-view edit search"></em>
-    <strong property="rdfs:comment" class="view -edit -search"></strong>
-    <veda-control data-type="string" property="rdfs:comment" class="-view edit search"></veda-control>
-    <br>
+    <strong about="rdfs:comment" property="rdfs:label" class="-view edit search"></strong>
+    <veda-control data-type="string" property="rdfs:comment" class="-view edit search margin-sm"></veda-control>
+    <strong property="rdfs:comment" class="view -edit -search comment"></strong>
     <hr class="margin-sm view -edit -search">
     <div class="file-name">
       <span id="icon" class="label label-primary"></span>
@@ -1477,13 +1467,27 @@ v-ui:JournalTemplate
   v-ui:template """
 <script>
   individual.prefetch(50, "v-s:onDocument", "v-wf:onProcess", "v-s:childRecord", "v-s:processJournal", "v-s:subJournal", "v-wf:takenDecision", "v-s:actor", "v-s:creator", "v-wf:executor");
+  $('.createReport0', template).on('click', function () {
+    var documenJournal=individual["v-s:onDocument"][0];
+    veda.Util.createReport(documenJournal,'v-s:Journal_printBlank');
+  });
 </script>
 <div class="container journal sheet">
   <style>
     .journal-record > div > .sub-journal {margin-left: 5px; padding-left: 20px; border-left: 1px solid #ddd;}
     .journal hr.margin-sm {margin: 10px 0px;}
   </style>
+  <div class="row">
+  <div class="col-md-10">
+    
   <h2 about="v-s:Journal" property="rdfs:label"></h2>
+  </div>
+  <div class="col-md-2 text-right">
+    <button type="button" class="action btn btn-info view -edit -search createReport0"  >
+      <span about="mnd-s:PrintBlank" property="rdfs:label"></span> <span class="fa fa-file-pdf-o"></span>
+    </button>
+    </div>    
+  </div>
   <div rel="v-s:onDocument">
     <div>
       <h4>
