@@ -57,6 +57,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/remove_from_individual":
 		removeFromIndividual(ctx)
 
+	case "/set_in_individual":
+		setInIndividual(ctx)
+
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":

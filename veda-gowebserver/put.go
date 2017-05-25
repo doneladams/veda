@@ -36,7 +36,6 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 }
 
 func putIndividuals(ctx *fasthttp.RequestCtx) {
-	log.Println("@PUT INDIVIDUALS")
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
