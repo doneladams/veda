@@ -60,6 +60,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/set_in_individual":
 		setInIndividual(ctx)
 
+	case "/add_to_individual":
+		addToIndividual(ctx)
+
 	case "/authenticate":
 		fmt.Println("authenticate")
 	case "/tests":

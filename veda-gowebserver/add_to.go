@@ -8,7 +8,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func setInIndividual(ctx *fasthttp.RequestCtx) {
+func addToIndividual(ctx *fasthttp.RequestCtx) {
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -31,6 +31,6 @@ func setInIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	modifyIndividual("set_in", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+	modifyIndividual("add_to", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 }
