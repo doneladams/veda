@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bmatsuo/lmdb-go/lmdb"
+	"github.com/muller95/lmdb-go/lmdb"
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 )
 
