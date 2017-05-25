@@ -27,6 +27,13 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	_, ok := ontologyCache[uri]
+	if ok {
+		ctx.Write(ontologyCache[uri])
+		ctx.Response.SetStatusCode(int(Ok))
+		return
+	}
+
 	rr := conn.Get(true, ticket.UserURI, []string{uri}, false)
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
@@ -49,6 +56,8 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
+
+		tryStoreInOntologyCache(individual["@"].(string), individual["rdf:type"].([]interface{}), individualJSON)
 		ctx.Write(individualJSON)
 	}
 
