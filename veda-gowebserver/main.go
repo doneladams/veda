@@ -66,6 +66,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/authenticate":
 		authenticate(ctx)
 
+	case "/get_rights":
+		getRights(ctx)
+
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:
