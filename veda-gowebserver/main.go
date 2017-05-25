@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -65,7 +64,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		addToIndividual(ctx)
 
 	case "/authenticate":
-		fmt.Println("authenticate")
+		authenticate(ctx)
+
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:
