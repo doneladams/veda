@@ -878,7 +878,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket_user1.id, new_test_doc1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+            //wait_module(acl_manager, res.op_id);
 
             var read_individual = get_individual(ticket_user1.id, new_test_doc1_uri);
 
@@ -902,7 +902,7 @@ for (i = 0; i < 1; i++)
 
             add_to_individual(ticket_user1.id, new_test_add1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+            //wait_module(acl_manager, res.op_id);
 
             var new_test_doc1_add1 = {
                 '@': new_test_doc1_uri,
@@ -937,7 +937,7 @@ for (i = 0; i < 1; i++)
 
             set_in_individual(ticket_user1.id, new_test_set1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+            //wait_module(acl_manager, res.op_id);
 
             var new_test_doc1_set1 = {
                 '@': new_test_doc1_uri,
@@ -960,7 +960,7 @@ for (i = 0; i < 1; i++)
 
             remove_from_individual(ticket_user1.id, new_test_remove_from1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+            //wait_module(acl_manager, res.op_id);
 
             var new_test_doc1_remove_from1 = {
                 '@': new_test_doc1_uri,
@@ -975,7 +975,7 @@ for (i = 0; i < 1; i++)
 
             remove_from_individual(ticket_user1.id, new_test_remove_from1);
             wait_module(condition, res.op_id);
-            wait_module(acl_manager, res.op_id);
+            //wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket_user1.id, new_test_doc1_uri);
 
