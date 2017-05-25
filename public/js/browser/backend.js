@@ -67,10 +67,7 @@ veda.Module(function Backend(veda) { "use strict";
     if (result.status === 0) {
       serverWatch();
     }
-    if (result.status === 470) {
-      veda.logout();
-    }
-    if (result.status === 471) {
+    if (result.status === 470 || result.status === 471) {
       veda.logout();
     }
   }
@@ -238,7 +235,7 @@ veda.Module(function Backend(veda) { "use strict";
       if (op_id_from_module >= op_id) { break; }
       var endtime = new Date().getTime() + timeout;
       while (new Date().getTime() < endtime);
-      timeout += 3;
+      timeout += 1;
     }
   }
 
@@ -382,30 +379,6 @@ veda.Module(function Backend(veda) { "use strict";
         {
           "ticket": isObj ? arg.ticket : ticket,
           "individual": isObj ? arg.individual : individual,
-          "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
-          "event_id" : (isObj ? arg.event_id : event_id) || "",
-          "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
-        },
-        function (key, value) {
-          return key === "data" && (this.type === "Decimal" || this.type === _Decimal) ? value.toString() : value;
-        }
-      ),
-      contentType: "application/json"
-    };
-    return call_server(params);
-  }
-
-  window.put_individuals = function (ticket, individuals, prepare_events, event_id, transaction_id) {
-    var arg = arguments[0];
-    var isObj = typeof arg === "object";
-    var params = {
-      type: "PUT",
-      url: "put_individuals",
-      async: isObj ? arg.async : false,
-      data: JSON.stringify(
-        {
-          "ticket": isObj ? arg.ticket : ticket,
-          "individuals": isObj ? arg.individuals : individuals,
           "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
