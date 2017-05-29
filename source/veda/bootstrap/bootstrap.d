@@ -154,7 +154,7 @@ void main(string[] args)
 
     string[] modules =
     [
-        "veda", "veda-ccus", "veda-server", "veda-ttlreader", "veda-fanout-email", "veda-fanout-sql", "veda-scripts-main",
+        "veda", "veda-ccus", "veda-server", "veda-ft-query", "veda-ttlreader", "veda-fanout-email", "veda-fanout-sql", "veda-scripts-main",
         "veda-scripts-lp", "veda-ft-indexer", "veda-ltr-scripts"
     ];
     int[][ string ] command_2_pid;

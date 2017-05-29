@@ -1,3 +1,6 @@
+/**
+ * filltext query module
+ */
 import std.stdio;
 import std.socket;
 import core.thread;

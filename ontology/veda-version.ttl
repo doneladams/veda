@@ -11,6 +11,6 @@
     v-s:loadPriority 4.
 
 v-s:vedaInfo 
-    v-s:appBuildVersion "98856c0"; 
+    v-s:appBuildVersion "5d2b0c8"; 
     v-s:appBuildDate "2017-05-29"^^xsd:dateTime; 
 .
