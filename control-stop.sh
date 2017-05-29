@@ -6,6 +6,7 @@ killall -9 veda-ccus
 killall -9 veda-fanout-email
 killall -9 veda-fanout-sql
 killall -9 veda-ft-indexer
+killall -9 veda-ft-query
 killall -9 veda-ltr-scripts
 killall -9 veda-scripts-lp
 killall -9 veda-scripts-main

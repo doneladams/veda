@@ -2,7 +2,7 @@
  * filltext query module
  */
 import std.stdio, std.socket, std.conv;
-import core.thread;
+import core.thread; import core.atomic;
 import veda.common.logger, veda.core.common.context, veda.core.impl.thread_context;
 
 class HandlerThread : Thread
@@ -24,13 +24,15 @@ private:
         string request = _recv(socket);
 
         // TODO: надо из request вытащить нижеуказанные параметры
-        string 		 _ticket;
-        string       query_str;
-        string		 sort_str;
-        string       db_str;
-        int          from, top, limit;
+        string _ticket;
+        string query_str;
+        string sort_str;
+        string db_str;
+        int    from, top, limit;
+		//
+		
+        Ticket *ticket;
 
-        Ticket       *ticket;
         ticket = context.get_ticket(_ticket);
 
         SearchResult res = context.get_individuals_ids_via_query(ticket, query_str, sort_str, db_str, from, top, limit, null, false);
@@ -42,6 +44,8 @@ private:
         _send(socket, response);
 
         socket.close();
+
+        ctx_pool.free_context(context);
     }
 }
 
@@ -79,6 +83,36 @@ void handle_request()
 {
 }
 
+private Logger log;
+
+class ContextPool
+{
+    private shared bool[ Context ] pool;
+
+    synchronized Context allocate_context()
+    {
+        foreach (ctx, state; pool)
+        {
+            if (state == false)
+            {
+                pool[ ctx ] = true;
+                return ctx;
+            }
+        }
+
+        Context new_ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, null);
+        pool[ new_ctx ] = true;
+        return new_ctx;
+    }
+
+    synchronized void free_context(Context ctx)
+    {
+        pool[ ctx ] = false;
+    }
+}
+
+shared ContextPool ctx_pool;
+
 void main()
 {
     TcpSocket listener = new TcpSocket();
@@ -86,18 +120,18 @@ void main()
     listener.bind(getAddress("localhost", 11112)[ 0 ]);
     listener.listen(65535);
 
-    Logger  log = new Logger("veda-core-ft-query", "log", "");
+    log = new Logger("veda-core-ft-query", "log", "");
 
-    Context context;
-    context = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, null);
+    ctx_pool = new ContextPool();
+	Context context = ctx_pool.allocate_context();
+	ctx_pool.free_context(context);
 
     while (true)
     {
-        Socket socket = listener.accept();
-        auto   ht     = new HandlerThread(socket, context);
-
-        //ht.start(); пока запуск нитней отключен, так как сначала нужно сделат пулл из Context
-
-        ht.run(); // здесь не запуск нити, а исполнение в текущей нити
+        Socket  socket  = listener.accept();
+        context = ctx_pool.allocate_context();
+        auto    ht      = new HandlerThread(socket, context);
+        ht.start();
     }
 }
+
