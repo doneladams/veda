@@ -69,6 +69,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/get_rights":
 		getRights(ctx)
 
+	case "/query":
+		query(ctx)
+
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:
@@ -88,11 +91,11 @@ func main() {
 		endpoint, err = socket.Connect(vedaServerURL)
 		time.Sleep(3000 * time.Millisecond)
 	}
-
 	conn.Connect("127.0.0.1:9999")
-	log.Println("@CONNECTED")
+
 	ticketCache = make(map[string]ticket)
 	ontologyCache = make(map[string]map[string]interface{})
+
 	err = fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)

@@ -217,7 +217,7 @@ for (i = 0; i < 1; i++)
         {
             var ticket = get_user1_ticket();
             var data = query(ticket.id, "owl:").result;
-
+            alert(data);
             //#1
             ok(data.indexOf("owl:") >= 0);
         });
