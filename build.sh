@@ -61,6 +61,10 @@ if [ -z $1 ] || [ $1 == "ft-indexer" ] || [ $1 == "veda-ft-indexer" ] ; then
     ./build-component.sh veda-ft-indexer ft-indexer
 fi
 
+if [ -z $1 ] || [ $1 == "ft-query" ] || [ $1 == "veda-ft-query" ] ; then
+    ./build-component.sh veda-ft-query ft-query
+fi
+
 if [ -z $1 ] || [ $1 == "ltr-scripts" ] || [ $1 == "veda-ltr-scripts" ] ; then
     ./build-component.sh veda-ltr-scripts ltr-scripts
 fi
