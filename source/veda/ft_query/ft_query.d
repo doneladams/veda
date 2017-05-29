@@ -31,11 +31,22 @@ private:
             string _query     = els[ 1 ];
             string _sort      = els[ 2 ];
             string _databases = els[ 3 ];
-            bool   _reopen    = to!bool(els[ 4 ]);
-            int    _top       = to!int (els[ 5 ]);
-            int    _limit     = to!int (els[ 6 ]);
-            int    _from      = to!int (els[ 7 ]);
+            bool   _reopen = false;
+            int    _top = 10;
+            int    _limit = 100;
+            int    _from = 0;
             //
+            if (els[ 4 ].length > 0)
+                _reopen = to!bool(els[ 4 ]);
+
+            if (els[ 5 ].length > 0)
+                _top = to!int (els[ 5 ]);
+
+            if (els[ 6 ].length > 0)
+                _limit = to!int (els[ 6 ]);
+
+            if (els[ 7 ].length > 0)
+                _from = to!int (els[ 7 ]);
 
             Ticket *ticket;
             ticket = context.get_ticket(_ticket);
