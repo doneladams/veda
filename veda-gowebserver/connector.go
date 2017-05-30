@@ -26,10 +26,11 @@ type RequestResponse struct {
 const MaxPacketSize = 1024 * 1024 * 10
 
 const (
-	Put       = 1
-	Get       = 2
-	Authorize = 8
-	Remove    = 51
+	Put             = 1
+	Get             = 2
+	Authorize       = 8
+	GetRightsOrigin = 9
+	Remove          = 51
 )
 
 func (conn *Connector) Connect(addr string) {
@@ -181,6 +182,7 @@ func (conn *Connector) Put(needAuth bool, userUri string, individuals []string, 
 
 func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
 	var rr RequestResponse
+	log.Printf("@GET USER URI %v URI %v\n", userUri, uris)
 
 	if len(userUri) < 3 {
 		rr.CommonRC = NotAuthorized
@@ -230,6 +232,57 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 	return rr
 }
 
+func (conn *Connector) GetRightsOrigin(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
+	var rr RequestResponse
+
+	if len(userUri) < 3 {
+		rr.CommonRC = NotAuthorized
+		log.Println("@ERR CONNECTOR AUTHORIZE: ", uris)
+		return rr
+	}
+
+	if len(uris) == 0 {
+		rr.CommonRC = NoContent
+		return rr
+	}
+
+	if trace {
+		log.Printf("@CONNECTOR AUTHORIZE: PACK AUTHORIZE REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
+			needAuth, userUri, uris)
+	}
+
+	rcRequest, response := doRequest(needAuth, userUri, uris, trace, Authorize)
+	if rcRequest != Ok {
+		rr.CommonRC = rcRequest
+		return rr
+	}
+	decoder := msgpack.NewDecoder(bytes.NewReader(response))
+	arrLen, _ := decoder.DecodeArrayLen()
+	rc, _ := decoder.DecodeUint()
+	rr.CommonRC = ResultCode(rc)
+
+	if trace {
+		log.Println("@CONNECTOR AUTHORIZE: COMMON RC ", rr.CommonRC)
+	}
+
+	rr.OpRC = make([]ResultCode, len(uris))
+	rr.Rights = make([]uint8, len(uris))
+
+	for i, j := 1, 0; i < arrLen; i, j = i+3, j+1 {
+		rc, _ = decoder.DecodeUint()
+		rr.OpRC[j] = ResultCode(rc)
+		if trace {
+			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
+		}
+
+		rr.Rights[j], _ = decoder.DecodeUint8()
+		rr.Msgpaks[j], _ = decoder.DecodeString()
+		log.Println("@DECODE RIGHTS ORIGIN", rr.Msgpaks[j])
+	}
+
+	return rr
+}
+
 func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
 	var rr RequestResponse
 
@@ -266,7 +319,7 @@ func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, t
 	rr.OpRC = make([]ResultCode, len(uris))
 	rr.Rights = make([]uint8, len(uris))
 
-	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
+	for i, j := 1, 0; i < arrLen; i, j = i+3, j+1 {
 		rc, _ = decoder.DecodeUint()
 		rr.OpRC[j] = ResultCode(rc)
 		if trace {
@@ -274,6 +327,7 @@ func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, t
 		}
 
 		rr.Rights[j], _ = decoder.DecodeUint8()
+		decoder.DecodeNil()
 	}
 
 	return rr

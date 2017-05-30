@@ -7,7 +7,7 @@ mod authorization;
 mod put_routine;
 
 use std;
-use std::ffi::{ CString, CStr };
+use std::ffi::{ CString };
 use std::io::{ Write, stderr, Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
@@ -203,7 +203,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                         None => {
                             is_update = false;
                             let auth_result = authorization::compute_access(user_id, 
-                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn);
+                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn, 
+                                    false).0;
 
                             if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
                                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -219,7 +220,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         if is_update && need_auth {
             let auth_result = authorization::compute_access(user_id, 
-                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn);
+                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn, false).0;
 
             if auth_result & authorization::ACCESS_CAN_UPDATE == 0 {
                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -350,7 +351,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 if need_auth {
                     /// If exists and authorization is needed
                     /// computes and checks rights for user
-                    let auth_result = authorization::compute_access(user_id, res_uri, &conn);
+                    let auth_result = authorization::compute_access(user_id, res_uri, &conn, false).0;
 
                     if (auth_result & authorization::ACCESS_CAN_READ) == 0 {
                         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -385,7 +386,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 }
 
 ///Parses and handles msgpack put request according to docs
-pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
+pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, aggregate: bool) {
     let conn: TarantoolConnection;
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -401,7 +402,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
     }
 
     ///Encodes answer's msgpack array
-    encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
+    encode::encode_array(resp_msg, ((arr_size - 3) * 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
     ///For each resource's uri performs authorization
@@ -433,9 +434,19 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
         }
 
         /// Computes access
-        let auth_result = authorization::compute_access(user_id, res_uri, &conn);
+        let auth_result = authorization::compute_access(user_id, res_uri, &conn, aggregate);
         encode::encode_uint(resp_msg, Codes::Ok as u64);
-        encode::encode_uint(resp_msg, auth_result as u64);
+        encode::encode_uint(resp_msg, auth_result.0 as u64);
+        if !aggregate {
+            encode::encode_nil(resp_msg);
+        } else {
+            let mut rights_origin_buf: Vec<u8> = Vec::new();
+            let rights_len = auth_result.1.len() as u32;
+            encode::encode_array(&mut rights_origin_buf, rights_len);
+            for j in 0 .. rights_len {
+                encode::encode_string_bytes(&mut rights_origin_buf, &auth_result.1[j as usize])
+            }
+        }
     }
 }
 
@@ -482,7 +493,7 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
 
             if need_auth {
                 /// Does authorization if needed
-                let auth_result = authorization::compute_access(user_id, res_uri, &conn);
+                let auth_result = authorization::compute_access(user_id, res_uri, &conn, false).0;
 
                 if (auth_result & authorization::ACCESS_CAN_DELETE) == 0 {
                     encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);

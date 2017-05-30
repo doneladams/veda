@@ -81,3 +81,10 @@ func getRights(ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetStatusCode(int(Ok))
 	ctx.Write(individualJSON)
 }
+
+func getRightsOrigin(ctx *fasthttp.RequestCtx) {
+	log.Println("@GET RIGHTS ORIGIN")
+
+	log.Println("@BODY", string(ctx.Request.Body()))
+	log.Println("@QUERY", string(ctx.QueryArgs().QueryString()))
+}

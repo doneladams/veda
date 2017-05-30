@@ -163,7 +163,8 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
 }
 
 /// Function to compute access
-pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection) -> u8{
+pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection, 
+    aggregate: bool) -> (u8, Vec<Vec<u8>>){
     let mut result_access:u8 = 0;
     let mut object_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let mut subject_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
@@ -180,6 +181,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     object_groups.push(extra_group);
 
     /// Computes access in cycle
+    let mut permissions: Vec<Vec<u8>> = Vec::with_capacity(MAX_VECTOR_SIZE); 
     for i in 0 .. object_groups.len() {
         let mut perm_buf: Vec<u8> = Vec::default();
         let object_access = object_groups[i].access;
@@ -220,7 +222,12 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 }
             }
         }
+
+        if aggregate {
+            permissions.push(perm_buf.clone());
+        }
     }
 
-    return result_access;
+
+    return (result_access, permissions);
 }

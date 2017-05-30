@@ -18,8 +18,6 @@ func query(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	log.Println("@CONNECTED TO FT_QUERY", socket)
-
 	ticketKey := string(ctx.QueryArgs().Peek("ticket")[:])
 	query := string(ctx.QueryArgs().Peek("query")[:])
 	sort := string(ctx.QueryArgs().Peek("sort")[:])
@@ -74,7 +72,6 @@ func query(ctx *fasthttp.RequestCtx) {
 
 	socket.Close()
 
-	log.Println("@QUERY RESPONSE ", string(response))
 	ctx.Response.SetStatusCode(int(Ok))
 	ctx.Write(response)
 }

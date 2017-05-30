@@ -494,7 +494,7 @@ class Connector
             if (trace)
                 log.trace("connector.authorize OP RESULT = %d, unpacker.unpacked.length=%d", obj.via.uinteger, unpacker.unpacked.length);
                 
-            for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 2, j++)
+            for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 3, j++)
             {
                 obj                         = unpacker.unpacked[ i ];
                 request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;

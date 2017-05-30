@@ -15,8 +15,8 @@ use lua::lua_State;
 
 const PUT: u64 = 1;
 const GET: u64 = 2;
-const GET_TICKET: u64 = 4;
 const AUTHORIZE: u64 = 8;
+const GET_RIGHTS_ORIGIN: u64 = 9;
 const REMOVE: u64 = 51;
 
 #[repr(C)]
@@ -57,8 +57,9 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         GET => rest::get(cursor, arr_size, need_auth, resp_msg),
         /// Auth request don't need need_auth flag
         /// But for the sake of generality request contains it always
-        AUTHORIZE => rest::auth(cursor, arr_size, resp_msg),
+        AUTHORIZE => rest::auth(cursor, arr_size, resp_msg, false),
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
+        GET_RIGHTS_ORIGIN => rest::auth(cursor, arr_size, resp_msg, false),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
     // writeln!(stderr(), "@END REQUEST");
