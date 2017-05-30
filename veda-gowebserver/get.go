@@ -14,14 +14,16 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
-	if len(uri) == 0 || ticketKey == "" {
+	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
+		log.Println("\t@REQUEST QUERY STRING ", string(ctx.QueryArgs().QueryString()))
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return
 	}
 
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
+		log.Println("@ERR GET TICKET GET_INDIVIDUALS ", rc)
 		ctx.Response.SetStatusCode(int(rc))
 		return
 	}
@@ -79,8 +81,6 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 	var ticketKey string
 	var ticket ticket
 
-	log.Println("@GET INDIVIDUALS ")
-
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
 		log.Println("@ERR GET_INDIVIDUALS: DECODING JSON REQUEST ", err)
@@ -96,13 +96,12 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	log.Println("@BODY ", string(ctx.Request.Body()))
 	uris = make([]string, len(jsonData["uris"].([]interface{})))
 	for i := 0; i < len(jsonData["uris"].([]interface{})); i++ {
 		uris[i] = jsonData["uris"].([]interface{})[i].(string)
 	}
 
-	if len(uris) == 0 || ticketKey == "" {
+	if len(uris) == 0 {
 		log.Println("@ERR GET_INDIVIDUALS: ZERO LENGTH TICKET OR URI")
 		log.Println("\t@REQUEST BODY ", string(ctx.Request.Body()))
 		ctx.Response.SetStatusCode(int(BadRequest))
@@ -111,12 +110,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 
 	individuals := make([]map[string]interface{}, 0, len(uris))
 	urisToGet := make([]string, 0, len(uris))
-	log.Println("@URIS LEN", len(uris))
 	for i := 0; i < len(uris); i++ {
-		log.Println("@CHECK URI ", uris[i])
 		individual, ok := ontologyCache[uris[i]]
 		if ok {
-			log.Println("@FOUND IN CACHE", uris[i])
 			individuals = append(individuals, individual)
 		} else {
 			urisToGet = append(urisToGet, uris[i])
@@ -156,7 +152,7 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		log.Println("@ERR GET_INDIVIDUALS: ENCODING INDIVIDUALS JSON ", err)
 	}
+
 	ctx.Write(individualsJSON)
 	ctx.Response.SetStatusCode(int(Ok))
-	return
 }

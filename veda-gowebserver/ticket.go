@@ -14,10 +14,6 @@ import (
 func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 	var ticketMsgpack []byte
 
-	if key == "" || key == "systicket" {
-		key = "guest"
-	}
-
 	lmdbEnv, err := lmdb.NewEnv()
 	if err != nil {
 		log.Println("@ERR CREATING LMDB ENV")
@@ -68,8 +64,8 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 			ticket.StartTime = startTime.Unix()
 
 		case "ticket:duration":
-			endTime, _ := strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
-			ticket.EndTime = ticket.StartTime + endTime
+			duration, _ := strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
+			ticket.EndTime = ticket.StartTime + duration
 		}
 	}
 
@@ -78,6 +74,10 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 
 func getTicket(ticketKey string) (ResultCode, ticket) {
 	var ticket ticket
+
+	if ticketKey == "" || ticketKey == "systicket" {
+		ticketKey = "guest"
+	}
 
 	rc := InternalServerError
 	if ticketCache[ticketKey].Id != "" {
@@ -96,6 +96,7 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 
 	if time.Now().Unix() > ticket.EndTime {
 		delete(ticketCache, ticketKey)
+		log.Printf("@TICKET %v FROM USER %v expired\n", ticket.Id, ticket.UserURI)
 		return TicketExpired, ticket
 	}
 

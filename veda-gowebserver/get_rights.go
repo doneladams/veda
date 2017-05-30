@@ -27,7 +27,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
-	if len(uri) == 0 || ticketKey == "" {
+	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return

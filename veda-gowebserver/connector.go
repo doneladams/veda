@@ -130,7 +130,6 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 		}
 		break
 	}
-
 	return Ok, response
 }
 
