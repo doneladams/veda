@@ -41,7 +41,6 @@ var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	log.Println("@PATH", string(ctx.Path()[:]))
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
 		getIndividual(ctx)

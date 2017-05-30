@@ -182,7 +182,6 @@ func (conn *Connector) Put(needAuth bool, userUri string, individuals []string, 
 
 func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
 	var rr RequestResponse
-	log.Printf("@GET USER URI %v URI %v\n", userUri, uris)
 
 	if len(userUri) < 3 {
 		rr.CommonRC = NotAuthorized

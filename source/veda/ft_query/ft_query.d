@@ -21,45 +21,54 @@ public:
 private:
     void run()
     {
-        SearchResult res;
-        string       request = _recv(socket);
-
-        string[]     els = request.split('|');
-        if (els.length == 8)
+        try
         {
-            string _ticket    = els[ 0 ];
-            string _query     = els[ 1 ];
-            string _sort      = els[ 2 ];
-            string _databases = els[ 3 ];
-            bool   _reopen = false;
-            int    _top = 10;
-            int    _limit = 100;
-            int    _from = 0;
-            //
-            if (els[ 4 ].length > 0)
-                _reopen = to!bool(els[ 4 ]);
+            SearchResult res;
+            string       request = _recv(socket);
 
-            if (els[ 5 ].length > 0)
-                _top = to!int (els[ 5 ]);
+            string[]     els = request.split('|');
+            if (els.length == 8)
+            {
+                string _ticket    = els[ 0 ];
+                string _query     = els[ 1 ];
+                string _sort      = els[ 2 ];
+                string _databases = els[ 3 ];
+                bool   _reopen = false;
+                int    _top = 10;
+                int    _limit = 100;
+                int    _from = 0;
+                //
+                if (els[ 4 ].length > 0)
+                    _reopen = to!bool(els[ 4 ]);
 
-            if (els[ 6 ].length > 0)
-                _limit = to!int (els[ 6 ]);
+                if (els[ 5 ].length > 0)
+                    _top = to!int (els[ 5 ]);
 
-            if (els[ 7 ].length > 0)
-                _from = to!int (els[ 7 ]);
+                if (els[ 6 ].length > 0)
+                    _limit = to!int (els[ 6 ]);
 
-            Ticket *ticket;
-            ticket = context.get_ticket(_ticket);
+                if (els[ 7 ].length > 0)
+                    _from = to!int (els[ 7 ]);
 
-            res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, false);
+                Ticket *ticket;
+                ticket = context.get_ticket(_ticket);
+
+                res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, false);
+            }
+
+            string response = to_json_str(res);
+            _send(socket, response);
+
+            socket.close();
+
+            ctx_pool.free_context(context);
         }
-
-        string response = to_json_str(res);
-        _send(socket, response);
-
-        socket.close();
-
-        ctx_pool.free_context(context);
+        catch (Exception ex)
+        {
+            //printPrettyTrace(stderr);
+            stderr.writefln("@ERR QUERY HANDLER %s", ex.msg);
+            socket.close();
+        }
     }
 }
 
@@ -155,6 +164,7 @@ void main()
     TcpSocket listener = new TcpSocket();
 
     listener.bind(getAddress("localhost", 11112)[ 0 ]);
+    listener.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
     listener.listen(65535);
 
     log = new Logger("veda-core-ft-query", "log", "");
@@ -162,13 +172,21 @@ void main()
     ctx_pool = new ContextPool();
     Context context = ctx_pool.allocate_context();
     ctx_pool.free_context(context);
-
-    while (true)
+    try 
     {
-        Socket socket = listener.accept();
-        context = ctx_pool.allocate_context();
-        auto   ht = new HandlerThread(socket, context);
-        ht.start();
+        while (true)
+        {
+            Socket socket = listener.accept();
+            context = ctx_pool.allocate_context();
+            auto   ht = new HandlerThread(socket, context);
+            ht.start();
+        }
+    }
+    catch (Exception ex)
+    {
+        //printPrettyTrace(stderr);
+        stderr.writefln("@ERR IN FT_QUERY %s", ex.msg);
+        listener.close();
     }
 }
 
