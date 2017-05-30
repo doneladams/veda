@@ -75,9 +75,8 @@ private string to_json_str(SearchResult res)
         if (idx > 0)
             bb.write(',');
 
-        bb.write(rr);
-
         bb.write('"');
+        bb.write(rr);
         bb.write('"');
     }
 
@@ -97,7 +96,7 @@ private string _recv(Socket socket)
 
     ubyte[] request = new ubyte[ request_size ];
     socket.receive(request);
-    stdout.writeln("@REQ ", request);
+    stderr.writeln("@REQ [%s]", cast(string)request);
 
     return cast(string)request;
 }
@@ -106,7 +105,7 @@ private void _send(Socket socket, string data)
 {
     ubyte[] buf           = new ubyte[ 4 ];
     long    response_size = data.length;
-    stdout.writefln("RESP SIZE %d", response_size);
+    stderr.writefln("RESP %s", data);
     buf                    = new ubyte[ 4 + response_size ];
     buf[ 0 ]               = cast(byte)((response_size >> 24) & 0xFF);
     buf[ 1 ]               = cast(byte)((response_size >> 16) & 0xFF);
