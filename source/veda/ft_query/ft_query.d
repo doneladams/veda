@@ -8,7 +8,7 @@ import veda.common.logger, veda.core.common.context, veda.core.impl.thread_conte
 class HandlerThread : Thread
 {
     Socket  socket;
-    Context context;
+    veda.core.common.context.Context context;
 
 public:
     this(Socket socket, Context context)
@@ -23,12 +23,18 @@ private:
     {
         try
         {
+			context.get_logger.trace ("get_individuals_ids_via_query @1");        	
+        	
             SearchResult res;
             string       request = _recv(socket);
 
-            string[]     els = request.split('|');
+			context.get_logger.trace ("get_individuals_ids_via_query @2 req=%s", request);        	
+
+            string[]     els = request.split('�');
+			context.get_logger.trace ("get_individuals_ids_via_query @2 els=%s", els);        	
             if (els.length == 8)
             {
+			context.get_logger.trace ("get_individuals_ids_via_query @3");        	
                 string _ticket    = els[ 0 ];
                 string _query     = els[ 1 ];
                 string _sort      = els[ 2 ];
@@ -52,8 +58,26 @@ private:
 
                 Ticket *ticket;
                 ticket = context.get_ticket(_ticket);
+				
+			context.get_logger.trace ("get_individuals_ids_via_query @2 ticket_id=[%s]", _ticket);        	
+				
+				if (ticket !is null)
+				{					
+					context.get_logger.trace ("get_individuals_ids_via_query %s(%s) %s", *ticket, _ticket, _query);
 
-                res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, false);
+					try
+					{	
+	                res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, false);
+					}
+					catch (Throwable tr)
+					{
+					context.get_logger.trace ("ERR! get_individuals_ids_via_query, %s", tr.msg);						
+					}
+				}
+				else
+				{
+					context.get_logger.trace ("ERR! ticket is null: ticket_id = %s", _ticket);
+				}    
             }
 
             string response = to_json_str(res);
@@ -105,7 +129,7 @@ private string _recv(Socket socket)
 
     ubyte[] request = new ubyte[ request_size ];
     socket.receive(request);
-    stderr.writeln("@REQ [%s]", cast(string)request);
+    stderr.writefln("@REQ [%s]", cast(string)request);
 
     return cast(string)request;
 }
@@ -142,11 +166,13 @@ class ContextPool
             if (state == false)
             {
                 pool[ ctx ] = true;
+				stderr.writefln ("return exists context %X", &ctx);
                 return ctx;
             }
         }
 
         Context new_ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, null);
+		stderr.writefln ("create new context %X", &new_ctx);
         pool[ new_ctx ] = true;
         return new_ctx;
     }

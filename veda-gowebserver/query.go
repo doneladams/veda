@@ -27,7 +27,7 @@ func query(ctx *fasthttp.RequestCtx) {
 	limit, _ := ctx.QueryArgs().GetUint("limit")
 	from, _ := ctx.QueryArgs().GetUint("from")
 
-	request := fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v|%v", ticketKey, query, sort, databases, reopen,
+	request := fmt.Sprintf("%v�%v�%v�%v�%v�%v�%v�%v", ticketKey, query, sort, databases, reopen,
 		top, limit, from)
 
 	requestSize := uint32(len(request))

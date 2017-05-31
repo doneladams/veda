@@ -15,7 +15,6 @@
             "../../veda/onto/bj8individual",
 	    "../../veda/vmodule",
 	    "../../veda/core/impl", 
-	    "../../veda/core/az", 
 	    "../../veda/core/search", 
 	    "../../veda/core/storage",
 	    "../../veda/core/common"
