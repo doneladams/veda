@@ -53,7 +53,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
 		return
 	} else {
-		individual = MsgpackToMap(rr.Msgpaks[0])
+		individual = MsgpackToMap(rr.Data[0])
 		if individual == nil {
 			log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 			ctx.Response.SetStatusCode(int(InternalServerError))
@@ -127,9 +127,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
-		for i := 0; i < len(rr.Msgpaks); i++ {
+		for i := 0; i < len(rr.Data); i++ {
 			if rr.OpRC[0] == Ok {
-				individual := MsgpackToMap(rr.Msgpaks[0])
+				individual := MsgpackToMap(rr.Data[0])
 				if individual == nil {
 					log.Println("@ERR GET_INDIVIDUALS: DECODING INDIVIDUAL")
 					ctx.Response.SetStatusCode(int(InternalServerError))
@@ -154,5 +154,6 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.Write(individualsJSON)
+	log.Println("@GO GET_INDIVIDUALS ", string(individualsJSON))
 	ctx.Response.SetStatusCode(int(Ok))
 }

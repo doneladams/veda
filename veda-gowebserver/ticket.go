@@ -96,7 +96,8 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 
 	if time.Now().Unix() > ticket.EndTime {
 		delete(ticketCache, ticketKey)
-		log.Printf("@TICKET %v FROM USER %v expired\n", ticket.Id, ticket.UserURI)
+		log.Printf("@TICKET %v FROM USER %v EXPIRED: START %v END %v NOW %v\n", ticket.Id, ticket.UserURI,
+			ticket.StartTime, ticket.EndTime, time.Now().Unix())
 		return TicketExpired, ticket
 	}
 

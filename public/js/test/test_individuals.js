@@ -1310,4 +1310,39 @@ for (i = 0; i < 1; i++)
         ok(compare(new_test_doc1, read_individual1) && compare(new_test_doc2, read_individual2) &&
             compare(new_test_doc3, read_individual3));
     });
+    test("#022 test get_rights_origin", function()
+    {
+        var ticket_admin = get_admin_ticket();
+
+        var res = get_rights_origin(ticket_admin.id, "td:Preferences_RomanKarpov")
+        var result_rights = 0;
+        res.forEach(function(item, i) {
+            if (res[i]["v-s:canCreate"]) {
+                result_rights |= 1;
+            } else if (res[i]["v-s:canRead"]) {
+                result_rights |= 2;
+            } else if (res[i]["v-s:canUpdate"]) {
+                result_rights |= 4;
+            } else if (res[i]["v-s:canDelete"]) {
+                result_rights |= 8;
+            }   
+        });
+
+        var res = get_rights(ticket_admin.id, "td:Preferences_RomanKarpov");
+        var expected_rights = 0;
+        if (res["v-s:canCreate"]) {
+            expected_rights |= 1;
+        }  
+        if (res["v-s:canRead"]) {
+            expected_rights |= 2;
+        } 
+        if (res["v-s:canUpdate"]) {
+            expected_rights |= 4;
+        }  
+        if (res["v-s:canDelete"]) {
+            expected_rights |= 8;
+        }  
+    
+        ok(result_rights == expected_rights);
+    });
 }

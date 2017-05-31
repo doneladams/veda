@@ -19,7 +19,7 @@ type Connector struct {
 type RequestResponse struct {
 	CommonRC ResultCode
 	OpRC     []ResultCode
-	Msgpaks  []string
+	Data     []string
 	Rights   []uint8
 }
 
@@ -212,7 +212,7 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
 	}
 
-	rr.Msgpaks = make([]string, len(uris))
+	rr.Data = make([]string, len(uris))
 	rr.OpRC = make([]ResultCode, len(uris))
 
 	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
@@ -223,7 +223,7 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		}
 
 		if rr.OpRC[j] == Ok {
-			rr.Msgpaks[j], _ = decoder.DecodeString()
+			rr.Data[j], _ = decoder.DecodeString()
 		}
 	}
 
@@ -249,7 +249,7 @@ func (conn *Connector) GetRightsOrigin(needAuth bool, userUri string, uris []str
 			needAuth, userUri, uris)
 	}
 
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, Authorize)
+	rcRequest, response := doRequest(needAuth, userUri, uris, trace, GetRightsOrigin)
 	if rcRequest != Ok {
 		rr.CommonRC = rcRequest
 		return rr
@@ -265,6 +265,7 @@ func (conn *Connector) GetRightsOrigin(needAuth bool, userUri string, uris []str
 
 	rr.OpRC = make([]ResultCode, len(uris))
 	rr.Rights = make([]uint8, len(uris))
+	rr.Data = make([]string, len(uris))
 
 	for i, j := 1, 0; i < arrLen; i, j = i+3, j+1 {
 		rc, _ = decoder.DecodeUint()
@@ -274,8 +275,7 @@ func (conn *Connector) GetRightsOrigin(needAuth bool, userUri string, uris []str
 		}
 
 		rr.Rights[j], _ = decoder.DecodeUint8()
-		rr.Msgpaks[j], _ = decoder.DecodeString()
-		log.Println("@DECODE RIGHTS ORIGIN", rr.Msgpaks[j])
+		rr.Data[j], _ = decoder.DecodeString()
 	}
 
 	return rr
