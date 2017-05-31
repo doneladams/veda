@@ -440,12 +440,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
         if !aggregate {
             encode::encode_nil(resp_msg);
         } else {
-            let mut rights_origin_buf: Vec<u8> = Vec::new();
-            let rights_len = auth_result.1.len() as u32;
-            encode::encode_array(&mut rights_origin_buf, rights_len);
-            for j in 0 .. rights_len {
-                encode::encode_string_bytes(&mut rights_origin_buf, &auth_result.1[j as usize])
-            }
+            encode::encode_string(resp_msg, &auth_result.1);
         }
     }
 }

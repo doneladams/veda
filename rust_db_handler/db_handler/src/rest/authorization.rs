@@ -2,6 +2,7 @@
 
 extern crate core;
 extern crate rmp_bind;
+extern crate serde_json;
 
 use std;
 use std::io::{ Cursor };
@@ -164,7 +165,8 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
 
 /// Function to compute access
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection, 
-    aggregate: bool) -> (u8, Vec<Vec<u8>>){
+    aggregate: bool) -> (u8, String) {
+    let mut aggregated_value = "".to_string();
     let mut result_access:u8 = 0;
     let mut object_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let mut subject_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
@@ -181,7 +183,8 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     object_groups.push(extra_group);
 
     /// Computes access in cycle
-    let mut permissions: Vec<Vec<u8>> = Vec::with_capacity(MAX_VECTOR_SIZE); 
+    let mut triplets: Vec<(String, String, u8)> = Vec::with_capacity(MAX_VECTOR_SIZE); 
+    
     for i in 0 .. object_groups.len() {
         let mut perm_buf: Vec<u8> = Vec::default();
         let object_access = object_groups[i].access;
@@ -218,16 +221,62 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 for k in 0 .. 4 {
                     if (access_arr[k] & object_access) > 0 {
                         result_access |= access_arr[k] & perm_access;
+                        if (access_arr[k] & perm_access) > 0 && aggregate {
+                            triplets.push((subject_groups[idx].id.clone(), object_groups[i].id.clone(), 
+                                access_arr[k]));
+                        }
                     }
                 }
-            }
-        }
 
-        if aggregate {
-            permissions.push(perm_buf.clone());
+                
+            }
         }
     }
 
+    if aggregate {
+        let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);     
+        for i in 0 .. triplets.len() {
+            let right_resource: serde_json::Value;
 
-    return (result_access, permissions);
+            if triplets[i].2 == ACCESS_CAN_CREATE {
+                right_resource = json!({
+                    "@":"_",
+                    "rdf:type":[{"type":"Uri","data":"v-s:PermissionStatement"}],
+                    "v-s:permissionSubject":[{"type":"Uri","data":triplets[i].0}],
+                    "v-s:permissionObject":[{"type":"Uri","data":triplets[i].1}],
+                    "v-s:canCreate":[{"type":"Boolean","data":true}]
+                });
+            } else if triplets[i].2 == ACCESS_CAN_READ {
+                 right_resource = json!({
+                    "@":"_",
+                    "rdf:type":[{"type":"Uri","data":"v-s:PermissionStatement"}],
+                    "v-s:permissionSubject":[{"type":"Uri","data":triplets[i].0}],
+                    "v-s:permissionObject":[{"type":"Uri","data":triplets[i].1}],
+                    "v-s:canRead":[{"type":"Boolean","data":true}]
+                });
+            } else if triplets[i].2 == ACCESS_CAN_UPDATE {
+                right_resource = json!({
+                    "@":"_",
+                    "rdf:type":[{"type":"Uri","data":"v-s:PermissionStatement"}],
+                    "v-s:permissionSubject":[{"type":"Uri","data":triplets[i].0}],
+                    "v-s:permissionObject":[{"type":"Uri","data":triplets[i].1}],
+                    "v-s:canUpdate":[{"type":"Boolean","data":true}]
+                });
+            } else {
+                right_resource = json!({
+                    "@":"_",
+                    "rdf:type":[{"type":"Uri","data":"v-s:PermissionStatement"}],
+                    "v-s:permissionSubject":[{"type":"Uri","data":triplets[i].0}],
+                    "v-s:permissionObject":[{"type":"Uri","data":triplets[i].1}],
+                    "v-s:canDelete":[{"type":"Boolean","data":true}]
+                });
+            }
+            
+            jsons.push(right_resource);
+        }
+
+        aggregated_value = json!(jsons.as_slice()).to_string();
+    }
+
+    return (result_access, aggregated_value);
 }

@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+#[macro_use]    
+extern crate serde_json;
 /// This module represents handler for REST requests in Tarantool
 
 extern crate core;
@@ -59,7 +61,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         /// But for the sake of generality request contains it always
         AUTHORIZE => rest::auth(cursor, arr_size, resp_msg, false),
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
-        GET_RIGHTS_ORIGIN => rest::auth(cursor, arr_size, resp_msg, false),
+        GET_RIGHTS_ORIGIN => rest::auth(cursor, arr_size, resp_msg, true),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
     // writeln!(stderr(), "@END REQUEST");

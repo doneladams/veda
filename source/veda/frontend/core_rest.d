@@ -730,7 +730,6 @@ class VedaStorageRest : VedaStorageRest_API
             }
 
             rc = ResultCode.OK;
-
             return res;
         }
         finally
