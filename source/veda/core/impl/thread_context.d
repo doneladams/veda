@@ -774,6 +774,13 @@ class PThreadContext : Context
                 }
 
                 string ticket_str = tickets_storage_r.find(false, null, ticket_id);
+
+				if (ticket_str is null || ticket_str.length == 0)
+				{
+                    this.reopen_ro_ticket_manager_db();
+		                ticket_str = tickets_storage_r.find(false, null, ticket_id);					
+				}
+
                 if (ticket_str !is null && ticket_str.length > 120)
                 {
                     tt = new Ticket;
