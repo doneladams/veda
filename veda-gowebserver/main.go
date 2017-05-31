@@ -69,7 +69,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/get_rights":
 		getRights(ctx)
 	case "/get_rights_origin":
-		getRightsOrigin(ctx)
+		getAclData(ctx, GetRightsOrigin)
+	case "/get_membership":
+		getAclData(ctx, GetMembership)
 
 	case "/query":
 		query(ctx)

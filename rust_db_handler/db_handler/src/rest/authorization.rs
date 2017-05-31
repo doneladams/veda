@@ -5,7 +5,7 @@ extern crate rmp_bind;
 extern crate serde_json;
 
 use std;
-use std::io::{ Cursor };
+use std::io::{ Cursor, Write, stderr };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
@@ -165,7 +165,7 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
 
 /// Function to compute access
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection, 
-    aggregate: bool) -> (u8, String) {
+    aggregate_rights: bool, aggregate_groups: bool) -> (u8, String) {
     let mut aggregated_value = "".to_string();
     let mut result_access:u8 = 0;
     let mut object_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
@@ -221,7 +221,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 for k in 0 .. 4 {
                     if (access_arr[k] & object_access) > 0 {
                         result_access |= access_arr[k] & perm_access;
-                        if (access_arr[k] & perm_access) > 0 && aggregate {
+                        if (access_arr[k] & perm_access) > 0 && aggregate_rights {
                             triplets.push((subject_groups[idx].id.clone(), object_groups[i].id.clone(), 
                                 access_arr[k]));
                         }
@@ -233,7 +233,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         }
     }
 
-    if aggregate {
+    if aggregate_rights {
         let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);     
         for i in 0 .. triplets.len() {
             let right_resource: serde_json::Value;
@@ -276,6 +276,30 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         }
 
         aggregated_value = json!(jsons.as_slice()).to_string();
+    } else if aggregate_groups {
+        let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);
+        for i in 0 .. object_groups.len() {
+            jsons.push(json!({"type":"Uri","data":object_groups[i].id}));
+        }
+        /*
+        {
+    "rdf:type":[{"type":"Uri","data":"v-s:Membership"}],
+    "@":"_",
+    "v-s:resource":[{"type":"Uri","data":"td:Preferences_RomanKarpov"}],
+    "v-s:memberOf":[
+        {"type":"Uri","data":"v-s:AllResourcesGroup"},
+        {"type":"Uri","data":"td:Preferences_RomanKarpov"},
+        {"type":"Uri","data":"cfg:TTLResourcesGroup"}
+    ]
+}
+        */
+
+        aggregated_value = json!({
+            "@":"_",
+            "rdf:type":[{"type":"Uri","data":"v-s:Membership"}],
+            "v-s:resource":[{"type":"Uri","data": res_uri}],
+            "v-s:memberOf": jsons
+        }).to_string();
     }
 
     return (result_access, aggregated_value);

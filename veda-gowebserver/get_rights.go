@@ -39,7 +39,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, false)
+	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, Authorize, false)
 
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET RIGHS: AUTH ", rr.CommonRC)
@@ -80,35 +80,4 @@ func getRights(ctx *fasthttp.RequestCtx) {
 
 	ctx.Response.SetStatusCode(int(Ok))
 	ctx.Write(individualJSON)
-}
-
-func getRightsOrigin(ctx *fasthttp.RequestCtx) {
-	var uri string
-	var ticketKey string
-	var ticket ticket
-
-	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
-	uri = string(ctx.QueryArgs().Peek("uri")[:])
-
-	if len(uri) == 0 {
-		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
-		ctx.Response.SetStatusCode(int(BadRequest))
-		return
-	}
-
-	rc, ticket := getTicket(ticketKey)
-	if rc != Ok {
-		ctx.Response.SetStatusCode(int(rc))
-		return
-	}
-
-	rr := conn.GetRightsOrigin(true, ticket.UserURI, []string{uri}, false)
-	if rr.CommonRC != Ok {
-		log.Println("@ERR GET_RIGTHS_ORIGIN: AUTH ", rr.CommonRC)
-		ctx.Response.SetStatusCode(int(rr.CommonRC))
-		return
-	}
-
-	ctx.Write([]byte(rr.Data[0]))
-	ctx.Response.SetStatusCode(int(Ok))
 }
