@@ -1345,4 +1345,28 @@ for (i = 0; i < 1; i++)
     
         ok(result_rights == expected_rights);
     });
+    test("#023 test get_membership", function()
+    {
+    //"v-s:memberOf":[{"type":"Uri","data":"v-s:AllResourcesGroup"},{"type":"Uri","data":"td:Preferences_RomanKarpov"},{"type":"Uri","data":"cfg:TTLResourcesGroup"}]}
+        
+        var ticket_admin = get_admin_ticket();
+
+        var res = get_membership(ticket_admin.id, "td:Preferences_RomanKarpov")
+        var check = true;
+        var found = 0;
+        res["v-s:memberOf"].forEach(function(item, i) {
+            switch (res["v-s:memberOf"][i]["data"]) {
+                case "td:Preferences_RomanKarpov":
+                case "v-s:AllResourcesGroup":
+                case "cfg:TTLResourcesGroup":
+                    found++
+                    break;
+                default:
+                    check = false;
+                    break;
+            }
+        });
+
+        ok(check && (found == 3));
+    });
 }

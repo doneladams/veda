@@ -5,7 +5,7 @@ extern crate rmp_bind;
 extern crate serde_json;
 
 use std;
-use std::io::{ Cursor, Write, stderr };
+use std::io::{ Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
@@ -281,18 +281,6 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         for i in 0 .. object_groups.len() {
             jsons.push(json!({"type":"Uri","data":object_groups[i].id}));
         }
-        /*
-        {
-    "rdf:type":[{"type":"Uri","data":"v-s:Membership"}],
-    "@":"_",
-    "v-s:resource":[{"type":"Uri","data":"td:Preferences_RomanKarpov"}],
-    "v-s:memberOf":[
-        {"type":"Uri","data":"v-s:AllResourcesGroup"},
-        {"type":"Uri","data":"td:Preferences_RomanKarpov"},
-        {"type":"Uri","data":"cfg:TTLResourcesGroup"}
-    ]
-}
-        */
 
         aggregated_value = json!({
             "@":"_",
