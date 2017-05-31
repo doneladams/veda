@@ -49,6 +49,9 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 
 	decoder := msgpack.NewDecoder(bytes.NewReader(ticketMsgpack))
 	decoder.DecodeArrayLen()
+
+	var duration int64
+
 	ticket.Id, _ = decoder.DecodeString()
 	resMapI, _ := decoder.DecodeMap()
 	resMap := resMapI.(map[interface{}]interface{})
@@ -64,9 +67,10 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 			ticket.StartTime = startTime.Unix()
 
 		case "ticket:duration":
-			duration, _ := strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
-			ticket.EndTime = ticket.StartTime + duration
+			duration, _ = strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
 		}
+
+		ticket.EndTime = ticket.StartTime + duration
 	}
 
 	return Ok
