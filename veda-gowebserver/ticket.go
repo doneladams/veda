@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/muller95/lmdb-go/lmdb"
+	"github.com/valyala/fasthttp"
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 )
 
@@ -106,4 +107,22 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 	}
 
 	return Ok, ticket
+}
+
+func isTicketValid(ctx *fasthttp.RequestCtx) {
+	var ticketKey string
+	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
+	rc, _ := getTicket(ticketKey)
+	if rc != Ok && rc != TicketExpired {
+		ctx.Write(codeToJsonException(rc))
+		ctx.Response.SetStatusCode(int(rc))
+		return
+	} else if rc == TicketExpired {
+		ctx.Write([]byte("false"))
+		ctx.Response.SetStatusCode(int(rc))
+		return
+	}
+
+	ctx.Write([]byte("true"))
+	ctx.Response.SetStatusCode(int(Ok))
 }

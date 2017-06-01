@@ -154,6 +154,5 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.Write(individualsJSON)
-	log.Println("@GO GET_INDIVIDUALS ", string(individualsJSON))
 	ctx.Response.SetStatusCode(int(Ok))
 }
