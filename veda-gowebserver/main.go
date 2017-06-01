@@ -114,6 +114,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/send_to_module":
 		sendToModule(ctx)
 
+	case "/get_operation_state":
+		getOperationState(ctx)
+
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:
