@@ -42,6 +42,34 @@ var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
 
+func codeToJsonException(code ResultCode) []byte {
+	exception := make(map[string]interface{})
+
+	switch code {
+	case Ok:
+		exception["statusMessage"] = "Ok"
+	case BadRequest:
+		exception["statusMessage"] = "BadRequest"
+	case NotAuthorized:
+		exception["statusMessage"] = "NotAuthorized"
+	case NotFound:
+		exception["statusMessage"] = "NotFound"
+	case InternalServerError:
+		exception["statusMessage"] = "InternalServerError"
+	case TicketExpired:
+		exception["statusMessage"] = "TicketExpired"
+	case NoContent:
+		exception["statusMessage"] = "NoContent"
+	case SizeTooLarge:
+		exception["statusMessage"] = "SizeToLarge"
+	default:
+		exception["statusMessage"] = "UnknownError"
+	}
+
+	exceptionJSON, _ := json.Marshal(exception)
+	return exceptionJSON
+}
+
 func requestHandler(ctx *fasthttp.RequestCtx) {
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
@@ -75,53 +103,22 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/get_membership":
 		getAclData(ctx, GetMembership)
 
+	case "/get_ticket_trusted":
+		getTicketTrusted(ctx)
 	case "/is_ticket_valid":
 		isTicketValid(ctx)
 
 	case "/query":
 		query(ctx)
 
+	case "/send_to_module":
+		sendToModule(ctx)
+
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:
 		fasthttp.FSHandler("public/", 0)(ctx)
 	}
-}
-
-func codeToJsonException(code ResultCode) []byte {
-	exception := make(map[string]interface{})
-
-	/*Ok                  ResultCode = 200
-	BadRequest          ResultCode = 400
-	NotAuthorized       ResultCode = 472
-	NotFound            ResultCode = 404
-	InternalServerError ResultCode = 50
-	TicketExpired       ResultCode = 471
-	NoContent           ResultCode = 204
-	SizeTooLarge        ResultCode = 1118*/
-	switch code {
-	case Ok:
-		exception["statusMessage"] = "Ok"
-	case BadRequest:
-		exception["statusMessage"] = "BadRequest"
-	case NotAuthorized:
-		exception["statusMessage"] = "NotAuthorized"
-	case NotFound:
-		exception["statusMessage"] = "NotFound"
-	case InternalServerError:
-		exception["statusMessage"] = "InternalServerError"
-	case TicketExpired:
-		exception["statusMessage"] = "TicketExpired"
-	case NoContent:
-		exception["statusMessage"] = "NoContent"
-	case SizeTooLarge:
-		exception["statusMessage"] = "SizeToLarge"
-	default:
-		exception["statusMessage"] = "UnknownError"
-	}
-
-	exceptionJSON, _ := json.Marshal(exception)
-	return exceptionJSON
 }
 
 func main() {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"os"
 	"strconv"
@@ -125,4 +126,50 @@ func isTicketValid(ctx *fasthttp.RequestCtx) {
 
 	ctx.Write([]byte("true"))
 	ctx.Response.SetStatusCode(int(Ok))
+}
+
+func getTicketTrusted(ctx *fasthttp.RequestCtx) {
+	log.Println("@GET TICKET TRUSTED")
+	var ticketKey, login string
+
+	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
+	login = string(ctx.QueryArgs().Peek("login")[:])
+
+	request := make(map[string]interface{})
+	request["function"] = "get_ticket_trusted"
+	request["ticket"] = ticketKey
+	request["login"] = login
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		log.Printf("@ERR GET_TICKET_TRUSTED: ENCODE JSON REQUEST: %v\n", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+
+	socket.Send(jsonRequest, 0)
+	responseBuf, _ := socket.Recv(0)
+	responseJSON := make(map[string]interface{})
+	err = json.Unmarshal(responseBuf[:len(responseBuf)-1], &responseJSON)
+	if err != nil {
+		log.Printf("@ERR GET_TICKET_TRUSTED: DECODE JSON RESPONSE: %v\n", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+	log.Println(responseJSON)
+
+	getTicketResponse := make(map[string]interface{})
+	getTicketResponse["end_time"] = responseJSON["end_time"]
+	getTicketResponse["id"] = responseJSON["id"]
+	getTicketResponse["user_uri"] = responseJSON["user_uri"]
+	getTicketResponse["result"] = responseJSON["result"]
+	if err != nil {
+		log.Printf("@ERR GET_TICKET_TRUSTED: ENCODE JSON RESPONSE: %v\n", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+	getTicketResponseBuf, err := json.Marshal(getTicketResponse)
+
+	ctx.SetStatusCode(int(responseJSON["result"].(float64)))
+	ctx.Write(getTicketResponseBuf)
 }
