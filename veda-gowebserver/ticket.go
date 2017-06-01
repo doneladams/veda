@@ -71,9 +71,8 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 		case "ticket:duration":
 			duration, _ = strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
 		}
-
-		ticket.EndTime = ticket.StartTime + duration
 	}
+	ticket.EndTime = ticket.StartTime + duration
 
 	return Ok
 }
