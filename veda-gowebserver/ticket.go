@@ -65,13 +65,16 @@ func lmdbFindTicket(key string, ticket *ticket) ResultCode {
 			ticket.UserURI = mapValI.([]interface{})[0].([]interface{})[1].(string)
 
 		case "ticket:when":
-			startTime, _ := time.Parse("2006-01-02T15:04:05.0000000", mapValI.([]interface{})[0].([]interface{})[1].(string))
+			tt := mapValI.([]interface{})[0].([]interface{})[1].(string)
+			mask := "2006-01-02T15:04:05.00000000"			
+			startTime, _ := time.Parse(mask[0:len(tt)], tt)
 			ticket.StartTime = startTime.Unix()
 
 		case "ticket:duration":
 			duration, _ = strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
 		}
 	}
+
 	ticket.EndTime = ticket.StartTime + duration
 
 	return Ok
