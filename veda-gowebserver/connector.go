@@ -62,9 +62,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 	}
 
 	writer.Flush()
-	if trace {
+	//if trace {
 		log.Println("@CONNECTOR GET DATA SIZE ", request.Len())
-	}
+	//}
 
 	requestSize := uint32(request.Len())
 	buf := make([]byte, 4)
@@ -100,9 +100,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 			responseSize = (responseSize << 8) + uint32(buf[i])
 		}
 
-		if trace {
+//		if trace {
 			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE %v\n", op, responseSize)
-		}
+//		}
 
 		if responseSize > MaxPacketSize {
 			log.Printf("@ERR OP %v: RESPONSE IS TOO LARGE %v\n", op, data)
@@ -112,9 +112,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 		response = make([]byte, responseSize)
 		n, err = conn.conn.Read(response)
 
-		if trace {
+//		if trace {
 			log.Printf("@CONNECTOR OP %v: RECEIVE RESPONSE %v\n", op, n)
-		}
+//		}
 
 		if err != nil {
 			log.Printf("@ERR RECEIVING OP %v: RESPONSE %v\n", op, err)

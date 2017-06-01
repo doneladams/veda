@@ -127,10 +127,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
-					log.Println("@rr=", rr)
-
 		for i := 0; i < len(rr.Data); i++ {
 
+					log.Println("i=", i)
 					log.Println("rr.Data[i]=", rr.Data[i])
 					log.Println("rr.OpRC[i]=", rr.OpRC[i])
 			if rr.OpRC[i] == Ok {
