@@ -127,9 +127,14 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
+					log.Println("@rr=", rr)
+
 		for i := 0; i < len(rr.Data); i++ {
-			if rr.OpRC[0] == Ok {
-				individual := MsgpackToMap(rr.Data[0])
+
+					log.Println("rr.Data[i]=", rr.Data[i])
+					log.Println("rr.OpRC[i]=", rr.OpRC[i])
+			if rr.OpRC[i] == Ok {
+				individual := MsgpackToMap(rr.Data[i])
 				if individual == nil {
 					log.Println("@ERR GET_INDIVIDUALS: DECODING INDIVIDUAL")
 					ctx.Response.SetStatusCode(int(InternalServerError))
