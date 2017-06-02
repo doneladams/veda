@@ -37,6 +37,7 @@ const (
 
 var ticketCache map[string]ticket
 var ontologyCache map[string]map[string]interface{}
+var mifCache map[int]*ModuleInfoFile
 var conn Connector
 var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
@@ -116,6 +117,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	case "/get_operation_state":
 		getOperationState(ctx)
+	case "/flush":
+		break
 
 	case "/tests":
 		ctx.SendFile("public/tests.html")
@@ -140,8 +143,9 @@ func main() {
 
 	ticketCache = make(map[string]ticket)
 	ontologyCache = make(map[string]map[string]interface{})
+	mifCache = make(map[int]*ModuleInfoFile)
 
-	err = fasthttp.ListenAndServe("0.0.0.0:8101", requestHandler)
+	err = fasthttp.ListenAndServe("0.0.0.0:8080", requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
 	}

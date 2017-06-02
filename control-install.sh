@@ -270,13 +270,6 @@ fi
    cd $SMD/source/lib64/ext-lib-bind-src/v8_d
    make    
 
-   #install HAPROXY
-   sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
-   sudo apt-get update
-   sudo apt-get install -y haproxy
-   sudo cp $SMD/haproxy.cfg /etc/haproxy/
-   sudo service haproxy restart 
-   
    #lmdb-go
    go get github.com/muller95/lmdb-go/lmdb
    

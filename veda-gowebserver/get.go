@@ -129,9 +129,9 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 
 		for i := 0; i < len(rr.Data); i++ {
 
-					log.Println("i=", i)
-					log.Println("rr.Data[i]=", rr.Data[i])
-					log.Println("rr.OpRC[i]=", rr.OpRC[i])
+			// log.Println("i=", i)
+			// log.Println("rr.Data[i]=", rr.Data[i])
+			// log.Println("rr.OpRC[i]=", rr.OpRC[i])
 			if rr.OpRC[i] == Ok {
 				individual := MsgpackToMap(rr.Data[i])
 				if individual == nil {
