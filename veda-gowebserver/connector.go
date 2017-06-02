@@ -62,9 +62,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 	}
 
 	writer.Flush()
-	//if trace {
+	if trace {
 		log.Println("@CONNECTOR GET DATA SIZE ", request.Len())
-	//}
+	}
 
 	requestSize := uint32(request.Len())
 	buf := make([]byte, 4)
@@ -100,9 +100,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 			responseSize = (responseSize << 8) + uint32(buf[i])
 		}
 
-//		if trace {
+		if trace {
 			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE %v\n", op, responseSize)
-//		}
+		}
 
 		if responseSize > MaxPacketSize {
 			log.Printf("@ERR OP %v: RESPONSE IS TOO LARGE %v\n", op, data)
@@ -112,9 +112,9 @@ func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint
 		response = make([]byte, responseSize)
 		n, err = conn.conn.Read(response)
 
-//		if trace {
+		if trace {
 			log.Printf("@CONNECTOR OP %v: RECEIVE RESPONSE %v\n", op, n)
-//		}
+		}
 
 		if err != nil {
 			log.Printf("@ERR RECEIVING OP %v: RESPONSE %v\n", op, err)
@@ -213,7 +213,7 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
 	}
 
-	rr.Data = make([]string, len(uris))
+	rr.Data = make([]string, 0)
 	rr.OpRC = make([]ResultCode, len(uris))
 
 	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
@@ -224,7 +224,10 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		}
 
 		if rr.OpRC[j] == Ok {
-			rr.Data[j], _ = decoder.DecodeString()
+			tmp, _ := decoder.DecodeString()
+			rr.Data = append(rr.Data, tmp)
+		} else {
+			decoder.DecodeNil()
 		}
 	}
 
