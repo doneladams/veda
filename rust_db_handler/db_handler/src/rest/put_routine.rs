@@ -39,7 +39,7 @@ pub struct Resource {
     lang: Lang,
     pub str_data: Vec<u8>,
     bool_data: bool,
-    long_data: i64,
+    pub long_data: i64,
     decimal_mantissa_data: i64,
     decimal_exponent_data: i64,
 }

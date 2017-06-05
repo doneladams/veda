@@ -2,6 +2,7 @@
 
 extern crate core;
 extern crate rmp_bind;
+extern crate time;
 
 mod authorization;
 mod put_routine;
@@ -21,6 +22,7 @@ const MAX_VECTOR_SIZE: usize = 150;
 pub enum Codes {
     Ok = 200,
     BadRequest = 400,
+    TicketExpired = 471,
     NotAuthorized = 472,
     NotFound = 404,
     InternalServerError = 500
@@ -37,6 +39,8 @@ pub struct TarantoolConnection {
     permissions_index_id: u32,
     memberships_space_id: u32,
     memberships_index_id: u32,
+    logins_space_id: u32,
+    logins_index_id: u32,
     tickets_space_id: u32,
     tickets_index_id: u32,
 }
@@ -93,6 +97,18 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
             CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
         if conn.memberships_index_id == BOX_ID_NIL {
             return Err("@ERR NO INDEX primary IN memberships".to_string());
+        }
+
+        conn.logins_space_id = box_space_id_by_name(CString::new("logins").unwrap().as_ptr(), 
+            "logins".len() as u32);
+        if conn.logins_space_id == BOX_ID_NIL {
+            return Err("@ERR NO SPACE logins".to_string());
+        }
+        
+        conn.logins_index_id = box_index_id_by_name(conn.logins_space_id, 
+            CString::new("primary").unwrap().as_ptr(), "primary".len() as u32);
+        if conn.memberships_index_id == BOX_ID_NIL {
+            return Err("@ERR NO INDEX primary IN logins".to_string());
         }
 
         conn.tickets_space_id = box_space_id_by_name(CString::new("tickets").unwrap().as_ptr(), 
@@ -231,7 +247,31 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             ///Saves rdf:type if it changed            
             put_routine::put_rdf_types(&new_state.uri, rdf_types, &conn);
         }
-      
+
+        /// Stores some information in other space if individual is v-s:Account
+        for j in 0 .. rdf_types.len() {
+            if std::str::from_utf8(&rdf_types[j].str_data[..]).unwrap() == "v-s:Account" {
+                if std::str::from_utf8(&new_state.uri[..]).unwrap() == "cfg:GuestAccount" {
+                    break;
+                }
+                let mut request = Vec::new();
+
+                encode::encode_array(&mut request,2);
+                encode::encode_string_bytes(&mut request, &new_state.resources.
+                    get(&"v-s:login".to_string()).unwrap()[0].str_data);
+                encode::encode_string_bytes(&mut request, &new_state.uri);
+                unsafe {
+                    let request_len = request.len() as isize;
+                    let key_ptr_start = request.as_ptr() as *const i8;
+                    let key_ptr_end = key_ptr_start.offset(request_len);
+                    box_replace(conn.logins_space_id, key_ptr_start, key_ptr_end, 
+                            &mut null_mut() as *mut *mut BoxTuple);
+                }
+
+                break;
+            }
+        }
+
         /// Unsafe call to tarantool function to store new_state
         unsafe {
             let request_len = new_state_res[0].str_data[..].len() as isize;
@@ -511,5 +551,81 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
         }
         encode::encode_uint(resp_msg, Codes::Ok as u64);        
+    }
+}
+
+//Parses msgpack get_ticket request and handles it according to docs
+pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
+    let conn: TarantoolConnection;
+    let mut user_id_buf = Vec::default();
+
+    match connect_to_tarantool() {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(c) => conn = c
+    }
+
+    decode::decode_string(cursor, &mut user_id_buf).unwrap();
+    for _ in 3 .. arr_size {
+        /// Decodes ticket_id
+        let mut ticket_id_buf = Vec::default();
+        let mut ticket_id = "";
+        let mut request = Vec::new();
+
+        let ticket_id_type = decode::decode_type(cursor).unwrap();
+        match ticket_id_type {
+            decode::Type::StrObj => {
+                match decode::decode_string(cursor, &mut ticket_id_buf) {
+                    Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+                    Ok(_) => ticket_id = std::str::from_utf8(&ticket_id_buf).unwrap()
+                }
+            }
+            _ => decode::decode_nil(cursor).unwrap()
+        }
+        
+        if ticket_id == "" || ticket_id == "systicket" {
+            ticket_id = "guest"
+        }
+
+        encode::encode_array(&mut request, 1);
+        encode::encode_string(&mut request, &ticket_id);
+        /// Unsafe calls to tarantool
+        unsafe {
+            let request_len = request.len() as isize;
+            let key_ptr_start = request[..].as_ptr() as *const i8;
+            let key_ptr_end = key_ptr_start.offset(request_len);
+            
+            let mut get_result: *mut BoxTuple = null_mut();
+            /// Get tuple from tarantool if found it
+            box_index_get(conn.tickets_space_id, conn.tickets_index_id,
+                    key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+            if get_result == null_mut() {
+                encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                encode::encode_nil(resp_msg);
+                continue;
+            }
+            
+            let tuple_size = box_tuple_bsize(get_result);
+            let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
+            box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
+
+            let mut ticket_indiv = put_routine::Individual::new();
+            put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
+                &mut ticket_indiv).unwrap();
+            
+            let now = time::get_time().sec;
+            let ticket_end_time = ticket_indiv.resources.get("ticket:when").unwrap()[0].long_data +
+            ticket_indiv.resources.get("ticket:duration").unwrap()[0].long_data;
+            
+            if now > ticket_end_time {
+                encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
+                encode::encode_nil(resp_msg);
+                box_delete(conn.tickets_space_id, conn.tickets_index_id, 
+                    key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                return;
+            }
+            
+            encode::encode_uint(resp_msg, Codes::Ok as u64);
+            encode::encode_string_bytes(resp_msg, &tuple_buf);
+        }
     }
 }

@@ -1,37 +1,64 @@
 box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, log='./tarantool.log', memtx_memory=268435456.0}
 log = require('log')
 
+memtx = true
+
 if box.space.individuals == nil then
-    -- box.schema.space.create('individuals', {engine='vinyl'})
-    box.schema.space.create('individuals')
+    if memtx then
+        box.schema.space.create('individuals')
+    else
+        box.schema.space.create('individuals', {engine='vinyl'})
+    end    
     box.space.individuals:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'individuals')
 end
 
 if box.space.rdf_types == nil then
-    -- box.schema.space.create('rdf_types', {engine='vinyl'})
-    box.schema.space.create('rdf_types')
+    if memtx then
+        box.schema.space.create('rdf_types')
+    else 
+        box.schema.space.create('rdf_types', {engine='vinyl'})
+    end
     box.space.rdf_types:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'rdf_types')
 end
 
 if box.space.permissions == nil then
-    -- box.schema.space.create('permissions', {engine='vinyl'})
-    box.schema.space.create('permissions')
+    if memtx then 
+        box.schema.space.create('permissions')
+    else 
+        box.schema.space.create('permissions', {engine='vinyl'})
+    end
     box.space.permissions:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'permissions')
 end
 
 if box.space.memberships == nil then
-    -- box.schema.space.create('memberships', {engine='vinyl'})
-    box.schema.space.create('memberships')
+    if memtx then
+        box.schema.space.create('memberships')
+    else
+        box.schema.space.create('memberships', {engine='vinyl'})
+    end        
     box.space.memberships:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'memberships')
 end
 
+if box.space.logins == nil then
+    if memtx then
+        box.schema.space.create('logins')
+    else
+        box.schema.space.create('logins', {engine='vinyl'})
+    end        
+    box.space.logins:create_index('primary', {parts={1, 'string'}})
+    box.schema.user.grant('guest', 'read,write', 'space', 'logins')
+end
+
 if box.space.tickets == nil then
-    -- box.schema.space.create('tickets', {engine='vinyl'})
-    box.schema.space.create('tickets')
+    if memtx then
+        box.schema.space.create('tickets')
+    else
+        box.schema.space.create('tickets', {engine='vinyl'})
+    end
     box.space.tickets:create_index('primary', {parts={1, 'string'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'tickets')
 end

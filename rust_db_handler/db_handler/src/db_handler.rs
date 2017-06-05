@@ -17,6 +17,7 @@ use lua::lua_State;
 
 const PUT: u64 = 1;
 const GET: u64 = 2;
+const GET_TICKET: u64 = 3;
 const AUTHORIZE: u64 = 8;
 const GET_RIGHTS_ORIGIN: u64 = 9;
 const GET_MEMBERSHIP: u64 = 10;
@@ -64,6 +65,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
         REMOVE => rest::remove(cursor, arr_size, need_auth, resp_msg),
         GET_RIGHTS_ORIGIN => rest::auth(cursor, arr_size, resp_msg, true, false),
         GET_MEMBERSHIP => rest::auth(cursor, arr_size, resp_msg, false, true),
+        GET_TICKET => rest::get_ticket(cursor, arr_size, resp_msg),
         _ => fail(resp_msg, rest::Codes::BadRequest, format!("@ERR UNKNOWN REQUEST {0}", op_code))
     }
     // writeln!(stderr(), "@END REQUEST");
