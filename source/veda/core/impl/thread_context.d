@@ -18,7 +18,7 @@ private
 
     version (isServer)
     {
-        alias veda.server.storage_manager ticket_storage_module;
+        // alias veda.server.storage_manager ticket_storage_module;
         alias veda.server.tt_storage_manager subject_storage_module;
         //alias veda.server.acl_manager     acl_module;
         alias veda.server.load_info       load_info;
@@ -86,8 +86,8 @@ class PThreadContext : Context
 
     private               string[ string ] prefix_map;
 
-    private Storage       inividuals_storage_r;
-    private Storage       tickets_storage_r;
+    private Storage       individuals_storage_r;
+    // private Storage       tickets_storage_r;
     private VQL           _vql;
 
     private long          local_last_update_time;
@@ -227,8 +227,8 @@ class PThreadContext : Context
  */
         ctx.node_id = _node_id;
 
-		ctx.inividuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
-        ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
+		ctx.individuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
+        // ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
 
         ctx.name = context_name;
 
@@ -256,8 +256,8 @@ class PThreadContext : Context
     ~this()
     {
         log.trace_log_and_console("DELETE CONTEXT [%s]", name);
-        inividuals_storage_r.close_db();
-        tickets_storage_r.close_db();
+        individuals_storage_r.close_db();
+        // tickets_storage_r.close_db();
     }
 
     bool isReadyAPI()
@@ -267,7 +267,7 @@ class PThreadContext : Context
 
     public Storage get_subject_storage_db()
     {
-        return inividuals_storage_r;
+        return individuals_storage_r;
     }
 
     @property
@@ -299,9 +299,18 @@ class PThreadContext : Context
                     ticket = create_new_ticket("cfg:VedaSystem", "90000000");
 
                     long op_id;
-                    ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1,
-                                              false,
-                                              op_id);
+                    // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1,
+                                            //   false, op_id);
+                    Individual new_ticket;
+                    new_ticket.uri = "systicket";
+                    Resources type = [ Resource(ticket__Ticket) ];
+                    new_ticket.resources[ rdf__type ] = type;
+                    new_ticket.resources[ ticket__accessor ] ~= Resource(ticket.user_uri);
+                    new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
+                    new_ticket.resources[ ticket__duration ] ~= Resource("90000000");
+                    
+                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", 
+                        Resources.init, "systicket", null, new_ticket.serialize(), -1, null, -1, false, op_id);
                     log.trace("systicket [%s] was created", ticket.id);
 
                     Individual sys_account_permission;
@@ -372,7 +381,7 @@ class PThreadContext : Context
             printPrettyTrace(stderr);
         }
 
-        ubyte res = inividuals_storage_r.authorize(ticket.user_uri, _uri, false);
+        ubyte res = individuals_storage_r.authorize(ticket.user_uri, _uri, false);
 
         //log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
@@ -411,8 +420,8 @@ class PThreadContext : Context
 		if (user_id is null || user_id.length < 3)
 			log.trace ("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_id);
 			
-        if (inividuals_storage_r !is null)
-            res = inividuals_storage_r.find(true, user_id, uri);
+        if (individuals_storage_r !is null)
+            res = individuals_storage_r.find(true, user_id, uri);
         else
         {
             res = get_from_individual_storage_thread(user_id, uri);
@@ -556,10 +565,14 @@ class PThreadContext : Context
             string     ss_as_binobj = new_ticket.serialize();
 
             long       op_id;
-            ResultCode rc =
-                ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
-                                          op_id);
+            // ResultCode rc =
+                // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+                                        //   op_id);
+
+            ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+                op_id);
             ticket.result = rc;
+            
 
             if (rc == ResultCode.OK)
             {
@@ -567,8 +580,8 @@ class PThreadContext : Context
                 user_of_ticket[ ticket.id ] = new Ticket(ticket);
 
 				log.trace("context:send ticket to TT %s", new_ticket);
-                subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
-                                          op_id);
+                // subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+                                        //   op_id);
             }
 
             log.trace("create new ticket %s, user=%s, start=%s, end=%s", ticket.id, ticket.user_uri, SysTime(ticket.start_time, UTC()).toISOExtString(
@@ -734,12 +747,13 @@ class PThreadContext : Context
 
     public string get_ticket_from_storage(string ticket_id)
     {
-        return tickets_storage_r.find(false, null, ticket_id);
+        // return tickets_storage_r.find(false, null, ticket_id);
+        return individuals_storage_r.find_ticket(ticket_id);   
     }
 
     public Ticket *get_systicket_from_storage()
     {
-        string systicket_id = tickets_storage_r.find(false, null, "systicket");
+        string systicket_id = individuals_storage_r.find_ticket("systicket");
 
         if (systicket_id is null)
             log.trace("SYSTICKET NOT FOUND");
@@ -773,12 +787,12 @@ class PThreadContext : Context
                     this.reopen_ro_ticket_manager_db();
                 }
 
-                string ticket_str = tickets_storage_r.find(false, null, ticket_id);
+                string ticket_str = individuals_storage_r.find_ticket(ticket_id);
 
 				if (ticket_str is null || ticket_str.length == 0)
 				{
                     this.reopen_ro_ticket_manager_db();
-		                ticket_str = tickets_storage_r.find(false, null, ticket_id);					
+		                ticket_str = individuals_storage_r.find_ticket(ticket_id);					
 				}
 
                 if (ticket_str !is null && ticket_str.length > 120)
@@ -898,8 +912,8 @@ class PThreadContext : Context
 //        }
 //        catch (Exception ex) {}
 
-        if (tickets_storage_r !is null)
-            tickets_storage_r.reopen_db();
+        // if (tickets_storage_r !is null)
+            // tickets_storage_r.reopen_db();
     }
 
     public void reopen_ro_fulltext_indexer_db()
@@ -917,8 +931,8 @@ class PThreadContext : Context
 //        }
 //        catch (Exception ex) {}
 
-        if (inividuals_storage_r !is null)
-            inividuals_storage_r.reopen_db();
+        if (individuals_storage_r !is null)
+            individuals_storage_r.reopen_db();
     }
 
     public void reopen_ro_acl_storage_db()
@@ -1473,7 +1487,7 @@ class PThreadContext : Context
 
                 if (to_binlog)
                 {
-                    long count = this.inividuals_storage_r.dump_to_binlog();
+                    long count = this.individuals_storage_r.dump_to_binlog();
                     if (count > 0)
                         result = true;
                 }
@@ -1536,8 +1550,8 @@ class PThreadContext : Context
     {
         long count = 0;
 
-        if (inividuals_storage_r !is null)
-            count = inividuals_storage_r.count_entries();
+        if (individuals_storage_r !is null)
+            count = individuals_storage_r.count_entries();
 
         return count;
     }
@@ -1577,7 +1591,7 @@ class PThreadContext : Context
         version (isServer)
         {
             //res = subject_storage_module.find(P_MODULE.subject_manager, uri);
-            res = inividuals_storage_r.find(false, user_uri, uri);
+            res = individuals_storage_r.find(false, user_uri, uri);
         }
         return res;
     }

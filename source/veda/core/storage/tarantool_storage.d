@@ -54,6 +54,16 @@ public class TarantoolStorage : Storage
         return null;
     }
 
+    public string find_ticket(string ticket_id)
+    {
+        RequestResponse rr = connector.get_ticket([ ticket_id ], true);
+        
+        if (rr !is null && rr.msgpacks.length > 0)
+            return rr.msgpacks[ 0 ];
+
+        return null;
+    }
+
     public ubyte authorize(string user_uri, string uri, bool trace)
     {
         RequestResponse rr = connector.authorize(user_uri, [ uri ], trace);

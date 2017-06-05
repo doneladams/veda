@@ -251,9 +251,10 @@ func MsgpackToMap(msgpackStr string) map[string]interface{} {
 	individual["@"], _ = decoder.DecodeString()
 	resMapI, _ := decoder.DecodeMap()
 	resMap := resMapI.(map[interface{}]interface{})
-
+	log.Println("@URI ", individual["@"])
 	for keyI, resArrI := range resMap {
 		predicate := keyI.(string)
+		log.Println("\t", predicate, resArrI)
 		resArr := resArrI.([]interface{})
 		resources := make([]interface{}, 0, len(resArr))
 

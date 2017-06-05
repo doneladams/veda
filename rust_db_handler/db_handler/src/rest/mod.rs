@@ -198,7 +198,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         match new_state.resources.get(&"rdf:type".to_string()) {
             Some(res) => rdf_types = res,
             _ => {
-                writeln!(stderr(), "@ERR NO RDF_TYPE_FOUND FOUND").unwrap();
+                writeln!(stderr(), "@ERR NO RDF_TYPE_FOUND FOUND {0}", 
+                    std::str::from_utf8(&new_state.uri[..]).unwrap()).unwrap();
                 encode::encode_uint(resp_msg, Codes::BadRequest as u64);
                 return;
             }
@@ -272,7 +273,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             }
         }
 
-        /// Unsafe call to tarantool function to store new_state
+        /// Unsafe call to tarantool function to store new_state or ticket
         unsafe {
             let request_len = new_state_res[0].str_data[..].len() as isize;
             let key_ptr_start = new_state_res[0].str_data[..].as_ptr() as *const i8;
@@ -281,6 +282,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
                 box_replace(conn.tickets_space_id, key_ptr_start, key_ptr_end, 
                     &mut null_mut() as *mut *mut BoxTuple);
+                writeln!(stderr(), "@TICKET@@@").unwrap();
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 return
             } else {
@@ -559,11 +561,14 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
     let conn: TarantoolConnection;
     let mut user_id_buf = Vec::default();
 
+    writeln!(stderr(), "@GET_TICKET");
+
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
         Ok(c) => conn = c
     }
 
+    writeln!(stderr(), "@TYPE {0}", decode::decode_type(cursor).unwrap() as u64);
     decode::decode_string(cursor, &mut user_id_buf).unwrap();
     for _ in 3 .. arr_size {
         /// Decodes ticket_id

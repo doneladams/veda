@@ -658,4 +658,147 @@ class Connector
     {
         s.close();
     }
+
+    public RequestResponse get_ticket(string[] ticket_ids, bool trace)
+    {
+        ubyte[]         response;
+        RequestResponse request_response = new RequestResponse();
+
+		if (ticket_ids.length == 0)
+		{
+			request_response.common_rc = ResultCode.No_Content;
+			log.trace("ERR! connector.get_ticket[%s], code=%s", ticket_ids, request_response.common_rc);
+			printPrettyTrace(stderr);			
+			return request_response;
+		}	
+
+        Packer          packer           = Packer(false);
+
+		//need_auth = false;
+
+        if (trace)
+            log.trace("connector.get_ticket PACK GET_TICKET REQUEST ticket_ids=[%s]",  ticket_ids);
+
+        packer.beginArray(ticket_ids.length + 3);
+        packer.pack(INDV_OP.GET_TICKET, false, "cfg:VedaSystem");
+        for (int i = 0; i < ticket_ids.length; i++)
+            packer.pack(ticket_ids[ i ]);
+
+        long request_size = packer.stream.data.length;
+
+        if (trace)
+	        log.trace("connector.get_ticket DATA SIZE %d", request_size);
+
+        buf = new ubyte[ 4 + request_size ];
+
+        buf[ 0 ]               = cast(byte)((request_size >> 24) & 0xFF);
+        buf[ 1 ]               = cast(byte)((request_size >> 16) & 0xFF);
+        buf[ 2 ]               = cast(byte)((request_size >> 8) & 0xFF);
+        buf[ 3 ]               = cast(byte)(request_size & 0xFF);
+        buf[ 4 .. buf.length ] = packer.stream.data;
+
+        for (;; )
+        {
+            version (WebServer)
+            {
+                s.write(buf);
+            }
+            version (std_socket)
+            {
+                s.send(buf);
+            }
+
+	        if (trace)
+		        log.trace("connector.get_ticket SEND %s", buf);
+
+            version (WebServer)
+            {
+                buf.length = 4;
+                s.read(buf);
+                long receive_size = buf.length;
+            }
+
+            version (std_socket)
+            {
+                buf.length = 4;
+                long receive_size = s.receive(buf);
+            }
+            
+            if (trace)
+                log.trace("connector.get_ticket RECEIVE SIZE BUF %d", receive_size);
+
+            if (trace)
+                log.trace("connector.get_ticket RESPONSE SIZE BUF %s", buf);                
+                
+            long response_size = 0;
+            for (int i = 0; i < 4; i++)
+                response_size = (response_size << 8) + buf[ i ];
+
+            if (trace)
+                log.trace("connector.get_ticket RESPONSE SIZE %d", response_size);
+
+			if (response_size > MAX_SIZE_OF_PACKET)
+			{
+                log.trace("connector.get RESPONSE SIZE BUF %s %s", buf, cast(char[])buf);
+
+				request_response.common_rc = ResultCode.Size_too_large;
+				log.trace("ERR! connector.get_ticket[%s], code=%s", ticket_ids, request_response.common_rc);
+				return request_response;
+			}
+
+            response = new ubyte[ response_size ];
+
+            version (WebServer)
+            {
+                s.read(response);
+                receive_size = response.length;
+            }
+            version (std_socket)
+            {
+                receive_size = s.receive(response);
+            }
+            if (trace)
+                log.trace("connector.get_ticket RECEIVE RESPONSE %s", receive_size);
+
+            if (receive_size == 0 || receive_size < response.length)
+            {
+                Thread.sleep(dur!("seconds")(1));
+                log.trace ("connector.get_ticket @RECONNECT GET_TICKET REQUEST");
+                close();
+                connect(addr, port);
+                continue;
+            }
+            break;
+        }
+
+
+        StreamingUnpacker unpacker =
+            StreamingUnpacker(response);
+        if (unpacker.execute())
+        {
+            auto obj = unpacker.unpacked[ 0 ];
+            request_response.common_rc       = cast(ResultCode)(obj.via.uinteger);
+            request_response.op_rc.length    = unpacker.unpacked.length - 1;
+            request_response.msgpacks.length = ticket_ids.length;
+
+            if (trace)
+                log.trace("connector.get_ticket OP RESULT = %d", obj.via.uinteger);
+                
+            for (int i = 1, j = 0; i < unpacker.unpacked.length; i += 2, j++)
+            {
+                obj                         = unpacker.unpacked[ i ];
+                request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
+                stderr.writeln("@J ", j, request_response.op_rc[ j ]);
+                if (request_response.op_rc[ j ] == ResultCode.OK)
+                    request_response.msgpacks[ j ] = cast(string)unpacker.unpacked[ i + 1 ].via.raw;
+                if (trace)
+                    log.trace("connector.get_ticket GET RESULT = %d", obj.via.uinteger);
+            }
+        }
+        else
+            log.trace("connector.get_ticket @ERR ON UNPACKING RESPONSE");
+
+        return request_response;
+    }
 }
+

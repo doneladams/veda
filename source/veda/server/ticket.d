@@ -4,7 +4,7 @@ import std.uuid, std.conv, std.stdio;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.common.know_predicates;
 import veda.core.util.utils;
 
-alias veda.server.storage_manager ticket_storage_module;
+// alias veda.server.storage_manager ticket_storage_module;
 alias veda.server.tt_storage_manager subject_storage_module;
 
 public Ticket create_new_ticket(string user_id, string duration, string ticket_id)
@@ -34,7 +34,9 @@ public Ticket create_new_ticket(string user_id, string duration, string ticket_i
     string     ss_as_binobj = new_ticket.serialize();
 
     long       op_id;
-    ResultCode rc = ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
+    // ResultCode rc = ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
+    ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+                op_id);
     ticket.result = rc;
 
     if (rc == ResultCode.OK)

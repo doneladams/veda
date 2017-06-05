@@ -638,6 +638,11 @@ public class LmdbStorage : Storage
             return false;
     }
 
+    public string find_ticket(string ticket_id)
+    {
+        return null;
+    }
+
     public string find(bool need_auth, string user_uri, string _uri, bool return_value = true)
     {
         string uri = _uri.idup;
