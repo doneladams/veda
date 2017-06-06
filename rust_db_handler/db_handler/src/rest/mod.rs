@@ -282,7 +282,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
                 box_replace(conn.tickets_space_id, key_ptr_start, key_ptr_end, 
                     &mut null_mut() as *mut *mut BoxTuple);
-                writeln!(stderr(), "@TICKET@@@").unwrap();
+                // writeln!(stderr(), "@STORE TICKET {0}", 
+                    // std::str::from_utf8(&new_state.uri[..]).unwrap()).unwrap();
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 return
             } else {
@@ -334,9 +335,6 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                     }
                     _ => {}
                 }
-            }
-            "ticket:Ticket" => {
-                writeln!(stderr(), "@TICKET").unwrap();
             }
             _ => {}
         }
@@ -556,6 +554,42 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
     }
 }
 
+fn get_systicket_id(conn: &TarantoolConnection) -> String{
+    let mut systicket_buf: Vec<u8> = Vec::default();
+    let mut systicket_id = "";
+    let mut request = Vec::new();
+
+    encode::encode_array(&mut request, 1);
+    encode::encode_string(&mut request, "systicket");
+    /// Unsafe calls to tarantool
+    unsafe {
+        let request_len = request.len() as isize;
+        let key_ptr_start = request[..].as_ptr() as *const i8;
+        let key_ptr_end = key_ptr_start.offset(request_len);
+        
+        let mut get_result: *mut BoxTuple = null_mut();
+        /// Get tuple from tarantool if found it
+        box_index_get(conn.tickets_space_id, conn.tickets_index_id,
+                key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
+        if get_result == null_mut() {
+            writeln!(stderr(), "@SYSTICKET NOT FOUND");
+            return "".to_string();
+        }
+        
+        let tuple_size = box_tuple_bsize(get_result);
+        let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
+        box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
+
+        let mut systicket_indiv = put_routine::Individual::new();
+        put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
+            &mut systicket_indiv).unwrap();
+        
+        writeln!(stderr(), "@SYSTICKET {0} FOUND", 
+            std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());            
+        return std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap().to_string()
+    }
+}
+
 //Parses msgpack get_ticket request and handles it according to docs
 pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
     let conn: TarantoolConnection;
@@ -568,12 +602,11 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         Ok(c) => conn = c
     }
 
-    writeln!(stderr(), "@TYPE {0}", decode::decode_type(cursor).unwrap() as u64);
     decode::decode_string(cursor, &mut user_id_buf).unwrap();
     for _ in 3 .. arr_size {
         /// Decodes ticket_id
         let mut ticket_id_buf = Vec::default();
-        let mut ticket_id = "";
+        let mut ticket_id = "".to_string();
         let mut request = Vec::new();
 
         let ticket_id_type = decode::decode_type(cursor).unwrap();
@@ -581,14 +614,19 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             decode::Type::StrObj => {
                 match decode::decode_string(cursor, &mut ticket_id_buf) {
                     Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-                    Ok(_) => ticket_id = std::str::from_utf8(&ticket_id_buf).unwrap()
+                    Ok(_) => ticket_id = std::str::from_utf8(&ticket_id_buf).unwrap().to_string()
                 }
             }
             _ => decode::decode_nil(cursor).unwrap()
         }
+
+        writeln!(stderr(), "@TICKET ID {0}", ticket_id);
         
-        if ticket_id == "" || ticket_id == "systicket" {
-            ticket_id = "guest"
+        // if ticket_id == "" || ticket_id == "systicket" {
+            // ticket_id = "guest"
+        // }
+        if ticket_id == "systicket" {
+            ticket_id = get_systicket_id(&conn);
         }
 
         encode::encode_array(&mut request, 1);
@@ -606,6 +644,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if get_result == null_mut() {
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
+                writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
                 continue;
             }
             
@@ -624,13 +663,15 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if now > ticket_end_time {
                 encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
                 encode::encode_nil(resp_msg);
-                box_delete(conn.tickets_space_id, conn.tickets_index_id, 
-                    key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                // box_delete(conn.tickets_space_id, conn.tickets_index_id, 
+                    // key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                writeln!(stderr(), "@TICKET {0} EXPIRED", ticket_id);
                 return;
             }
             
             encode::encode_uint(resp_msg, Codes::Ok as u64);
             encode::encode_string_bytes(resp_msg, &tuple_buf);
+            writeln!(stderr(), "@TICKET {0} FOUND", ticket_id);            
         }
     }
 }

@@ -95,14 +95,23 @@ void main(char[][] args)
                     //   string event_id, long transaction_id, bool ignore_freeze, out long op_id)
     // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1, false, op_id);
     Individual new_ticket;
-    new_ticket.uri = "systicket";
+    new_ticket.uri = ticket.id;
     Resources type = [ Resource(ticket__Ticket) ];
     new_ticket.resources[ rdf__type ] = type;
     new_ticket.resources[ ticket__accessor ] ~= Resource(ticket.user_uri);
     new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
     new_ticket.resources[ ticket__duration ] ~= Resource("90000000");
+    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, 
+        ticket.id, null, new_ticket.serialize(), -1, null, -1, false, op_id);
+    
+    Individual systicket;
+    systicket.uri = "systicket";
+    type = [ Resource(ticket__Ticket) ];
+    systicket.resources[ rdf__type ] = type;
+    systicket.resources[ "ticket:id" ] ~= Resource(ticket.id);
+
     subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init, 
-        "systicket", null, new_ticket.serialize(), -1, null, -1, false, op_id);
+        "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
     log.trace("systicket [%s] was created", ticket.id);
 
     tids[ P_MODULE.n_channel ] = spawn(&nanomsg_channel, text(P_MODULE.n_channel));

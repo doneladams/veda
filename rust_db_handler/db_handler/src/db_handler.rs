@@ -78,7 +78,6 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
 pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
     let mut msg: Vec<u8> = Vec::default();
     lua::tolstring(L, -1, &mut msg);
-    // writeln!(stderr(), "@BEGIN REQUEST");
     let mut cursor = Cursor::new(&msg[..]);
     let mut resp_msg = Vec::new();
     

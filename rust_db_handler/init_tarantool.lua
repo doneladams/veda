@@ -67,8 +67,19 @@ socket = require('socket')
 require('db_handler')
 msgpack = require('msgpack')
 
+function send_response(s, resp)
+    resp_size = string.len(resp)
+    resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
+        string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
+        string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
+        string.char(bit.band(resp_size, 255))
+    s:send(resp_size_str..resp)
+end
+
+bad_request  = 400
+internal_server_error = 500
+
 function handle_request(s) 
-    local n = 0
     s:nonblock(true)
     while true do
         local size_str, size, op, op_str, msg, resp, resp_size
@@ -79,6 +90,9 @@ function handle_request(s)
         size_str = s:read(4)
         if size_str == nil or size_str == "" or string.len(size_str) < 4 then
             log.info('BREAK: size_str == nil or size_str == "" or string.len(size_str) < 4, size_str=[%s]', size_str)
+            resp = msgpack.encode({ bad_request })
+            send_response(s, resp)
+            s.close()
             break
         end
 
@@ -90,17 +104,14 @@ function handle_request(s)
         msg = s:read(size)
         if msg == nil or msg == "" or string.len(msg) < size then
             log.info('BREAK: msg == nil or msg == "" or string.len(msg) < size, msg=[%s]', msg)
+            resp = msgpack.encode({ internal_server_error })
+            send_response(s, resp)
+            s.close()            
             break
         end
         
         resp = db_handle_request(msg);
-        resp_size = string.len(resp)
-        resp_size_str = string.char(bit.band(bit.rshift(resp_size, 24), 255)) ..
-            string.char(bit.band(bit.rshift(resp_size, 16), 255)) ..
-            string.char(bit.band(bit.rshift(resp_size, 8), 255)) ..
-            string.char(bit.band(resp_size, 255))
-        s:send(resp_size_str..resp)
-        n = n + 1
+        send_response(s, resp)
     end
 end
 
