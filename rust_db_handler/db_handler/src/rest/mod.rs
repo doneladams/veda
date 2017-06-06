@@ -602,7 +602,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         Ok(c) => conn = c
     }
 
-    encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
+    encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
     decode::decode_string(cursor, &mut user_id_buf).unwrap();
@@ -666,8 +666,8 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if now > ticket_end_time {
                 encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
                 encode::encode_nil(resp_msg);
-                // box_delete(conn.tickets_space_id, conn.tickets_index_id, 
-                    // key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                box_delete(conn.tickets_space_id, conn.tickets_index_id, 
+                    key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
                 writeln!(stderr(), "@TICKET {0} EXPIRED", ticket_id);
                 return;
             }
