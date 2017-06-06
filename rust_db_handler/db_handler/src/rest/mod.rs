@@ -593,12 +593,13 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
 
 //Parses msgpack get_ticket request and handles it according to docs
 pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
+    unsafe {
     writeln!(stderr(), "@GET TICKET");
     let conn: TarantoolConnection;
     let mut user_id_buf = Vec::default();
 
     // writeln!(stderr(), "@GET_TICKET");
-
+    
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
         Ok(c) => conn = c
@@ -620,7 +621,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             decode::Type::StrObj => {
                 match decode::decode_string(cursor, &mut ticket_id_buf) {
                     Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-                    Ok(_) => ticket_id = std::str::from_utf8(&ticket_id_buf).unwrap().to_string()
+                    Ok(_) => ticket_id = std::str::from_utf8_unchecked(&ticket_id_buf).to_string()
                 }
             }
             _ => decode::decode_nil(cursor).unwrap()
@@ -650,7 +651,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if get_result == null_mut() {
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
-                // writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
+                writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
                 continue;
             }
             
@@ -683,8 +684,8 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if now > ticket_end_time {
                 encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
                 encode::encode_nil(resp_msg);
-                // box_delete(conn.tickets_space_id, conn.tickets_index_id, 
-                    // key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                box_delete(conn.tickets_space_id, conn.tickets_index_id, 
+                    key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
                 writeln!(stderr(), "@TICKET {0} EXPIRED", ticket_id);
                 return;
             }
@@ -693,5 +694,6 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             encode::encode_string_bytes(resp_msg, &tuple_buf);
             writeln!(stderr(), "@TICKET {0} FOUND", ticket_id);            
         }
+    }
     }
 }
