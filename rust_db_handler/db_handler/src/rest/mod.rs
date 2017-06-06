@@ -2,7 +2,7 @@
 
 extern crate core;
 extern crate rmp_bind;
-extern crate time;
+extern crate chrono;
 
 mod authorization;
 mod put_routine;
@@ -13,6 +13,7 @@ use std::io::{ Write, stderr, Cursor };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind::{ encode, decode };
+use self::chrono::prelude::*;
 
 include!("../../module.rs");
 
@@ -282,8 +283,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
                 box_replace(conn.tickets_space_id, key_ptr_start, key_ptr_end, 
                     &mut null_mut() as *mut *mut BoxTuple);
-                // writeln!(stderr(), "@STORE TICKET {0}", 
-                    // std::str::from_utf8(&new_state.uri[..]).unwrap()).unwrap();
+                writeln!(stderr(), "@STORE TICKET {0}", 
+                    std::str::from_utf8(&new_state.uri[..]).unwrap()).unwrap();
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 return
             } else {
@@ -572,7 +573,7 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
         box_index_get(conn.tickets_space_id, conn.tickets_index_id,
                 key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
         if get_result == null_mut() {
-            writeln!(stderr(), "@SYSTICKET NOT FOUND");
+            // writeln!(stderr(), "@SYSTICKET NOT FOUND");
             return "".to_string();
         }
         
@@ -584,18 +585,19 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
         put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
             &mut systicket_indiv).unwrap();
         
-        writeln!(stderr(), "@SYSTICKET {0} FOUND", 
-            std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());            
+        // writeln!(stderr(), "@SYSTICKET {0} FOUND", 
+            // std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());            
         return std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap().to_string()
     }
 }
 
 //Parses msgpack get_ticket request and handles it according to docs
 pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
+    writeln!(stderr(), "@GET TICKET");
     let conn: TarantoolConnection;
     let mut user_id_buf = Vec::default();
 
-    writeln!(stderr(), "@GET_TICKET");
+    // writeln!(stderr(), "@GET_TICKET");
 
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
@@ -613,6 +615,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         let mut request = Vec::new();
 
         let ticket_id_type = decode::decode_type(cursor).unwrap();
+        writeln!(stderr(), "@ID TYPE {0}", decode::decode_type(cursor).unwrap() as u64);
         match ticket_id_type {
             decode::Type::StrObj => {
                 match decode::decode_string(cursor, &mut ticket_id_buf) {
@@ -647,7 +650,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if get_result == null_mut() {
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
-                writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
+                // writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
                 continue;
             }
             
@@ -659,15 +662,29 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
                 &mut ticket_indiv).unwrap();
             
-            let now = time::get_time().sec;
-            let ticket_end_time = ticket_indiv.resources.get("ticket:when").unwrap()[0].long_data +
-            ticket_indiv.resources.get("ticket:duration").unwrap()[0].long_data;
-            
+            // let now = time::get_time().sec;
+            let now = UTC::now().timestamp();
+            let when_str = std::str::from_utf8(
+                &ticket_indiv.resources.get("ticket:when").unwrap()[0].str_data[..]).unwrap();
+            			
+            let when = (when_str.split(".").collect::<Vec<&str>>()[0].to_string() + 
+                "Z").parse::<DateTime<UTC>>().unwrap().timestamp();
+
+            /*let ticket_end_time = when + std::str::from_utf8(&ticket_indiv.resources.
+                get("ticket:duration").unwrap()[0].str_data[..]).unwrap().parse::<i64>().unwrap();*/
+            let duration_str = std::str::from_utf8(&ticket_indiv.resources.
+                get("ticket:duration").unwrap()[0].str_data[..]).unwrap();
+            writeln!(stderr(), "@DURATION STR {0}", duration_str);
+            let duration = duration_str.parse::<i64>().unwrap();
+            writeln!(stderr(), "@DURATION {0}", duration);
+            let ticket_end_time = when + duration;
+
+            writeln!(stderr(), "@NOW {0} : END {1}", now, ticket_end_time);                            
             if now > ticket_end_time {
                 encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
                 encode::encode_nil(resp_msg);
-                box_delete(conn.tickets_space_id, conn.tickets_index_id, 
-                    key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
+                // box_delete(conn.tickets_space_id, conn.tickets_index_id, 
+                    // key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
                 writeln!(stderr(), "@TICKET {0} EXPIRED", ticket_id);
                 return;
             }
