@@ -602,6 +602,9 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         Ok(c) => conn = c
     }
 
+    encode::encode_array(resp_msg, (arr_size - 3 + 1) as u32);
+    encode::encode_uint(resp_msg, Codes::Ok as u64);
+
     decode::decode_string(cursor, &mut user_id_buf).unwrap();
     for _ in 3 .. arr_size {
         /// Decodes ticket_id
