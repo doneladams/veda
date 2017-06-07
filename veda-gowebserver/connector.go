@@ -28,6 +28,7 @@ const MaxPacketSize = 1024 * 1024 * 10
 const (
 	Put             = 1
 	Get             = 2
+	GetTicket       = 3
 	Authorize       = 8
 	GetRightsOrigin = 9
 	GetMembership   = 10
@@ -282,6 +283,48 @@ func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, o
 		rr.Rights[j], _ = decoder.DecodeUint8()
 		if operation == GetRightsOrigin || operation == GetMembership {
 			rr.Data[j], _ = decoder.DecodeString()
+		} else {
+			decoder.DecodeNil()
+		}
+	}
+
+	return rr
+}
+
+func (conn *Connector) GetTicket(ticketIDs []string, trace bool) RequestResponse {
+	var rr RequestResponse
+
+	if trace {
+		log.Printf("@CONNECTOR GET TICKET: PACK GET REQUEST ticket_ids=%v\n", ticketIDs)
+	}
+
+	rcRequest, response := doRequest(false, "cfg:VedaSystem", ticketIDs, trace, GetTicket)
+	if rcRequest != Ok {
+		rr.CommonRC = rcRequest
+		return rr
+	}
+	decoder := msgpack.NewDecoder(bytes.NewReader(response))
+	arrLen, _ := decoder.DecodeArrayLen()
+	rc, _ := decoder.DecodeUint()
+	rr.CommonRC = ResultCode(rc)
+
+	if trace {
+		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
+	}
+
+	rr.Data = make([]string, 0)
+	rr.OpRC = make([]ResultCode, len(ticketIDs))
+
+	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
+		rc, _ = decoder.DecodeUint()
+		rr.OpRC[j] = ResultCode(rc)
+		if trace {
+			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
+		}
+
+		if rr.OpRC[j] == Ok {
+			tmp, _ := decoder.DecodeString()
+			rr.Data = append(rr.Data, tmp)
 		} else {
 			decoder.DecodeNil()
 		}
