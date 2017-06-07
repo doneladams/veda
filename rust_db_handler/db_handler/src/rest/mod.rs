@@ -593,7 +593,6 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
 
 //Parses msgpack get_ticket request and handles it according to docs
 pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>) {
-    unsafe {
     writeln!(stderr(), "@GET TICKET");
     let conn: TarantoolConnection;
     let mut user_id_buf = Vec::default();
@@ -621,7 +620,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             decode::Type::StrObj => {
                 match decode::decode_string(cursor, &mut ticket_id_buf) {
                     Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
-                    Ok(_) => ticket_id = std::str::from_utf8_unchecked(&ticket_id_buf).to_string()
+                    Ok(_) => ticket_id = std::str::from_utf8(&ticket_id_buf).unwrap().to_string()
                 }
             }
             _ => decode::decode_nil(cursor).unwrap()
@@ -694,6 +693,5 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             encode::encode_string_bytes(resp_msg, &tuple_buf);
             writeln!(stderr(), "@TICKET {0} FOUND", ticket_id);            
         }
-    }
     }
 }

@@ -664,6 +664,8 @@ class Connector
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
 
+        stderr.writefln("@TICKET IDS %s", ticket_ids);
+
 		if (ticket_ids.length == 0)
 		{
 			request_response.common_rc = ResultCode.No_Content;

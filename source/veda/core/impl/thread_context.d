@@ -757,17 +757,23 @@ class PThreadContext : Context
     public string get_ticket_from_storage(string ticket_id)
     {
         // return tickets_storage_r.find(false, null, ticket_id);
+        // stderr.writefln("@GET TICKET FROM STORAGE %s", ticket_id);
+        // stdout.writefln("@GET TICKET FROM STORAGE %s", ticket_id);
+        // log.trace("@GET TICKET FROM STORAGE %s", ticket_id);
+        
+
         return individuals_storage_r.find_ticket(ticket_id);   
     }
 
     public Ticket *get_systicket_from_storage()
     {
-        string systicket_id = individuals_storage_r.find_ticket("systicket");
+        // string systicket = individuals_storage_r.find_ticket("systicket");
 
-        if (systicket_id is null)
-            log.trace("SYSTICKET NOT FOUND");
+        // if (systicket_id is null)
+            // log.trace("SYSTICKET NOT FOUND");
 
-        return get_ticket(systicket_id, true);
+        // return get_ticket(systicket_id, true);
+        return get_ticket("systicket", true);
     }
 
     public Ticket *get_ticket(string ticket_id, bool is_systicket = false)
@@ -777,7 +783,7 @@ class PThreadContext : Context
         try
         {
             Ticket *tt;
-            if (ticket_id is null || ticket_id == "" || ticket_id == "systicket")
+            if ((ticket_id is null || ticket_id == "" || ticket_id == "systicket") && !is_systicket)
                 ticket_id = "guest";
 
             tt = user_of_ticket.get(ticket_id, null);
