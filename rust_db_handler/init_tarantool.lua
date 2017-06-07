@@ -92,7 +92,6 @@ function handle_request(s)
             log.info('BREAK: size_str == nil or size_str == "" or string.len(size_str) < 4, size_str=[%s]', size_str)
             resp = msgpack.encode({ bad_request })
             send_response(s, resp)
-            s.close()
             break
         end
 
@@ -103,10 +102,9 @@ function handle_request(s)
         
         msg = s:read(size)
         if msg == nil or msg == "" or string.len(msg) < size then
-            log.info('BREAK: msg == nil or msg == "" or string.len(msg) < size, msg=[%s]', msg)
+            log.info('BREAK: msg == nil  or msg == "" or string.len(msg) < size, msg=[%s]', msg)
             resp = msgpack.encode({ internal_server_error })
             send_response(s, resp)
-            s.close()            
             break
         end
         
