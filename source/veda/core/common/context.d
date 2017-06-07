@@ -16,7 +16,7 @@ private import veda.common.type, veda.onto.onto, veda.onto.individual, veda.onto
 public enum P_MODULE : byte
 {
     /// Выдача и проверка тикетов
-    ticket_manager  = 0,
+    //ticket_manager  = 0,
 
     /// Чтение и сохранение индивидуалов
     subject_manager = 1,

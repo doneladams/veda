@@ -12,7 +12,7 @@ private
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context,
            veda.core.common.log_msg, veda.util.module_info;
-    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.lmdb_storage, veda.core.storage.tarantool_storage, veda.core.search.vql;
+    import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.tarantool_storage, veda.core.search.vql;
     import veda.util.module_info;
     import veda.common.logger;
 
@@ -232,7 +232,7 @@ class PThreadContext : Context
 
         ctx.name = context_name;
 
-        ctx.is_traced_module[ P_MODULE.ticket_manager ]  = true;
+        //ctx.is_traced_module[ P_MODULE.ticket_manager ]  = true;
         ctx.is_traced_module[ P_MODULE.subject_manager ] = true;
 //        is_traced_module[ P_MODULE.acl_preparer ]      = true;
 //        is_traced_module[ P_MODULE.fulltext_indexer ] = true;
@@ -793,14 +793,14 @@ class PThreadContext : Context
                 string when     = null;
                 int    duration = 0;
 
-                MInfo  mi = get_info(P_MODULE.ticket_manager);
+                //MInfo  mi = get_info(P_MODULE.ticket_manager);
 
                 //log.trace ("last_ticket_manager_op_id=%d, mi.op_id=%d,  mi.committed_op_id=%d", last_ticket_manager_op_id, mi.op_id, mi.committed_op_id);
-                if (last_ticket_manager_op_id < mi.op_id)
-                {
-                    last_ticket_manager_op_id = mi.op_id;
-                    this.reopen_ro_ticket_manager_db();
-                }
+                //if (last_ticket_manager_op_id < mi.op_id)
+                //{
+                //    last_ticket_manager_op_id = mi.op_id;
+                //    this.reopen_ro_ticket_manager_db();
+                //}
 
                 string ticket_str = individuals_storage_r.find_ticket(ticket_id);
 
@@ -1008,8 +1008,8 @@ class PThreadContext : Context
 
         //if (trace_msg[ T_API_150 ] == 1)
         {
-            //if (ticket !is null)
-            //    log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
+            if (ticket !is null)
+                log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
         }
 
         try
@@ -1520,12 +1520,12 @@ class PThreadContext : Context
                             result = false;
                         else
                         {
-                            Tid tid_ticket_manager = getTid(P_MODULE.ticket_manager);
-                            send(tid_ticket_manager, CMD_BACKUP, backup_id, thisTid);
-                            receive((string _res) { res = _res; });
-                            if (res == "")
-                                result = false;
-                            else
+                            //Tid tid_ticket_manager = getTid(P_MODULE.ticket_manager);
+                            //send(tid_ticket_manager, CMD_BACKUP, backup_id, thisTid);
+                            //receive((string _res) { res = _res; });
+                            //if (res == "")
+                            //    result = false;
+                            //else
                             {
                                 //res = veda.core.threads.xapian_indexer.backup(backup_id);
 

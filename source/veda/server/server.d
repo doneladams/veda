@@ -12,7 +12,7 @@ private
     import veda.core.common.context, veda.core.common.know_predicates, veda.core.common.log_msg, veda.core.impl.thread_context;
     import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json;
     import veda.common.logger, veda.core.util.utils, veda.server.ticket;
-    import veda.server.load_info, veda.server.storage_manager, veda.server.tt_storage_manager, veda.server.nanomsg_channel;
+    import veda.server.load_info, veda.server.tt_storage_manager, veda.server.nanomsg_channel;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -70,8 +70,8 @@ void main(char[][] args)
     if (wait_starting_thread(P_MODULE.subject_manager, tids) == false)
         return;
 
-    tids[ P_MODULE.ticket_manager ] = spawn(&individuals_manager, P_MODULE.ticket_manager, tickets_db_path, node_id);
-    wait_starting_thread(P_MODULE.ticket_manager, tids);
+    //tids[ P_MODULE.ticket_manager ] = spawn(&individuals_manager, P_MODULE.ticket_manager, tickets_db_path, node_id);
+    //wait_starting_thread(P_MODULE.ticket_manager, tids);
 
     //tids[ P_MODULE.acl_preparer ] = spawn(&acl_manager, text(P_MODULE.acl_preparer), acl_indexes_db_path);
     //wait_starting_thread(P_MODULE.acl_preparer, tids);
@@ -137,7 +137,7 @@ void main(char[][] args)
     exit(P_MODULE.commiter);
     //exit(P_MODULE.acl_preparer);
     exit(P_MODULE.subject_manager);
-    exit(P_MODULE.ticket_manager);
+    //exit(P_MODULE.ticket_manager);
 
     thread_term();
 }
@@ -308,8 +308,8 @@ void commiter(string thread_name)
                        },
                        (Variant v) { writeln(thread_name, "::commiter::Received some other type.", v); });
 
-        veda.server.storage_manager.flush_int_module(P_MODULE.subject_manager, false);
+        //veda.server.storage_manager.flush_int_module(P_MODULE.subject_manager, false);
         //veda.server.acl_manager.flush(false);
-        veda.server.storage_manager.flush_int_module(P_MODULE.ticket_manager, false);
+        //veda.server.storage_manager.flush_int_module(P_MODULE.ticket_manager, false);
     }
 }

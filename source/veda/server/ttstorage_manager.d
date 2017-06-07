@@ -7,9 +7,8 @@ private
 {
     import core.thread, std.stdio, std.conv, std.concurrency, std.file, std.datetime, std.outbuffer, std.string;
     import veda.common.logger, veda.core.util.utils, veda.util.queue;
-    import veda.bind.lmdb_header, veda.core.common.context, veda.core.common.define, veda.core.common.log_msg, veda.onto.individual,
-           veda.onto.resource;
-    import veda.core.storage.lmdb_storage, veda.core.storage.binlog_tools, veda.util.module_info;
+    import veda.core.common.context, veda.core.common.define, veda.core.common.log_msg, veda.onto.individual, veda.onto.resource;
+    import veda.core.storage.binlog_tools, veda.util.module_info;
     import veda.core.search.vel, veda.common.type;
     import kaleidic.nanomsg.nano;
     import veda.bind.libwebsocketd;
@@ -241,7 +240,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
     int                          size_bin_log         = 0;
     int                          max_size_bin_log     = 10_000_000;
-    string                       bin_log_name         = get_new_binlog_name(db_path);
+    string                       bin_log_name;//         = get_new_binlog_name(db_path);
     long                         last_reopen_rw_op_id = 0;
 
     long                         op_id = 0;

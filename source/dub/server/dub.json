@@ -12,11 +12,9 @@
         ],
         "license": "LGPL v3",
 	"sourceFiles":[
-        "../../lib64/liblmdb.a",
 	"../../lib64/libxapiand.a",
         "../../veda/bind/libwebsockets.d",
 	"../../veda/bind/nano.d", 
-	"../../veda/bind/lmdb_header.d", 
 	"../../veda/bind/xapian_d_header.d",
 	"../../veda/util/tools.d",
 	"../../veda/util/queue.d",
