@@ -7,7 +7,7 @@ module veda.file_reader;
 import libasync, libasync.watcher, libasync.threads;
 import core.stdc.stdio, core.stdc.errno, core.stdc.string, core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd;
 import std.conv, std.digest.ripemd, std.bigint, std.datetime, std.concurrency, std.json, std.file, std.outbuffer, std.string, std.path,
-       std.digest.md, std.utf, std.path, core.thread, core.memory, std.stdio : writeln, writefln, File;
+       std.digest.md, std.utf, std.path, core.thread, core.memory, std.stdio : writeln, writefln, File, stderr;
 import veda.util.container, veda.core.util.utils, veda.common.logger, veda.util.raptor2individual;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.impl.thread_context, veda.core.common.define,
        veda.core.common.know_predicates,
@@ -367,7 +367,6 @@ Individual[ string ] check_and_read_changed(string[] changes, Context context, b
 void processed(string[] changes, Context context, bool is_check_changes)
 {
     Ticket sticket = context.sys_ticket();
-
     log.trace("processed:find systicket [%s]", sticket.id);
 
     Individual[ string ] individuals = check_and_read_changed(changes, context, is_check_changes);

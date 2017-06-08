@@ -376,7 +376,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Ok(_) => res_uri = std::str::from_utf8(&res_uri_buf).unwrap()
         }
 
-
+        writeln!(stderr(), "@GET user: {0} / res: {1}", user_id, res_uri);
         encode::encode_array(&mut request, 1);
         encode::encode_string(&mut request, res_uri);
         /// Unsafe calls to tarantool
@@ -573,7 +573,7 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
         box_index_get(conn.tickets_space_id, conn.tickets_index_id,
                 key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
         if get_result == null_mut() {
-            // writeln!(stderr(), "@SYSTICKET NOT FOUND");
+            writeln!(stderr(), "@SYSTICKET NOT FOUND");
             return "".to_string();
         }
         
@@ -585,8 +585,8 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
         put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
             &mut systicket_indiv).unwrap();
         
-        // writeln!(stderr(), "@SYSTICKET {0} FOUND", 
-            // std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());            
+        writeln!(stderr(), "@SYSTICKET {0} FOUND", 
+            std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());            
         return std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap().to_string()
     }
 }
@@ -650,7 +650,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             if get_result == null_mut() {
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_nil(resp_msg);
-                writeln!(stderr(), "@TICKET {0} NOT FOUND", ticket_id);
+                writeln!(stderr(), "@TICKET [{0}] NOT FOUND", ticket_id);
                 continue;
             }
             
@@ -685,13 +685,14 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
                 encode::encode_nil(resp_msg);
                 box_delete(conn.tickets_space_id, conn.tickets_index_id, 
                     key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
-                writeln!(stderr(), "@TICKET {0} EXPIRED", ticket_id);
+                writeln!(stderr(), "@TICKET [{0}] EXPIRED", ticket_id);
                 return;
             }
             
             encode::encode_uint(resp_msg, Codes::Ok as u64);
             encode::encode_string_bytes(resp_msg, &tuple_buf);
-            writeln!(stderr(), "@TICKET {0} FOUND", ticket_id);            
+            writeln!(stderr(), "@TICKET STR {0}", std::str::from_utf8_unchecked(&tuple_buf[..]));
+            writeln!(stderr(), "@TICKET [{0}] FOUND", ticket_id);            
         }
     }
 }

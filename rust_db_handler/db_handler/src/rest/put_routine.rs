@@ -311,7 +311,8 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
                     resource.res_type = ResourceType::Boolean;
                     resources.push(resource);
                 }
-               _ => return Err("@UNSUPPORTED RESOURCE TYPE".to_string())
+               _ => return Err(format!("@UNSUPPORTED RESOURCE TYPE {0} :{1}", objtype as u64, 
+                std::str::from_utf8(&key[..]).unwrap()))
             }
         }
 

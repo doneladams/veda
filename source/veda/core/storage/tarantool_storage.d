@@ -46,10 +46,12 @@ public class TarantoolStorage : Storage
 
     public string find(bool need_auth, string user_uri, string uri, bool return_value = true)
     {
+        stderr.writefln("@FIND [%s] [%s]", user_uri, uri);
         RequestResponse rr = connector.get(need_auth, user_uri, [ uri ], false);
-
-        if (rr !is null && rr.msgpacks.length > 0)
+        stderr.writefln("@FIND RETURN FROM CONNECTOR");
+        if (rr !is null && rr.msgpacks.length > 0) {
             return rr.msgpacks[ 0 ];
+        }
 
         return null;
     }
@@ -66,6 +68,7 @@ public class TarantoolStorage : Storage
 
     public ubyte authorize(string user_uri, string uri, bool trace)
     {
+        stderr.writefln("@AUTH [%s] [%s]", user_uri, uri);
         RequestResponse rr = connector.authorize(user_uri, [ uri ], trace);
 
         //log.trace ("authorize.common_rc = %s", rr.common_rc);
