@@ -113,6 +113,7 @@ void main(char[][] args)
     subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init, 
         "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
     log.trace("systicket [%s] was created", ticket.id);
+	log.trace ("CREATE SYSTICKET...OK");
 
     tids[ P_MODULE.n_channel ] = spawn(&nanomsg_channel, text(P_MODULE.n_channel));
     wait_starting_thread(P_MODULE.n_channel, tids);

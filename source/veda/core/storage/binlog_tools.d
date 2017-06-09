@@ -29,7 +29,7 @@ public string write_in_binlog(string msg, string new_hash, string bin_log_name, 
     oub.write(cast(int)msg.length);
     oub.write(new_hash);
     oub.write(msg);
-    append(bin_log_name, oub.toString);
+    //append(bin_log_name, oub.toString);
     size_bin_log += msg.length + 30;
 
     if (size_bin_log > max_size_bin_log)
