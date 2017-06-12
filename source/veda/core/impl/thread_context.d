@@ -274,14 +274,12 @@ class PThreadContext : Context
     public Ticket sys_ticket(bool is_new = false)
     {
         Ticket ticket = get_global_systicket();
-
     	
         version (isModule)
         {
             ticket = *get_systicket_from_storage();
             set_global_systicket(ticket);
         }
-
     	
         version (isServer)
         {
@@ -750,13 +748,7 @@ class PThreadContext : Context
 
     public Ticket *get_systicket_from_storage()
     {
-        // string systicket = individuals_storage_r.find_ticket("systicket");
-
-        // if (systicket_id is null)
-            // log.trace("SYSTICKET NOT FOUND");
-
-        // return get_ticket(systicket_id, true);
-        Ticket* systicket = get_ticket("systicket", false);
+        Ticket* systicket = get_ticket("systicket", true);
         
         if (systicket !is null)
 	        log.trace ("@get_systicket_from_storage, %s", *systicket);

@@ -439,7 +439,14 @@ class VedaModule
 
     void load_systicket()
     {
-        sticket = *context.get_systicket_from_storage();
+//        sticket = *context.get_systicket_from_storage();
+
+	while (sticket.result != ResultCode.OK)
+	{
+	    Thread.sleep(dur!("seconds")(1));
+	    log.trace ("wait 1s, and repeate");
+	    sticket = context.sys_ticket();
+	}
 
         if (sticket is Ticket.init || sticket.result != ResultCode.OK)
         {
