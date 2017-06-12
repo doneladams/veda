@@ -62,7 +62,6 @@ void main(char[][] args)
 
     string parent_url = "tcp://127.0.0.1:9112\0";
 
-    Thread.sleep(dur!("seconds")(2));
 //	int checktime = 30;
 
     try { mkdir("ontology"); } catch (Exception ex) {}
@@ -71,6 +70,11 @@ void main(char[][] args)
 
     Context context = PThreadContext.create_new(process_name, "file_reader", "", log, parent_url);
     sticket = context.sys_ticket();
+
+	while (sticket.result != ResultCode.OK)
+	{
+	    Thread.sleep(dur!("seconds")(1));
+	}
 
     string[] uris =
         context.get_individuals_ids_via_query(&sticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, null, false).result;

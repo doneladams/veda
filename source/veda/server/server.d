@@ -92,8 +92,9 @@ void main(char[][] args)
 
     long   op_id;
     // put(P_MODULE storage_id, bool need_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
-                    //   string event_id, long transaction_id, bool ignore_freeze, out long op_id)
+    //   string event_id, long transaction_id, bool ignore_freeze, out long op_id)
     // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1, false, op_id);
+    
     Individual new_ticket;
     new_ticket.uri = ticket.id;
     Resources type = [ Resource(ticket__Ticket) ];

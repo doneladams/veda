@@ -283,12 +283,6 @@ class PThreadContext : Context
         }
 
     	
-        version (WebServer)
-        {
-            ticket = *get_systicket_from_storage();
-            set_global_systicket(ticket);
-        }
-
         version (isServer)
         {
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
@@ -598,12 +592,6 @@ class PThreadContext : Context
             SysTime(ticket.end_time, UTC()).toISOExtString());
         }
 
-        version (WebServer)
-        {
-            subject2Ticket(new_ticket, &ticket);
-            user_of_ticket[ ticket.id ] = new Ticket(ticket);
-        }
-
         return ticket;
     }
 
@@ -621,11 +609,6 @@ class PThreadContext : Context
         version (isModule)
         {
             log.trace("is module");
-        }
-
-        version (WebServer)
-        {
-            log.trace("is webserver");
         }
 
         //if (trace_msg[ T_API_60 ] == 1)
@@ -776,7 +759,7 @@ class PThreadContext : Context
         Ticket* systicket = get_ticket("systicket", false);
         
         if (systicket !is null)
-	        log.trace ("@get_systicket_from_storage, %s", systicket);
+	        log.trace ("@get_systicket_from_storage, %s", *systicket);
 	    else    
 	        log.trace ("@get_systicket_from_storage: systicket not found");
 	        
@@ -1663,18 +1646,6 @@ class PThreadContext : Context
         }
 
         version (isModule)
-        {
-            if (module_id == P_MODULE.subject_manager)
-                this.reopen_ro_subject_storage_db();
-
-            //if (module_id == P_MODULE.acl_preparer)
-            //    this.reopen_ro_acl_storage_db();
-
-            if (module_id == P_MODULE.fulltext_indexer)
-                this.reopen_ro_fulltext_indexer_db();
-        }
-
-        version (WebServer)
         {
             if (module_id == P_MODULE.subject_manager)
                 this.reopen_ro_subject_storage_db();

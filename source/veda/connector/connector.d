@@ -13,10 +13,6 @@ version (std_socket)
 {
     import std.socket;
 }
-version (WebServer)
-{
-    import vibe.core.net;
-}
 
 const MAX_SIZE_OF_PACKET = 1024*1024*10;
 
@@ -32,11 +28,6 @@ class Connector
         public TcpSocket s;
     }
 
-    version (WebServer)
-    {
-        public TCPConnection s;
-    }
-
     this(Logger _log)
     {
         log = _log;
@@ -46,25 +37,6 @@ class Connector
     {
         this.addr = addr;
         this.port = port;
-
-        version (WebServer)
-        {
-            for (;; )
-            {
-                try
-                {
-                    log.trace("CONNECT WEB SERVER %s %d", addr, port);
-                    s = connectTCP(addr, port);
-                }
-                catch (Exception e)
-                {
-                    Thread.sleep(dur!("seconds")(3));
-                    continue;
-                }
-                break;
-            }
-            log.trace("CONNECTED WEB SERVER");
-        }
 
         version (std_socket)
         {
@@ -129,20 +101,9 @@ class Connector
 
         for (;; )
         {
-            version (WebServer)
-            {
-                s.write(buf);
-            }
             version (std_socket)
             {
                 s.send(buf);
-            }
-
-            version (WebServer)
-            {
-                buf.length = 4;
-                s.read(buf);
-                long receive_size = buf.length;
             }
 
             version (std_socket)
@@ -168,11 +129,6 @@ class Connector
 
             response = new ubyte[ response_size ];
 
-            version (WebServer)
-            {
-                s.read(response);
-                receive_size = response.length;
-            }
             version (std_socket)
             {
                 receive_size = s.receive(response);
@@ -264,10 +220,6 @@ class Connector
 
         for (;; )
         {
-            version (WebServer)
-            {
-                s.write(buf);
-            }
             version (std_socket)
             {
                 s.send(buf);
@@ -275,13 +227,6 @@ class Connector
 
 	        if (trace)
 		        log.trace("connector.get SEND %s", buf);
-
-            version (WebServer)
-            {
-                buf.length = 4;
-                s.read(buf);
-                long receive_size = buf.length;
-            }
 
             version (std_socket)
             {
@@ -313,11 +258,6 @@ class Connector
 
             response = new ubyte[ response_size ];
 
-            version (WebServer)
-            {
-                s.read(response);
-                receive_size = response.length;
-            }
             version (std_socket)
             {
                 receive_size = s.receive(response);
@@ -412,10 +352,6 @@ class Connector
 
         for (;; )
         {
-            version (WebServer)
-            {
-                s.write(buf);
-            }
             version (std_socket)
             {
                 s.send(buf);
@@ -424,13 +360,6 @@ class Connector
 	        if (trace)
 		        log.trace("connector.authorize SEND %s", buf);
 
-
-            version (WebServer)
-            {
-                buf.length = 4;
-                s.read(buf);
-                long receive_size = buf.length;
-            }
 
             version (std_socket)
             {
@@ -460,11 +389,6 @@ class Connector
 
             response = new ubyte[ response_size ];
 
-            version (WebServer)
-            {
-                s.read(response);
-                receive_size = response.length;
-            }
             version (std_socket)
             {
                 receive_size = s.receive(response);
@@ -558,10 +482,6 @@ class Connector
 
         for (;; )
         {
-            version (WebServer)
-            {
-                s.write(buf);
-            }
             version (std_socket)
             {
                 s.send(buf);
@@ -570,13 +490,6 @@ class Connector
 	        if (trace)
 		        log.trace("connector.remove SEND %s", buf);
 
-
-            version (WebServer)
-            {
-                buf.length = 4;
-                s.read(buf);
-                long receive_size = buf.length;
-            }
 
             version (std_socket)
             {
@@ -606,11 +519,6 @@ class Connector
 
             response = new ubyte[ response_size ];
 
-            version (WebServer)
-            {
-                s.read(response);
-                receive_size = response.length;
-            }
             version (std_socket)
             {
                 receive_size = s.receive(response);
@@ -703,10 +611,6 @@ class Connector
 
         for (;; )
         {
-            version (WebServer)
-            {
-                s.write(buf);
-            }
             version (std_socket)
             {
                 s.send(buf);
@@ -714,13 +618,6 @@ class Connector
 
 	        if (trace)
 		        log.trace("connector.get_ticket SEND %s", buf);
-
-            version (WebServer)
-            {
-                buf.length = 4;
-                s.read(buf);
-                long receive_size = buf.length;
-            }
 
             version (std_socket)
             {
@@ -752,11 +649,6 @@ class Connector
 
             response = new ubyte[ response_size ];
 
-            version (WebServer)
-            {
-                s.read(response);
-                receive_size = response.length;
-            }
             version (std_socket)
             {
                 receive_size = s.receive(response);
