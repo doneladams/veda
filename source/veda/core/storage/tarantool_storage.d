@@ -58,7 +58,7 @@ public class TarantoolStorage : Storage
 
     public string find_ticket(string ticket_id)
     {
-        RequestResponse rr = connector.get_ticket([ ticket_id ], true);
+        RequestResponse rr = connector.get_ticket([ ticket_id ], false);
         
         if (rr !is null && rr.msgpacks.length > 0)
             return rr.msgpacks[ 0 ];

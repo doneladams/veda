@@ -80,8 +80,10 @@ if [ -z $1 ] || [ $1 == "db_handler" ] ; then
 fi
 
 if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
-    cd veda-gowebserver
+    cd source/veda-gowebserver
     go build
     cd ..
+    cd ..
+    cp source/veda-gowebserver/veda-gowebserver ./
 fi
 

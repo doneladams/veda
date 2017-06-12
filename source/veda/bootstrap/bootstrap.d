@@ -243,7 +243,7 @@ void main(string[] args)
         {
             string[] sargs;
 
-            string   ml = "veda-webserver";
+            string   ml = "veda-gowebserver";
             sargs = [ "./" ~ ml, "--http_port=" ~ port ];
 
             auto _logFile = File("logs/" ~ ml ~ port ~ "-stderr.log", "w");
@@ -259,7 +259,7 @@ void main(string[] args)
     {
         string[] sargs;
 
-        string   ml = "veda-webserver";
+        string   ml = "veda-gowebserver";
         sargs = [ "./" ~ ml ];
 
         auto _logFile = File("logs/" ~ ml ~ "-stderr.log", "w");

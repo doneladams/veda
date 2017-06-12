@@ -773,7 +773,14 @@ class PThreadContext : Context
             // log.trace("SYSTICKET NOT FOUND");
 
         // return get_ticket(systicket_id, true);
-        return get_ticket("systicket", true);
+        Ticket* systicket = get_ticket("systicket", false);
+        
+        if (systicket !is null)
+	        log.trace ("@get_systicket_from_storage, %s", systicket);
+	    else    
+	        log.trace ("@get_systicket_from_storage: systicket not found");
+	        
+        return systicket;
     }
 
     public Ticket *get_ticket(string ticket_id, bool is_systicket = false)
