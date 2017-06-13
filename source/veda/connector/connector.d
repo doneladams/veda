@@ -574,7 +574,7 @@ class Connector
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
 
-        stderr.writefln("@TICKET IDS %s", ticket_ids);
+        // stderr.writefln("@TICKET IDS %s", ticket_ids);
 
 		if (ticket_ids.length == 0)
 		{
@@ -684,7 +684,7 @@ class Connector
             {
                 obj                         = unpacker.unpacked[ i ];
                 request_response.op_rc[ j ] = cast(ResultCode)obj.via.uinteger;
-                stderr.writeln("@J ", j, request_response.op_rc[ j ]);
+                // stderr.writeln("@J ", j, request_response.op_rc[ j ]);
                 if (request_response.op_rc[ j ] == ResultCode.OK)
                     request_response.msgpacks[ j ] = cast(string)unpacker.unpacked[ i + 1 ].via.raw;
                 if (trace)
