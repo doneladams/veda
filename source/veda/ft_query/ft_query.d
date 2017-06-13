@@ -160,8 +160,8 @@ class ContextPool
                 return ctx;
             }
         }
-
-        Context new_ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, null);
+		Ticket systicket;
+        Context new_ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, systicket, null);
         stderr.writefln("create new context %X", &new_ctx);
         pool[ new_ctx ] = true;
         return new_ctx;

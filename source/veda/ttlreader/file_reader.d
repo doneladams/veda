@@ -68,7 +68,7 @@ void main(char[][] args)
 
     ubyte[] out_data;
 
-    Context context = PThreadContext.create_new(process_name, "file_reader", "", log, parent_url);
+    Context context = PThreadContext.create_new(process_name, "file_reader", "", log, sticket, parent_url);
     sticket = context.sys_ticket();
 
 	while (sticket.result != ResultCode.OK)

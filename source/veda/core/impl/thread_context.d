@@ -205,7 +205,7 @@ class PThreadContext : Context
         return node_id;
     }
 
-    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, string _main_module_url = null)
+    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, out Ticket systicket, string _main_module_url = null)
     {
         PThreadContext ctx = new PThreadContext();
 
@@ -245,6 +245,7 @@ class PThreadContext : Context
             Thread.sleep(dur!("seconds")(1));
             ctx.log.trace("wait 1s, and repeate");
             sticket = ctx.sys_ticket();
+            systicket = sticket;
         }
 
         ctx.get_configuration(&sticket);

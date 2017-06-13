@@ -23,11 +23,12 @@ void nanomsg_channel(string thread_name)
     try
     {
         Context context;
+		Ticket systicket;
 
         try
         {
             if (context is null)
-                context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, null);
+                context = PThreadContext.create_new("cfg:standart_node", thread_name, "", log, systicket, null);
         }
         catch (Throwable tr)
         {
