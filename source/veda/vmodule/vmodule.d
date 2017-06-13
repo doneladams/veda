@@ -120,7 +120,7 @@ class VedaModule
             context = PThreadContext.create_new("cfg:standart_node", process_name, "", log, main_module_url);
 
         if (node == Individual.init)
-            node = context.get_configuration();
+            node = context.get_configuration(&sticket);
 
         cache_of_indv = new Cache!(string, string)(1000, "individuals");
 

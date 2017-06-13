@@ -21,7 +21,7 @@ private
         // alias veda.server.storage_manager ticket_storage_module;
         alias veda.server.tt_storage_manager subject_storage_module;
         //alias veda.server.acl_manager     acl_module;
-        alias veda.server.load_info       load_info;
+        alias veda.server.load_info          load_info;
     }
 }
 
@@ -80,25 +80,25 @@ class PThreadContext : Context
     // // // authorization
     //private Authorization _acl_indexes;
 
-    private Onto          onto;
+    private Onto       onto;
 
-    private string        name;
+    private string     name;
 
-    private               string[ string ] prefix_map;
+    private            string[ string ] prefix_map;
 
-    private Storage       individuals_storage_r;
+    private Storage    individuals_storage_r;
     // private Storage       tickets_storage_r;
-    private VQL           _vql;
+    private VQL        _vql;
 
-    private long          local_last_update_time;
-    private Individual    node = Individual.init;
-    private string        node_id;
+    private long       local_last_update_time;
+    private Individual node = Individual.init;
+    private string     node_id;
 
-    private bool          API_ready = true;
-    private string        main_module_url;
-    private Logger        log;
+    private bool       API_ready = true;
+    private string     main_module_url;
+    private Logger     log;
 
-    private long          last_ticket_manager_op_id = 0;
+    private long       last_ticket_manager_op_id = 0;
 
     public Logger get_logger()
     {
@@ -227,7 +227,7 @@ class PThreadContext : Context
  */
         ctx.node_id = _node_id;
 
-		ctx.individuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
+        ctx.individuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
         // ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
 
         ctx.name = context_name;
@@ -238,7 +238,16 @@ class PThreadContext : Context
 //        is_traced_module[ P_MODULE.fulltext_indexer ] = true;
 //        is_traced_module[ P_MODULE.scripts ]          = true;
 
-        ctx.get_configuration();
+        Ticket sticket;
+
+        while (sticket.result != ResultCode.OK)
+        {
+            Thread.sleep(dur!("seconds")(1));
+            ctx.log.trace("wait 1s, and repeate");
+            sticket = ctx.sys_ticket();
+        }
+
+        ctx.get_configuration(&sticket);
 
         ctx._vql = new VQL(ctx);
 
@@ -274,43 +283,42 @@ class PThreadContext : Context
     public Ticket sys_ticket(bool is_new = false)
     {
         Ticket ticket = get_global_systicket();
-    	
+
         version (isModule)
         {
             ticket = *get_systicket_from_storage();
             set_global_systicket(ticket);
         }
-    	
+
         version (isServer)
         {
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
             {
-            	
                 try
                 {
                     ticket = create_new_ticket("cfg:VedaSystem", "90000000");
 
                     long op_id;
                     // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1,
-                                            //   false, op_id);
+                    //   false, op_id);
                     Individual new_ticket;
                     new_ticket.uri = ticket.id;
-                    Resources type = [ Resource(ticket__Ticket) ];
+                    Resources  type = [ Resource(ticket__Ticket) ];
                     new_ticket.resources[ rdf__type ] = type;
                     new_ticket.resources[ ticket__accessor ] ~= Resource(ticket.user_uri);
                     new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
                     new_ticket.resources[ ticket__duration ] ~= Resource("90000000");
-                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, 
-                        ticket.id, null, new_ticket.serialize(), -1, null, -1, false, op_id);
-                    
+                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type,
+                                               ticket.id, null, new_ticket.serialize(), -1, null, -1, false, op_id);
+
                     Individual systicket;
-                    systicket.uri = "systicket";
-                    type = [ Resource(ticket__Ticket) ];
+                    systicket.uri                    = "systicket";
+                    type                             = [ Resource(ticket__Ticket) ];
                     systicket.resources[ rdf__type ] = type;
                     systicket.resources[ "ticket:id" ] ~= Resource(ticket.id);
 
-                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init, 
-                        "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
+                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init,
+                                               "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
 
                     log.trace("systicket [%s] was created", ticket.id);
 
@@ -341,14 +349,13 @@ class PThreadContext : Context
         return ticket;
     }
 
-    public Individual get_configuration()
+    public Individual get_configuration(Ticket *sticket)
     {
         if (node == Individual.init && node_id !is null)
         {
             this.reopen_ro_subject_storage_db();
-            Ticket sticket = sys_ticket();
 
-            node = get_individual(&sticket, node_id);
+            node = get_individual(sticket, node_id);
             if (node.getStatus() != ResultCode.OK)
                 node = Individual.init;
         }
@@ -374,8 +381,10 @@ class PThreadContext : Context
 
     import backtrace.backtrace, Backtrace = backtrace.backtrace;
 //    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload)
-    ubyte authorize(string _uri, Ticket *ticket, ubyte request_access, bool is_check_for_reload, void delegate(string resource_group, string subject_group, string right)
-		trace_acl,  void delegate(string resource_group) trace_group)    	        		
+    ubyte authorize(string _uri, Ticket *ticket, ubyte request_access, bool is_check_for_reload,
+                    void delegate(string resource_group, string subject_group, string right)
+                    trace_acl,
+                    void delegate(string resource_group) trace_group)
     {
         if (ticket is null)
         {
@@ -386,8 +395,8 @@ class PThreadContext : Context
 
         //log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
-		return res & request_access;
-		//return request_access;
+        return res & request_access;
+        //return request_access;
     }
 
     public string get_name()
@@ -418,9 +427,9 @@ class PThreadContext : Context
 //        log.trace ("@ get_individual_as_binobj, uri=%s", uri);
         string res;
 
-		if (user_id is null || user_id.length < 3)
-			log.trace ("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_id);
-			
+        if (user_id is null || user_id.length < 3)
+            log.trace("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_id);
+
         if (individuals_storage_r !is null)
             res = individuals_storage_r.find(true, user_id, uri);
         else
@@ -563,31 +572,31 @@ class PThreadContext : Context
         version (isServer)
         {
             // store ticket
-            string     ss_as_binobj = new_ticket.serialize();
+            string ss_as_binobj = new_ticket.serialize();
 
-            long       op_id;
+            long   op_id;
             // ResultCode rc =
-                // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
-                                        //   op_id);
+            // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+            //   op_id);
 
-            ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", 
-                type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
+            ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem",
+                                                       type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
             ticket.result = rc;
-            
+
 
             if (rc == ResultCode.OK)
             {
                 subject2Ticket(new_ticket, &ticket);
                 user_of_ticket[ ticket.id ] = new Ticket(ticket);
 
-				log.trace("context:send ticket to TT %s", new_ticket);
+                log.trace("context:send ticket to TT %s", new_ticket);
                 // subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
-                                        //   op_id);
+                //   op_id);
             }
 
             log.trace("create new ticket %s, user=%s, start=%s, end=%s", ticket.id, ticket.user_uri, SysTime(ticket.start_time, UTC()).toISOExtString(
                                                                                                                                                       ),
-            SysTime(ticket.end_time, UTC()).toISOExtString());
+                      SysTime(ticket.end_time, UTC()).toISOExtString());
         }
 
         return ticket;
@@ -741,20 +750,20 @@ class PThreadContext : Context
         // stderr.writefln("@GET TICKET FROM STORAGE %s", ticket_id);
         // stdout.writefln("@GET TICKET FROM STORAGE %s", ticket_id);
         // log.trace("@GET TICKET FROM STORAGE %s", ticket_id);
-        
 
-        return individuals_storage_r.find_ticket(ticket_id);   
+
+        return individuals_storage_r.find_ticket(ticket_id);
     }
 
     public Ticket *get_systicket_from_storage()
     {
-        Ticket* systicket = get_ticket("systicket", true);
-        
-        if (systicket !is null)
-	        log.trace ("@get_systicket_from_storage, %s", *systicket);
-	    else    
-	        log.trace ("@get_systicket_from_storage: systicket not found");
-	        
+        Ticket *systicket = get_ticket("systicket", true);
+
+//        if (systicket !is null)
+//	        log.trace ("@get_systicket_from_storage, %s", *systicket);
+//	    else
+//	        log.trace ("@get_systicket_from_storage: systicket not found");
+
         return systicket;
     }
 
@@ -786,11 +795,11 @@ class PThreadContext : Context
 
                 string ticket_str = individuals_storage_r.find_ticket(ticket_id);
 
-				if (ticket_str is null || ticket_str.length == 0)
-				{
+                if (ticket_str is null || ticket_str.length == 0)
+                {
                     this.reopen_ro_ticket_manager_db();
-		                ticket_str = individuals_storage_r.find_ticket(ticket_id);					
-				}
+                    ticket_str = individuals_storage_r.find_ticket(ticket_id);
+                }
 
                 if (ticket_str !is null && ticket_str.length > 120)
                 {
@@ -910,7 +919,7 @@ class PThreadContext : Context
 //        catch (Exception ex) {}
 
         // if (tickets_storage_r !is null)
-            // tickets_storage_r.reopen_db();
+        // tickets_storage_r.reopen_db();
     }
 
     public void reopen_ro_fulltext_indexer_db()
@@ -999,7 +1008,6 @@ class PThreadContext : Context
             string individual_as_binobj = get_from_individual_storage(ticket.user_uri, uri);
             if (individual_as_binobj !is null && individual_as_binobj.length > 1)
             {
-            	
                 if (authorize(uri, ticket, Access.can_read, true, null, null) == Access.can_read)
                 {
                     if (individual.deserialize(individual_as_binobj) > 0)
@@ -1154,19 +1162,19 @@ class PThreadContext : Context
                 Individual indv;
                 Individual prev_indv;
 
-	            prev_state = get_from_individual_storage_thread(ticket.user_uri, uri);
-	            if (prev_state !is null)
-	            {
-	                int code = prev_indv.deserialize(prev_state);
-	                if (code < 0)
-	                {
-	                    log.trace("ERR! remove_individual: invalid prev_state [%s]", prev_state);
-	                    res.result = ResultCode.Unprocessable_Entity;
-	                    return res;
-	                }
+                prev_state = get_from_individual_storage_thread(ticket.user_uri, uri);
+                if (prev_state !is null)
+                {
+                    int code = prev_indv.deserialize(prev_state);
+                    if (code < 0)
+                    {
+                        log.trace("ERR! remove_individual: invalid prev_state [%s]", prev_state);
+                        res.result = ResultCode.Unprocessable_Entity;
+                        return res;
+                    }
 
-	                prev_indv.setResources("v-s:deleted", [Resource(true)]);
-	            }
+                    prev_indv.setResources("v-s:deleted", [ Resource(true) ]);
+                }
 
 
                 OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, transaction_id, ignore_freeze, true);
@@ -1178,7 +1186,8 @@ class PThreadContext : Context
                 }
                 else
                 {
-                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, false, ticket.user_uri, uri, transaction_id, ignore_freeze, res.op_id);
+                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, false, ticket.user_uri, uri, transaction_id, ignore_freeze,
+                                                               res.op_id);
                 }
 
                 if (res.result == ResultCode.OK)
@@ -1194,7 +1203,7 @@ class PThreadContext : Context
                     }
                 }
             }
-    
+
             return res;
         }
         finally
@@ -1216,7 +1225,7 @@ class PThreadContext : Context
         }
     }
 
-    private OpResult store_individual(INDV_OP cmd, Ticket* ticket, Individual* indv, bool prepare_events, string event_id, long transaction_id,
+    private OpResult store_individual(INDV_OP cmd, Ticket *ticket, Individual *indv, bool prepare_events, string event_id, long transaction_id,
                                       bool ignore_freeze,
                                       bool is_api_request)
     {
@@ -1316,14 +1325,14 @@ class PThreadContext : Context
 
 //                    if (is_api_request)
 //                    {
-                        // для обновляемого индивида проверим доступность бита Update
+                    // для обновляемого индивида проверим доступность бита Update
 //                        if (authorize(indv.uri, ticket, Access.can_update, true, null, null) != Access.can_update)
 //                        {
 //                            res.result = ResultCode.Not_Authorized;
 //                            return res;
 //                        }
 
-                        // найдем какие из типов были добавлены по сравнению с предыдущим набором типов
+                    // найдем какие из типов были добавлены по сравнению с предыдущим набором типов
 //                        foreach (rs; _types)
 //                        {
 //                            string   itype = rs.get!string;
@@ -1338,7 +1347,7 @@ class PThreadContext : Context
 
 //                if (is_api_request)
 //                {
-                    // для новых типов проверим доступность бита Create
+                // для новых типов проверим доступность бита Create
 //                    foreach (key, rr; rdfType)
 //                    {
 //                        if (rr.info == NEW_TYPE)
@@ -1791,7 +1800,9 @@ class PThreadContext : Context
                         foreach (individual_json; individuals_json)
                         {
                             Individual individual = json_to_individual(individual_json);
-                            OpResult   ires       = this.put_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false, true);
+                            OpResult   ires       =
+                                this.put_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                                    true);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1804,7 +1815,9 @@ class PThreadContext : Context
                         foreach (individual_json; individuals_json)
                         {
                             Individual individual = json_to_individual(individual_json);
-                            OpResult   ires       = this.add_to_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false, true);
+                            OpResult   ires       =
+                                this.add_to_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                                       true);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1817,7 +1830,9 @@ class PThreadContext : Context
                         foreach (individual_json; individuals_json)
                         {
                             Individual individual = json_to_individual(individual_json);
-                            OpResult   ires       = this.set_in_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false, true);
+                            OpResult   ires       =
+                                this.set_in_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                                       true);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1830,8 +1845,9 @@ class PThreadContext : Context
                         foreach (individual_json; individuals_json)
                         {
                             Individual individual = json_to_individual(individual_json);
-                            OpResult   ires       = this.remove_from_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
-                                                                                true);
+                            OpResult   ires       =
+                                this.remove_from_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                                            true);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;

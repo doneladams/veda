@@ -217,7 +217,7 @@ class VedaServer : WSClient
             l_context    = core_context;
 
             sticket = core_context.sys_ticket();
-            node    = core_context.get_configuration();
+            node    = core_context.get_configuration(&sticket);
             if (node.getStatus() == ResultCode.OK)
                 log.trace_log_and_console("VEDA NODE CONFIGURATION: [%s]", node);
 

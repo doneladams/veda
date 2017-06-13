@@ -498,7 +498,7 @@ interface Context
     public void unfreeze();
 
     public string get_config_uri();
-    public Individual get_configuration();
+    public Individual get_configuration(Ticket* ticket);
 }
 
 //////////////////////////////////////////////////////////////////////////
