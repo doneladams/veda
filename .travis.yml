@@ -49,7 +49,7 @@ before_script:
 #  - cat $PWD/logs/veda-core-scripts-main*.log
   - cat $PWD/logs/veda-server-stderr.log
   - cat $PWD/logs/veda-ttlreader-stderr.log
-  - cat $PWD/logs/veda-webserver-stderr.log 
+  - cat $PWD/logs/veda-gowebserver-stderr.log 
 #  - cat $PWD/veda_s.log
   - whereis libmsgpackc
   - cat $PWD/logs/tarantool-stderr.log
