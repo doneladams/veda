@@ -11,6 +11,8 @@ MSGPUCK_VER=2.0
 
 SMD=$PWD
 
+curl https://sh.rustup.rs -sSf | sh
+
 # Get right version of DMD
 if ! dmd --version | grep $DMD_VER ; then    
     wget http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
