@@ -11,7 +11,7 @@ MSGPUCK_VER=2.0
 
 SMD=$PWD
 
-curl https://sh.rustup.rs -sSf | sh -y
+curl https://sh.rustup.rs -sSf | sh -s -- -y
 rustc -V
 
 # Get right version of DMD
