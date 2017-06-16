@@ -19,7 +19,6 @@
             "../../veda/onto/bj8individual",
             "../../veda/util",
             "../../veda/core/impl",
-            "../../veda/core/az",
             "../../veda/core/search",
             "../../veda/core/storage",
             "../../veda/core/common",

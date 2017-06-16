@@ -10,7 +10,7 @@ private
     import veda.util.container, veda.common.logger, veda.core.util.utils;
     import veda.core.common.context, veda.core.common.define, veda.core.common.know_predicates;
     import veda.core.search.vel, veda.core.search.xapian_reader;
-    import veda.onto.individual;//, veda.core.az.acl;
+    import veda.onto.individual;
 }
 
 static const int RETURN    = 0;
