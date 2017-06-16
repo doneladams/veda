@@ -222,9 +222,7 @@ v-df:PsStartForm_hasAppointmentTo
   v-ui:forProperty v-s:hasAppointment ;
   v-ui:maxCardinality 1 ;
   v-ui:minCardinality 1 ;
-  v-ui:queryPrefix "('rdf:type'=='v-s:Appointment')"^^xsd:string ;
-  v-ui:tooltip "Non-required, single value. Link to instance of Appointment class"@en ;
-  v-ui:tooltip "Необязательно к заполнению, единичное значение. Ссылка на объект класса Назначение."@ru ;
+  v-ui:queryPrefix "('rdf:type'=='v-s:Appointment' )&& ('v-s:origin'=='sap hr' || 'v-s:origin'=='Internal User' || 'v-s:origin'=='Group User' ) || ('rdf:type'=='v-s:Position') && ( 'v-s:origin'=='Role')"^^xsd:string ;
   rdfs:label "Task sender property specification for Question task class"@en ;
   rdfs:label "Спецификация исполнителя задачи для класса Стартовая форма задачи question"@ru ;
 .
@@ -1081,6 +1079,8 @@ v-df:rul_DistributionTransform7
   v-wf:aggregate  "putString ('v-wf:variableName', 'actor_task_action')";
 .
 
+# -- ТРАНСФОРМАЦИЯ ИЗ ФОРМЫ CОГЛАСОВАНИЕ В СЕТЬ --
+
 v-df:CoordinationRouteStartFormToNet
   rdfs:label "Трансформация из СтФ На согласование в стандартную сеть процесса"^^xsd:string;
   rdf:type v-wf:Transform ;
@@ -1144,7 +1144,8 @@ v-df:rul_CoordinationTransform6_0
   v-wf:aggregate  "putUri ('rdf:type', 'v-wf:Variable')";
   v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionAgreed')";
   v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionRejected')";
-  v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionNotPerformed')";
+# v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionNotPerformed')";
+  v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionNoAgreed')";
   v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionRedirect')";
   v-wf:aggregate  "putUri ('v-wf:variableValue', 'v-wf:DecisionNotForMe')";
   v-wf:aggregate  "putString ('v-wf:variableName', 'possible_decision')";
@@ -1252,6 +1253,7 @@ v-wf:permission_c_on_decision
   v-s:permissionObject v-wf:DecisionControll ;
   v-s:permissionObject v-wf:DecisionNotRequireReview ;
   v-s:permissionObject v-wf:DecisionAgreed ;
+  v-s:permissionObject v-wf:DecisionNoAgreed ;
   v-s:permissionObject v-wf:DecisionAgreedToProject ;
   v-s:permissionObject v-wf:DecisionAgreedToExecute ;
   v-s:permissionObject v-wf:DecisionAgreedToExecuteComment ;
@@ -1306,6 +1308,15 @@ v-wf:DecisionNotRequireReview
   rdfs:label "Review is not necessary"@en ;
 .
 
+v-wf:DecisionNoAgreed
+  rdf:type owl:Class ;
+  rdfs:subClassOf v-wf:Decision ;
+  rdfs:isDefinedBy v-wf: ;
+  rdfs:label "Согласование не требуется"@ru ;
+  rdfs:label "Negotiation is not required"@en ;
+  v-ui:hasTemplate v-wf:DecisionTemplate1 ;
+.
+
 v-wf:DecisionAgreed
   rdf:type owl:Class ;
   rdfs:subClassOf v-wf:Decision ;
@@ -1314,6 +1325,7 @@ v-wf:DecisionAgreed
   rdfs:label "Approved"@en ;
   v-ui:hasTemplate v-wf:DecisionTemplate1 ;
 .
+
 
 v-wf:DecisionAgreedToProject
   rdf:type owl:Class ;
@@ -1528,6 +1540,7 @@ v-wf:DecisionTemplate1
   rdfs:label "Template for -Decision- class"@en ;
   v-ui:forClass v-wf:DecisionNotForMe ;
   v-ui:forClass v-wf:DecisionAgreed ;
+  v-ui:forClass v-wf:DecisionNoAgreed ;
   v-ui:forClass v-wf:DecisionSign ;
   v-ui:forClass v-wf:DecisionApprove ;
   v-ui:forClass v-wf:DecisionReview ;
@@ -1586,6 +1599,7 @@ v-wf:DecisionRedirectTemplateSpec2
   v-ui:maxCardinality "1"^^xsd:integer ;
   v-ui:forProperty rdfs:comment ;
   v-ui:forClass v-wf:DecisionAgreed ;
+  v-ui:forClass v-wf:DecisionNoAgreed;
   v-ui:forClass v-wf:DecisionSign ;
   v-ui:forClass v-wf:DecisionApprove ;
   v-ui:forClass v-wf:DecisionReview ;
@@ -1621,7 +1635,7 @@ v-wf:DecisionRedirectTemplateSpec3
   v-ui:forProperty v-wf:to, rdfs:comment ;
   v-ui:minCardinality "1"^^xsd:integer ;
   v-ui:maxCardinality "1"^^xsd:integer ;
-  v-ui:queryPrefix "('rdf:type'=='v-s:Appointment')"
+  v-ui:queryPrefix "('rdf:type'=='v-s:Appointment' )&& ('v-s:origin'=='sap hr' || 'v-s:origin'=='Internal User' || 'v-s:origin'=='Group User') || ('rdf:type'=='v-s:Position') && ( 'v-s:origin'=='Role')"^^xsd:string ;
 .
 
 v-wf:signRouteStartFormLinkRule
