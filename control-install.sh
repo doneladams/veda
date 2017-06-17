@@ -90,6 +90,7 @@ done
 
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 rustc -V
+cargo -V
 
 if ! ldconfig -p | grep libwebsockets; then
 

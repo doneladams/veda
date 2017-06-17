@@ -32,10 +32,6 @@ if [ -z $1 ] || [ $1 == "bootstrap" ] || [ $1 == "veda" ] ; then
     rename "s/veda-bootstrap/veda/g" *
 fi
 
-if [ -z $1 ] || [ $1 == "webserver" ] || [ $1 == "veda-webserver" ] ; then
-    ./build-component.sh veda-webserver webserver
-fi
-
 if [ -z $1 ] || [ $1 == "server" ] || [ $1 == "veda-server" ] ; then
     ./build-component.sh veda-server server
 fi
