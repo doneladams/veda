@@ -11,9 +11,6 @@ MSGPUCK_VER=2.0
 
 SMD=$PWD
 
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-rustc -V
-
 # Get right version of DMD
 if ! dmd --version | grep $DMD_VER ; then    
     wget http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
@@ -90,6 +87,9 @@ for i in "${LIB_NAME[@]}"; do
     fi
 
 done
+
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+rustc -V
 
 if ! ldconfig -p | grep libwebsockets; then
 
