@@ -88,10 +88,7 @@ for i in "${LIB_NAME[@]}"; do
 
 done
 
-#curl https://sh.rustup.rs -sSf | sh -s -- -y
-curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh > ./multirust.sh
-chmod +x ./multirust.sh
-./multirust.sh --yes
+curl https://sh.rustup.rs -sSf | sh -s -- -y
 rustc -V
 cargo -V
 
