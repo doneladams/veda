@@ -108,9 +108,9 @@ function handle_request(s)
             break
         end
         
-        log.info('INFO: RECV: msg=[%s]', msg)
+        --log.info('INFO: RECV: msg=[%s]', msg)
         resp = db_handle_request(msg);
-        log.info('INFO: RESP: resp=[%s]', resp)
+        --log.info('INFO: RESP: resp=[%s]', resp)
         send_response(s, resp)
     end
 end
