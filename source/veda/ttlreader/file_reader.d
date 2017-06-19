@@ -74,7 +74,7 @@ void main(char[][] args)
 	while (sticket.result != ResultCode.OK)
 	{
 	    Thread.sleep(dur!("seconds")(1));
-	    log.trace ("wait 1s, and repeate");
+            log.trace("fail read systicket: wait 1s, and repeate");
 	    sticket = context.sys_ticket();
 	}
 

@@ -205,7 +205,8 @@ class PThreadContext : Context
         return node_id;
     }
 
-    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, out Ticket systicket, string _main_module_url = null)
+    public static Context create_new(string _node_id, string context_name, string individuals_db_path, Logger _log, out Ticket systicket,
+                                     string _main_module_url = null)
     {
         PThreadContext ctx = new PThreadContext();
 
@@ -243,8 +244,8 @@ class PThreadContext : Context
         while (sticket.result != ResultCode.OK)
         {
             Thread.sleep(dur!("seconds")(1));
-            ctx.log.trace("wait 1s, and repeate");
-            sticket = ctx.sys_ticket();
+            ctx.log.trace("fail read systicket: wait 1s, and repeate");
+            sticket   = ctx.sys_ticket();
             systicket = sticket;
         }
 
@@ -299,9 +300,8 @@ class PThreadContext : Context
                 {
                     ticket = create_new_ticket("cfg:VedaSystem", "90000000");
 
-                    long op_id;
-                    // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1,
-                    //   false, op_id);
+                    long       op_id;
+                    // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, Resources.init, "systicket", null, ticket.id, -1, null, -1, false, op_id);
                     Individual new_ticket;
                     new_ticket.uri = ticket.id;
                     Resources  type = [ Resource(ticket__Ticket) ];
@@ -760,10 +760,10 @@ class PThreadContext : Context
     {
         Ticket *systicket = get_ticket("systicket", true);
 
-//        if (systicket !is null)
-//	        log.trace ("@get_systicket_from_storage, %s", *systicket);
-//	    else
-//	        log.trace ("@get_systicket_from_storage: systicket not found");
+        if (systicket !is null)
+            log.trace("@get_systicket_from_storage, %s", *systicket);
+        else
+            log.trace("@get_systicket_from_storage: systicket not found");
 
         return systicket;
     }
@@ -827,8 +827,8 @@ class PThreadContext : Context
                     tt        = new Ticket;
                     tt.result = ResultCode.Ticket_not_found;
 
-                    if (trace_msg[ T_API_90 ] == 1)
-                        log.trace("тикет не найден в базе, id=%s", ticket_id);
+                    //if (trace_msg[ T_API_90 ] == 1)
+                    log.trace("тикет не найден в базе, id=%s", ticket_id);
                 }
             }
             else
