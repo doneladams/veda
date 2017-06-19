@@ -95,6 +95,7 @@ after_script:
   - cat $PWD/logs/tarantool-stdout.log
   - cat $PWD/logs/tarantool-stderr.log
   - ls  $PWD/data/tarantool
+  - cat $PWD/data/tarantool/tarantool.log
   - cat $PWD/logs/veda-core-_*.log 
   - cat $PWD/logs/veda-core-fanout_*.log
   - cat $PWD/logs/veda-core-fulltext_indexer_*.log
