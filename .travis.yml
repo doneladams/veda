@@ -43,6 +43,7 @@ before_script:
   - cat $PWD/logs/tarantool-stdout.log
   - cat $PWD/logs/tarantool-stderr.log
   - ls  $PWD/data/tarantool
+  - cat $PWD/data/tarantool/tarantool.log
   - cat $PWD/logs/veda-fanout-email-stderr.log
   - cat $PWD/logs/veda-fanout-sql-stderr.log
   - cat $PWD/logs/veda-ft-indexer-stderr.log
