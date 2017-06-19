@@ -223,7 +223,7 @@ class VedaServer : WSClient
 
             log.trace("init core");
 
-            sticket = core_context.sys_ticket(true);
+//            sticket = core_context.sys_ticket(true);
             string guest_ticket = core_context.get_ticket_from_storage("guest");
 
             if (guest_ticket is null)
