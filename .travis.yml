@@ -91,6 +91,9 @@ after_script:
   - grunt coveralls
   - date    
   - cat $PWD/veda_s.log
+  - cat $PWD/logs/tarantool-stdout.log
+  - cat $PWD/logs/tarantool-stderr.log
+  - ls  $PWD/data/tarantool
   - cat $PWD/logs/veda-core-_*.log 
   - cat $PWD/logs/veda-core-fanout_*.log
   - cat $PWD/logs/veda-core-fulltext_indexer_*.log
@@ -105,7 +108,7 @@ after_script:
   - cat $PWD/logs/veda-scripts-lp-stderr.log
   - cat $PWD/logs/veda-scripts-main-stderr.log
   - cat $PWD/logs/veda-server-stderr.log
-  - cat $PWD/logs/veda-ttlreader-stderr.log
+#  - cat $PWD/logs/veda-ttlreader-stderr.log
   - cat $PWD/logs/veda-webserver-stderr.log 
    
 after_success: 
