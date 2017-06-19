@@ -288,6 +288,7 @@ class PThreadContext : Context
 
         version (isModule)
         {
+	    log.trace ("get exists system ticket");
             ticket = *get_systicket_from_storage();
             set_global_systicket(ticket);
         }
@@ -296,6 +297,7 @@ class PThreadContext : Context
         {
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
             {
+		log.trace ("create new system ticket");
                 try
                 {
                     ticket = create_new_ticket("cfg:VedaSystem", "90000000");
