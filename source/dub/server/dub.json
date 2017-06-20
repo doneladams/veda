@@ -8,12 +8,11 @@
 	},
 	"versions": ["isServer", "std_socket"],	
         "libs": [
-                    "websockets", "nanomsg"
+                    "nanomsg"
         ],
         "license": "LGPL v3",
 	"sourceFiles":[
 	"../../lib64/libxapiand.a",
-        "../../veda/bind/libwebsockets.d",
 	"../../veda/bind/nano.d", 
 	"../../veda/bind/xapian_d_header.d",
 	"../../veda/util/tools.d",

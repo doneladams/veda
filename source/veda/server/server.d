@@ -8,7 +8,6 @@ private
     import core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, core.runtime;
     import core.thread, std.stdio, std.string, core.stdc.string, std.outbuffer, std.datetime, std.conv, std.concurrency, std.process, std.json;
     import backtrace.backtrace, Backtrace = backtrace.backtrace;
-    import veda.bind.libwebsocketd, veda.server.wslink;
     import veda.core.common.context, veda.core.common.know_predicates, veda.core.common.log_msg, veda.core.impl.thread_context;
     import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json;
     import veda.common.logger, veda.core.util.utils, veda.server.ticket;
@@ -39,6 +38,8 @@ static this()
     io_msg = new Logger("pacahon", "io", "server");
     bsd_signal(SIGINT, &handleTermination2);
 }
+
+bool f_listen_exit;
 
 extern (C) void handleTermination2(int _signal)
 {
@@ -128,9 +129,6 @@ void main(char[][] args)
         register(text(key), value);
     }
 
-    spawn(&ws_interface, cast(short)8091);
-    //spawn (&ws_interface, cast(short)8092);
-
     while (f_listen_exit == false)
         core.thread.Thread.sleep(dur!("seconds")(1000));
 
@@ -142,110 +140,6 @@ void main(char[][] args)
     //exit(P_MODULE.ticket_manager);
 
     thread_term();
-}
-
-private void ws_interface(short ws_port)
-{
-    log.trace("start ws channel");
-    VedaServer veda_server = new VedaServer("127.0.0.1", ws_port, log);
-    veda_server.init(null);
-    veda_server.listen(&ev_LWS_CALLBACK_GET_THREAD_ID, &ev_LWS_CALLBACK_CLIENT_WRITEABLE, &ev_LWS_CALLBACK_CLIENT_RECEIVE);
-}
-
-void ev_LWS_CALLBACK_GET_THREAD_ID(lws *wsi)
-{
-    //writeln ("server: ev_LWS_CALLBACK_GET_THREAD_ID");
-}
-
-void ev_LWS_CALLBACK_CLIENT_WRITEABLE(lws *wsi)
-{
-}
-
-void ev_LWS_CALLBACK_CLIENT_RECEIVE(lws *wsi, char[] msg, ResultCode rc)
-{
-    //writeln("server: ev_LWS_CALLBACK_CLIENT_RECEIVE msg=", msg);
-    string res;
-
-    if (rc == ResultCode.OK)
-    {
-        res = l_context.execute(cast(string)msg);
-    }
-    else
-    {
-        JSONValue jres;
-        jres[ "type" ]   = "OpResult";
-        jres[ "result" ] = rc;
-        jres[ "op_id" ]  = -1;
-
-        res = jres.toString();
-    }
-
-    websocket_write(wsi, res);
-}
-
-class VedaServer : WSClient
-{
-    ushort  port;
-    string  host;
-    Context core_context;
-
-    this(string _host, ushort _port, Logger log)
-    {
-        host = _host;
-        port = _port;
-        super(host, port, "/ws", "module-name=server", log);
-    }
-
-    Context init(string node_id)
-    {
-        if (node_id is null || node_id.length < 2)
-            node_id = "cfg:standart_node";
-
-        log.trace("init_core: node_id=[%s]", node_id);
-
-        Backtrace.install(stderr);
-
-        io_msg = new Logger("pacahon", "io", "server");
-
-        try
-        {
-            Individual node;
-
-            Ticket     sticket;
-
-            core_context = PThreadContext.create_new(node_id, "core_context-" ~ text(port), "", log, sticket);
-            l_context    = core_context;
-
-            sticket = core_context.sys_ticket();
-            node    = core_context.get_configuration(&sticket);
-            if (node.getStatus() == ResultCode.OK)
-                log.trace_log_and_console("VEDA NODE CONFIGURATION: [%s]", node);
-
-            log.trace("init core");
-
-//            sticket = core_context.sys_ticket(true);
-            string guest_ticket = core_context.get_ticket_from_storage("guest");
-
-            if (guest_ticket is null)
-                core_context.create_new_ticket("cfg:Guest", "4000000", "guest");
-
-            /////////////////////////////////////////////////////////////////////////////////////////////////////////
-            if (node.getStatus() != ResultCode.OK)
-            {
-                core_context.reopen_ro_subject_storage_db();
-                core_context.reopen_ro_acl_storage_db();
-                node = core_context.get_individual(&sticket, node_id);
-
-                log.trace_log_and_console("VEDA NODE CONFIGURATION:[%s]", node);
-            }
-
-            return core_context;
-        } catch (Throwable ex)
-        {
-            writeln("Exception: ", ex.msg);
-            return null;
-        }
-    }
 }
 
 bool wait_starting_thread(P_MODULE tid_idx, ref Tid[ P_MODULE ] tids)

@@ -69,7 +69,6 @@ source ~/.bashrc
 go get github.com/gorilla/websocket
 go get github.com/divan/expvarmon
 go get gopkg.in/vmihailenco/msgpack.v2
-cp -a ./source/golang-third-party/cbor $GOPATH/src
 ls $HOME/go 
 
 for i in "${LIB_NAME[@]}"; do
