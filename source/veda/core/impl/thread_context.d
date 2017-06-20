@@ -288,7 +288,7 @@ class PThreadContext : Context
 
         version (isModule)
         {
-	    log.trace ("get exists system ticket");
+	    //log.trace ("get exists system ticket");
             ticket = *get_systicket_from_storage();
             set_global_systicket(ticket);
         }
@@ -762,10 +762,10 @@ class PThreadContext : Context
     {
         Ticket *systicket = get_ticket("systicket", true);
 
-        if (systicket !is null)
-            log.trace("@get_systicket_from_storage, %s", *systicket);
-        else
-            log.trace("@get_systicket_from_storage: systicket not found");
+        //if (systicket !is null)
+        //    log.trace("@get_systicket_from_storage, %s", *systicket);
+        //else
+        //    log.trace("@get_systicket_from_storage: systicket not found");
 
         return systicket;
     }
