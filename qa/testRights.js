@@ -60,7 +60,8 @@ basic.getDrivers().forEach (function (drv) {
     basic.login(driver, 'bychinat', '123', '4', 'Администратор4');
     basic.openFulltextSearchDocumentForm(driver, 'Персона', 'v-s:Person');
     search(driver, timeStamp, 0, 3);
-    driver.findElement({css:'#app'}).then(function(){console.log("****** PHASE#3 > SEARCH PERSON1   : COMPLETE");});
+    // driver.findElement({css:'#app'}).then(function(){console.log("****** PHASE#3 > SEARCH PERSON1   : COMPLETE");});
+    driver.findElement({css:'#app'}).thenCatch(function (e) {basic.errorHandler(e, "****** PHASE#" + phase + " > SEARCH PERSON cannot find elem #app:  ");});
 
     //PHASE#4
     person.createPerson(driver, drv, 'Иванов', 'Иван', timeStamp + 1, ('0' + now.getDate()).slice(-2) + '.' + ('0' + (now.getMonth() + 1)).slice(-2) + '.' + now.getFullYear());
