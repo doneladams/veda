@@ -1000,7 +1000,7 @@ class PThreadContext : Context
             return individual;
         }
 
-        //if (trace_msg[ T_API_150 ] == 1)
+        if (trace_msg[ T_API_150 ] == 1)
         {
             if (ticket !is null)
                 log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
