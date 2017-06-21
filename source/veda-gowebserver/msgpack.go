@@ -248,11 +248,14 @@ func MsgpackToMap(msgpackStr string) map[string]interface{} {
 	decoder := msgpack.NewDecoder(strings.NewReader(msgpackStr))
 	decoder.DecodeArrayLen()
 
+	// log.Printf("@MSGPACK %v\n", msgpackStr)
+
 	individual["@"], _ = decoder.DecodeString()
 	resMapI, _ := decoder.DecodeMap()
 	resMap := resMapI.(map[interface{}]interface{})
 	// log.Println("@URI ", individual["@"])
 	for keyI, resArrI := range resMap {
+		// log.Printf("\t@PREDICATE %v\n", keyI)
 		predicate := keyI.(string)
 		// log.Println("\t", predicate, resArrI)
 		resArr := resArrI.([]interface{})
@@ -260,6 +263,7 @@ func MsgpackToMap(msgpackStr string) map[string]interface{} {
 
 		for i := 0; i < len(resArr); i++ {
 			resI := resArr[i]
+			// log.Printf("\t\t@RES %v : %v\n", resI, reflect.TypeOf(resI))
 			resource := make(map[string]interface{})
 			switch resI.(type) {
 			case []interface{}:

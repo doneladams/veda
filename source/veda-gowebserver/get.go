@@ -119,7 +119,8 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	if len(urisToGet) > 0 {
+	/*if len(urisToGet) > 0 {
+		for i := 0; i < len
 		rr := conn.Get(true, ticket.UserURI, urisToGet, false)
 		if rr.CommonRC != Ok {
 			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
@@ -150,6 +151,33 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 				return
 			}
 
+		}
+	}*/
+
+	for i := 0; i < len(urisToGet); i++ {
+		rr := conn.Get(true, ticket.UserURI, []string{urisToGet[i]}, false)
+		if rr.CommonRC != Ok {
+			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
+			ctx.Response.SetStatusCode(int(rr.CommonRC))
+			continue
+		}
+
+		if rr.OpRC[0] == Ok {
+			individual := MsgpackToMap(rr.Data[0])
+			if individual == nil {
+				log.Println("@ERR GET_INDIVIDUALS: DECODING INDIVIDUAL")
+				ctx.Response.SetStatusCode(int(InternalServerError))
+				return
+			}
+
+			tryStoreInOntologyCache(individual)
+			individuals = append(individuals, individual)
+		}
+
+		if err != nil {
+			log.Println("@ERR ENCODING INDIVIDUAL TO JSON ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
 		}
 	}
 	individualsJSON, err := json.Marshal(individuals)
