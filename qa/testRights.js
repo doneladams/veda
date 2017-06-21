@@ -19,7 +19,7 @@ function search(driver, somethingUnique, count, phase) {
         function () {
             basic.execute(driver, 'click', 'h4[about="v-fs:EnterQuery"]+div[class="form-group"] button[id="submit"]',
                 "****** PHASE#" + phase + " > SEARCH PERSON" + (count + 1) + " : ERROR = Cannot click on 'submit' button");
-            driver.sleep(basic.FAST_OPERATION);
+            driver.sleep(basic.FAST_OPERATION * 4);
             return driver.findElement({css:'span[href="#params-ft"]+span[class="badge"]'}).getText().then(function (txt) {
                 return txt == count;
             });
