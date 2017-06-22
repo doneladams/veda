@@ -25,7 +25,7 @@ module.exports = {
   getDrivers: function () {
       if (process.env.TRAVIS_BUILD_NUMBER === undefined) {
           return [
-          {'os': 'Windows 7', 'browser': 'chrome', 'version': '43.0'},
+          {'os': 'Windows 7', 'browser': 'chrome', 'version': '48.0'},
           //{'os': 'Windows 7', 'browser': 'firefox', 'version': '40.0'},
           //{'os': 'Windows 7', 'browser': 'opera', 'version': '32.0'},
           //{'os': 'Windows 7', 'browser': 'internet explorer', 'version': '11.0'}
@@ -34,7 +34,7 @@ module.exports = {
           return [
             //{'os': 'Windows 10', 'browser': 'chrome', 'version': '43.0'},
             //{'os': 'Windows 8.1', 'browser': 'chrome', 'version': '43.0'},
-            {'os': 'Windows 7', 'browser': 'chrome', 'version': '43.0'},
+            {'os': 'Windows 7', 'browser': 'chrome', 'version': '48.0'},
             //{'os': 'Windows XP', 'browser': 'chrome', 'version': '43.0'},
             //{'os': 'Linux', 'browser': 'chrome', 'version': '43.0'},
             //{'os': 'Windows 10', 'browser': 'internet explorer',    'version': '11.0'},
@@ -54,13 +54,13 @@ module.exports = {
   getThreeDrivers: function () {
       if (process.env.TRAVIS_BUILD_NUMBER === undefined) {
           return [
-              {'os': 'Windows 7', 'browser': 'chrome', 'version': '43.0'},
+              {'os': 'Windows 7', 'browser': 'chrome', 'version': '48.0'},
               {'os': 'Windows 7', 'browser': 'internet explorer', 'version': '11.0'},
               //{'os': 'Windows 7', 'browser': 'firefox', 'version': '46.0'}
           ];
       } else {
           return [
-              {'os': 'Windows 7', 'browser': 'chrome', 'version': '43.0'},
+              {'os': 'Windows 7', 'browser': 'chrome', 'version': '48.0'},
               //{'os': 'Windows 7', 'browser': 'firefox', 'version': '40.0'},
               {'os': 'Windows 7', 'browser': 'internet explorer', 'version': '11.0'}
           ];
