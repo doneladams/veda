@@ -160,7 +160,7 @@ class ScriptProcess : VedaModule
                                         count_sckip--;
  */
                     //if (trace_msg[ 300 ] == 1)
-                    log.trace("start: %s %s %d %s tnx=%d", script_id, individual_id, op_id, event_id, transaction_id);
+                    log.trace("start: %s %s %s %d %s tnx=%d", script_id, sticket, individual_id, op_id, event_id, transaction_id);
 
                     //count++;
                     script.compiled_script.run();

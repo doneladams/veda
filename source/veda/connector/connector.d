@@ -178,7 +178,7 @@ class Connector
 
 		if (user_uri is null || user_uri.length < 3)
 		{
-            stderr.writefln("@CONNECTOR ERR USER URI");
+        		stderr.writefln("@CONNECTOR ERR USER URI [%s]", user_uri);
 			request_response.common_rc = ResultCode.Not_Authorized;
 			log.trace("ERR! connector.get[%s], code=%s", uris, request_response.common_rc);
 			printPrettyTrace(stderr);			
@@ -186,7 +186,7 @@ class Connector
 		}	
 		if (uris.length == 0)
 		{
-            stderr.writefln("@CONNECTOR ERR USER URIS");
+            stderr.writefln("@CONNECTOR ERR URIS");
 			request_response.common_rc = ResultCode.No_Content;
 			log.trace("ERR! connector.get[%s], code=%s", uris, request_response.common_rc);
 			printPrettyTrace(stderr);			
