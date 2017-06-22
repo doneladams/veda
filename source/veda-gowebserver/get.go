@@ -23,6 +23,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		log.Println("@ERR GET TICKET GET_INDIVIDUAL ", rc)
@@ -31,6 +32,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	log.Println("\t@2")
 	individual, ok := ontologyCache[uri]
 	if ok {
 		individualJSON, err := json.Marshal(individual)
@@ -44,24 +46,33 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(Ok))
 		return
 	}
+	log.Println("\t@3")
 
 	uris := make([]string, 1)
 	uris[0] = uri
 	rr := conn.Get(true, ticket.UserURI, uris, false)
+
+	log.Println("\t@4")
+
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
+	log.Println("\t@5")
 		return
 	} else if rr.OpRC[0] != Ok {
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
+	log.Println("\t@6")
 		return
 	} else {
+
+	log.Println("\t@7")
 		individual = MsgpackToMap(rr.Data[0])
 		if individual == nil {
 			log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
+	log.Println("\t@8")
 
 		individualJSON, err := json.Marshal(individual)
 		if err != nil {
@@ -69,10 +80,13 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
+	log.Println("\t@9")
 
 		tryStoreInOntologyCache(individual)
 		ctx.Write(individualJSON)
 	}
+
+	log.Println("\t@e")
 
 	ctx.Response.SetStatusCode(int(Ok))
 	return
