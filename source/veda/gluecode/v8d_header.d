@@ -436,6 +436,7 @@ extern (C++)_Buff * get_env_str_var(const char *_var_name, int _var_name_length)
         }
         else if (var_name == "$ticket")
         {
+        	log.trace ("$ticket=%s", g_ticket);
             return &g_ticket;
         }
         else if (var_name == "$super_classes")
