@@ -9,8 +9,6 @@ addons:
 
 language: rust
 
-language: go
-
 env:
   global:
     - secure: PYwCZBpLe87Qg2RXibiGk9LrNrkFMlGuFnf/mp+f5kc4bFoVMo7Pl+Rdl4S1H33kLYK6d3pFggddwWxO7HGH9IyHzQ6Gfu3u9gR9rJXovQYfEp8muDCJDXvLEUoMxRgnRPa202p+BUnrNMwebxYHmwgef0s1dYQpRsewmPWHevk=
@@ -20,7 +18,7 @@ env:
 # Load all dependencies
 before_install:
   - ./control-install.sh&>install.log    
-#  - cat install.log
+  - cat install.log
   - npm install selenium-webdriver@2.47.0
   - npm install -g grunt-cli
   - npm install grunt-contrib-qunit --save-dev
