@@ -1,7 +1,7 @@
 box.cfg{listen=3309, work_dir='./data/tarantool', log_level=5, log='./tarantool.log', memtx_memory=268435456.0}
 log = require('log')
 
-memtx = true
+memtx = false
 
 if box.space.individuals == nil then
     if memtx then
