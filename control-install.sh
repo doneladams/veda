@@ -45,7 +45,9 @@ LIB_OK="Status: install ok installed"
 F_UL=0
 
 # install golang and dependency
-#if ! go version | grep $GO_VER ; then    
+#if ! go version | grep $GO_VER ; then
+    whereis go    
+    sudo apt-get remove golang
     mkdir tmp
     cd tmp
     wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
