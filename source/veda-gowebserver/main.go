@@ -72,7 +72,7 @@ func codeToJsonException(code ResultCode) []byte {
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	        log.Println("\t@ctx=", ctx)
+	        log.Println("\t@ctx.Path()=", ctx.Path())
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
 		getIndividual(ctx)

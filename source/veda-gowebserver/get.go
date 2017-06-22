@@ -55,13 +55,13 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	log.Println("\t@4 rr=", rr)
 
 	if rr.CommonRC != Ok {
+	log.Println("\t@5")
 		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
-	log.Println("\t@5")
 		return
 	} else if rr.OpRC[0] != Ok {
+	log.Println("\t@6")
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
-	log.Println("\t@6 result_code=", rr.OpRC[0])
 		return
 	} else {
 
