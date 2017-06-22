@@ -52,7 +52,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	uris[0] = uri
 	rr := conn.Get(true, ticket.UserURI, uris, false)
 
-	log.Println("\t@4")
+	log.Println("\t@4 rr=", rr)
 
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
@@ -61,7 +61,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	} else if rr.OpRC[0] != Ok {
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
-	log.Println("\t@6")
+	log.Println("\t@6 result_code=", rr.OpRC[0])
 		return
 	} else {
 
