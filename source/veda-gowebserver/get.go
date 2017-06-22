@@ -14,6 +14,8 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
+	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
+
 	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
 		log.Println("\t@REQUEST QUERY STRING ", string(ctx.QueryArgs().QueryString()))
