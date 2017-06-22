@@ -2,6 +2,15 @@
 
 veda.Module(function AppPresenter(veda) { "use strict";
 
+  function sidelog() {
+    var args = [].slice.call(arguments);
+    var side = $("#side-log");
+    var msg = args.join(" ") + "\n";
+    side.append(msg);
+  }
+
+//  sidelog(new Error().stack);
+
   var storage = typeof localStorage !== "undefined" ? localStorage : {
     clear: function () {
       var self = this;
@@ -72,6 +81,9 @@ veda.Module(function AppPresenter(veda) { "use strict";
     try {
       authResult = veda.login(login, hash);
     } catch (ex1) {
+
+      sidelog(ex1.stack);
+
       authResult = undefined;
       if (ntlm) {
         var params = {
@@ -87,6 +99,9 @@ veda.Module(function AppPresenter(veda) { "use strict";
           authResult = $.ajax(params);
           authResult = JSON.parse( authResult.responseText );
         } catch (ex2) {
+
+          sidelog(ex2.stack);
+
           authResult = undefined;
         }
       }
@@ -135,6 +150,9 @@ veda.Module(function AppPresenter(veda) { "use strict";
             throw "Not authenticated";
           }
         } catch (ex) {
+
+          sidelog(ex.stack);
+
           loginContainer.removeClass("hidden");
         }
       });
@@ -184,6 +202,9 @@ veda.Module(function AppPresenter(veda) { "use strict";
       veda.trigger("login:failed");
     }
   } catch (ex) {
+
+    sidelog(ex.stack);
+
     veda.trigger("login:failed");
   }
 
