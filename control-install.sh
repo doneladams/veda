@@ -63,6 +63,8 @@ if ! go version | grep $GO_VER ; then
     cd ..
 fi
 
+go version
+
 export GOPATH=$HOME/go
 echo 'export GOPATH=$HOME/go'  >> ~/.bashrc
 source ~/.bashrc
