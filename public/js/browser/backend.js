@@ -83,9 +83,10 @@ veda.Module(function Backend(veda) { "use strict";
 
   // Common server call function
   function call_server(params) {
+    sidelog("cl -> sv", params.url);
     if( !params.async ) {
       var res = $.ajax(params);
-      sidelog("cl -> sv", params.url, "|", "sv -> cl", res.status);
+      sidelog("sv -> cl", res.status);
       if (res.status >= 400) {
         throw new BackendError(res);
       }
