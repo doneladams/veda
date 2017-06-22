@@ -47,8 +47,6 @@ basic.getDrivers().forEach (function (drv) {
     //PHASE#1
     var driver = basic.getDriver(drv);
     basic.openPage(driver, drv);
-    basic.login(driver, 'bushenevvt', '123', '4', 'Администратор4');
-    basic.logout(driver);
     basic.login(driver, 'karpovrt', '123', '2', 'Администратор2');
     driver.findElement({css:'#app'}).then(function(){console.log("****** PHASE#1 > LOGIN            : COMPLETE");});
 
@@ -58,8 +56,6 @@ basic.getDrivers().forEach (function (drv) {
     driver.findElement({css:'#app'}).then(function(){console.log("****** PHASE#2 > CREATE PERSON1   : COMPLETE");});
 
     //PHASE#3: Проверка отсутсвия созданного документа и создание нового документа пользователем с меньшими правами
-    basic.logout(driver);
-    basic.login(driver, 'karpovrt', '123', '2', 'Администратор2');
     basic.logout(driver);
     basic.login(driver, 'bychinat', '123', '4', 'Администратор4');
     basic.openFulltextSearchDocumentForm(driver, 'Персона', 'v-s:Person');
