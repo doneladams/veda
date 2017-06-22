@@ -1,6 +1,13 @@
 // Veda HTTP server functions
 veda.Module(function Backend(veda) { "use strict";
 
+  function sidelog() {
+    var args = [].slice.call(arguments);
+    var side = $("#side-log");
+    var msg = args.join(" ") + "\n";
+    side.append(msg);
+  }
+
   $.ajaxSetup ({
     dataType: "json",
     cache: false,
@@ -79,6 +86,7 @@ veda.Module(function Backend(veda) { "use strict";
     if( !params.async ) {
       var res = $.ajax(params);
       if (res.status >= 400) {
+        sidelog("cl -> sv", params.url, "|", "sv -> cl", res.status);
         throw new BackendError(res);
       }
       var result;
@@ -98,6 +106,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     } else {
       return $.ajax(params).catch(function (err) {
+        sidelog("cl -> sv", params.url, "|", "sv -> cl", res.status);
         throw new BackendError(err);
       });
     }
