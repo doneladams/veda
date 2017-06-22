@@ -61,7 +61,9 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	} else if rr.OpRC[0] != Ok {
 	log.Println("\t@6")
+		ctx.Write(codeToJsonException(rr.OpRC[0]))
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
+	log.Println("\t@6.1")
 		return
 	} else {
 
