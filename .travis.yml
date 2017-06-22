@@ -25,6 +25,7 @@ before_install:
   - npm install grunt --save-dev
   - npm install coveralls --save-dev
   - npm install grunt-coveralls --save-dev
+  - go version    
 
 # Build
 install:
