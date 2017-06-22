@@ -45,7 +45,7 @@ LIB_OK="Status: install ok installed"
 F_UL=0
 
 # install golang and dependency
-if ! go version | grep $GO_VER ; then    
+#if ! go version | grep $GO_VER ; then    
     mkdir tmp
     cd tmp
     wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
@@ -61,7 +61,7 @@ if ! go version | grep $GO_VER ; then
     source ~/.bashrc
     go version
     cd ..
-fi
+#fi
 
 go version
 
