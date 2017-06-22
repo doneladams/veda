@@ -23,7 +23,8 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
-		log.Println("@ERR GET TICKET GET_INDIVIDUALS ", rc)
+		log.Println("@ERR GET TICKET GET_INDIVIDUAL ", rc)
+		log.Println("\t@REQUEST BODY ", string(ctx.Request.Body()))
 		ctx.Response.SetStatusCode(int(rc))
 		return
 	}
