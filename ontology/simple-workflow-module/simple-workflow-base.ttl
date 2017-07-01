@@ -800,6 +800,22 @@ s-wf:ComplexRouteStartForm_Template
   v-ui:forClass s-wf:ComplexRouteStartForm ;
   v-ui:template """
 <script>
+
+if (this.hasValue("v-wf:isProcess")) {
+  $('#save_and_start_process', template).remove();
+} else {
+  $('#save_and_start_process', template).on('click', function () {
+    stages.forEach(function(stage) {
+      var routeid = complex+stage;
+      var sub = individual[routeid][0];
+      if (!sub || !sub.hasValue(simple+'participant') || sub.properties[simple+'participant'].length == 0) {
+        delete individual.properties[routeid];
+      }
+    });
+    veda.Util.send(individual, template);
+  });
+}
+
 if (mode !== "edit") { return; }
 
 var stages = [ // Default values fill
@@ -2288,17 +2304,87 @@ if (doc) {
     }
   }
 
+  //--------------------------------------------------------ЗАЯВКА-НА-ПРОПУСК
+
+  if (doc['rdf:type'][0].id === "mnd-s:PassRequest") {
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+    routes['coordination1'][simple+'deadlineDays'] = [10];
+    routes['coordination1'][simple+'comment'] = [new String('Согласовать заявку на пропуск')];
+
+    routes['sign'][simple+'visible'] = [true];
+    routes['sign'][simple+'editable'] = [true];
+
+    routes['approval'][simple+'participant'] = [new veda.IndividualModel("d:7af25dfb-5319-466f-afca-0c0289f2557c")]; //Регистратор документов СЛПК
+    routes['approval'][simple+'visible'] = [true];
+    routes['approval'][simple+'editable'] = [true];
+    routes['approval'][simple+'comment'] = [new String('Зарегистрировать')];
+
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];
+  }
+
+//---------------------------------------------------------ПРЕДСТАВИТЕЛЬСКИЕ-РАССХОДЫ
+  if (doc['rdf:type'][0].id === "mnd-s:RepresentativeCosts") {
+
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+
+    var stakeholder ;
+    if (doc.hasValue("v-s:stakeholder")){
+     stakeholder = doc["v-s:stakeholder"] ;
+     routes['sign'][simple+'participant'] = stakeholder ;
+     routes['sign'][simple+'visible'] = [true];
+     routes['sign'][simple+'editable'] = [false];
+    }
+
+    routes['examination'][simple+'participant'] = [new veda.IndividualModel("d:c273dde3-5a8c-4f83-b9ed-b24f86d1b21d")]; //(Бухгалтер КФО)
+    routes['examination'][simple+'editable'] = [false];
+    routes['examination'][simple+'visible'] = [true];
+
+
+    if (doc.hasValue("v-s:hasPaymentForm", "d:e09f37f287a54e92967ba06ee1d6d472")){// (Счет)
+      routes['approval'][simple+'participant'] = [new veda.IndividualModel("d:3bcad243-5d01-4eba-b62b-1fe233ea2cfa")]; //Регистратор документов СЛПК
+      routes['approval'][simple+'visible'] = [true];
+      routes['approval'][simple+'editable'] = [false];
+
+      var creator ;
+      if (doc.hasValue("v-s:creator")){
+        creator = doc["v-s:creator"] ;
+        routes['review'][simple+'participant'] = creator;
+      }
+      routes['review'][simple+'visible'] = [true];
+      routes['review'][simple+'editable'] = [false];
+      routes['review'][simple+'comment'] = [new String('Получите подтверждение оплаты из бухгалтерии. Проведите мероприятие. Сформируйте отчет')];
+
+      routes['instruction'][simple+'visible'] = [true];
+      routes['instruction'][simple+'editable'] = [false];
+      routes['instruction'][simple+'participant'] = [new veda.IndividualModel("d:c273dde3-5a8c-4f83-b9ed-b24f86d1b21d")]; //(Бухгалтер КФО)
+
+    } else if (doc.hasValue("v-s:hasPaymentForm", "d:3d99624858e74529aaa6df725f6f611d")    // Корпоративная карта
+      || doc.hasValue("v-s:hasPaymentForm", "d:43efbfdadcf64f4db2a0e07d974d9098") // Наличный расчет
+      || doc.hasValue("v-s:hasPaymentForm", "d:5df55c8191f245a4a49cebc49cc98a76")) // Услуги ТП Бумажник
+    {
+      var creator2 ;
+      if (doc.hasValue("v-s:creator")){
+        creator2 = doc["v-s:creator"] ;
+        routes['review'][simple+'participant'] = creator2;
+      }
+      routes['review'][simple+'visible'] = [true];
+      routes['review'][simple+'editable'] = [false];
+      routes['review'][simple+'comment'] = [new String('Проведите мероприятие. Сформируйте отчет')];
+    }
+  }
+
   if (doc['rdf:type'][0].id === "s-wf:ComplexRouteTest") { //Тестовый маршрут
       routes['coordination1'][simple+'participant'] = [
                    new veda.IndividualModel("td:RomanKarpov-Analyst1"),
                    new veda.IndividualModel("td:AndreyBychin-Analyst2")];
       routes['coordination1'][simple+'visible'] = [true];
-
       routes['coordination2'][simple+'participant'] = [
                    new veda.IndividualModel("td:RomanKarpov-Analyst1"),
                    new veda.IndividualModel("td:AndreyBychin-Analyst2")];
       routes['coordination2'][simple+'visible'] = [true];;
-
       routes['review'][simple+'participant'] = [new veda.IndividualModel("td:AndreyBychin-Analyst2")];
       routes['review'][simple+'visible'] = [true];
       routes['instruction'][simple+'participant'] = [new veda.IndividualModel("td:AndreyBychin-Analyst2")];
@@ -2336,16 +2422,6 @@ if (doc) {
     }
   });
 }
-$('#save_and_start_process', template).on('click', function () {
-  stages.forEach(function(stage) {
-    var routeid = complex+stage;
-    var sub = individual[routeid][0];
-    if (!sub || !sub.hasValue(simple+'participant') || sub.properties[simple+'participant'].length == 0) {
-      delete individual.properties[routeid];
-    }
-  });
-  veda.Util.send(individual, template);
-});
 //# sourceURL=s-wf:ComplexRouteStartForm_Template_pre
 </script>
 <div class="container sheet">
@@ -3010,7 +3086,7 @@ s-wf:UserTaskFormTemplate
   function createDecision(type) {
     var decision = new veda.IndividualModel();
     decision["rdf:type"] = [ type ];
-    decision["rdfs:label"] = type["rdfs:label"];
+    decision.properties["rdfs:label"] = type.properties["rdfs:label"];
     decision["v-s:parent"] = [ individual ];
     return decision;
   }

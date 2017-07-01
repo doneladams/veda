@@ -1,13 +1,6 @@
 // Veda HTTP server functions
 veda.Module(function Backend(veda) { "use strict";
 
-  function sidelog() {
-    var args = [].slice.call(arguments);
-    var side = $("#side-log");
-    var msg = args.join(" ") + "\n";
-    side.append(msg);
-  }
-
   $.ajaxSetup ({
     dataType: "json",
     cache: false,
@@ -83,10 +76,8 @@ veda.Module(function Backend(veda) { "use strict";
 
   // Common server call function
   function call_server(params) {
-    sidelog("cl -> sv", params.url);
     if( !params.async ) {
       var res = $.ajax(params);
-      sidelog("sv -> cl", res.status);
       if (res.status >= 400) {
         throw new BackendError(res);
       }
@@ -107,7 +98,6 @@ veda.Module(function Backend(veda) { "use strict";
       }
     } else {
       return $.ajax(params).catch(function (err) {
-        sidelog("cl -> sv", params.url, "|", "sv -> cl", res.status);
         throw new BackendError(err);
       });
     }
@@ -389,30 +379,6 @@ veda.Module(function Backend(veda) { "use strict";
         {
           "ticket": isObj ? arg.ticket : ticket,
           "individual": isObj ? arg.individual : individual,
-          "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
-          "event_id" : (isObj ? arg.event_id : event_id) || "",
-          "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
-        },
-        function (key, value) {
-          return key === "data" && (this.type === "Decimal" || this.type === _Decimal) ? value.toString() : value;
-        }
-      ),
-      contentType: "application/json"
-    };
-    return call_server(params);
-  }
-
-  window.put_individuals = function (ticket, individuals, prepare_events, event_id, transaction_id) {
-    var arg = arguments[0];
-    var isObj = typeof arg === "object";
-    var params = {
-      type: "PUT",
-      url: "put_individuals",
-      async: isObj ? arg.async : false,
-      data: JSON.stringify(
-        {
-          "ticket": isObj ? arg.ticket : ticket,
-          "individuals": isObj ? arg.individuals : individuals,
           "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""

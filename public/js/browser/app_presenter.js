@@ -2,15 +2,6 @@
 
 veda.Module(function AppPresenter(veda) { "use strict";
 
-  function sidelog() {
-    var args = [].slice.call(arguments);
-    var side = $("#side-log");
-    var msg = args.join(" ") + "\n";
-    side.append(msg);
-  }
-
-//  sidelog(new Error().stack);
-
   var storage = typeof localStorage !== "undefined" ? localStorage : {
     clear: function () {
       var self = this;
@@ -23,6 +14,31 @@ veda.Module(function AppPresenter(veda) { "use strict";
   //Reload when user changes preferred language
   veda.on("language:changed", function () {
     location.reload();
+  });
+
+  // Route to resource ttl view on Ctrl + Alt + Click
+  $("body").on("click", "[resource][typeof], [about]", function (e) {
+    var uri = $(this).attr("resource") || $(this).attr("about");
+    var hash = "#/" + uri;
+    if (e.altKey && e.ctrlKey && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(function () {
+        riot.route(hash +  "//v-ui:generic");
+      });
+    } else if (e.altKey && e.ctrlKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(function () {
+        riot.route(hash +  "//v-ui:ttl");
+      });
+    } else if (e.altKey && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(function () {
+        riot.route(hash +  "//v-ui:json");
+      });
+    }
   });
 
   // Prevent empty links routing
@@ -81,9 +97,6 @@ veda.Module(function AppPresenter(veda) { "use strict";
     try {
       authResult = veda.login(login, hash);
     } catch (ex1) {
-
-      sidelog(ex1.stack);
-
       authResult = undefined;
       if (ntlm) {
         var params = {
@@ -99,9 +112,6 @@ veda.Module(function AppPresenter(veda) { "use strict";
           authResult = $.ajax(params);
           authResult = JSON.parse( authResult.responseText );
         } catch (ex2) {
-
-          sidelog(ex2.stack);
-
           authResult = undefined;
         }
       }
@@ -150,9 +160,6 @@ veda.Module(function AppPresenter(veda) { "use strict";
             throw "Not authenticated";
           }
         } catch (ex) {
-
-          sidelog(ex.stack);
-
           loginContainer.removeClass("hidden");
         }
       });
@@ -202,9 +209,6 @@ veda.Module(function AppPresenter(veda) { "use strict";
       veda.trigger("login:failed");
     }
   } catch (ex) {
-
-    sidelog(ex.stack);
-
     veda.trigger("login:failed");
   }
 

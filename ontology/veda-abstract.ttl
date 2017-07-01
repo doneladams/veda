@@ -564,6 +564,13 @@ v-s:hasPaymentConditions
   rdfs:label "Условия платежа"@ru ;
   rdfs:range v-s:PaymentConditions ;
 .
+v-s:hasPaymentForm
+  rdf:type owl:ObjectProperty ;
+  rdfs:domain v-s:Contractual ;
+  rdfs:label "Payment form"@en ;
+  rdfs:label "Форма оплаты"@ru ;
+  rdfs:range v-s:PaymentForm ;
+.
 v-s:hasDeliveryConditions
   rdf:type owl:ObjectProperty ;
   rdfs:domain v-s:Contractual ;
@@ -930,7 +937,7 @@ v-s:hasMaintainedObject
 .
 v-s:eliminatingTime
   rdf:type owl:DatatypeProperty ;
-  rdfs:label "Eliminating time"@en ;
+  rdfs:label "Elimination time"@en ;
   rdfs:label "Время устранения"@ru ;
   rdfs:range xsd:decimal ;
   rdfs:domain v-s:Maintained ;
@@ -975,6 +982,13 @@ v-s:hasPrice
   rdf:type owl:ObjectProperty ;
   rdfs:label "Price"@en ;
   rdfs:label "Стоимость"@ru ;
+  rdfs:range v-s:Price ;
+  rdfs:domain v-s:Financial ;
+.
+v-s:hasPricePerUnit
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "Price per unit"@en ;
+  rdfs:label "Стоимость на единицу"@ru ;
   rdfs:range v-s:Price ;
   rdfs:domain v-s:Financial ;
 .
