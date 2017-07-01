@@ -50,15 +50,14 @@ F_UL=0
 #sudo apt-get update
 #sudo apt-get install -y golang-go
 
-#    whereis go    
+    whereis go    
     mkdir tmp
     cd tmp
     wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
     tar -xvf $GO_VER.linux-amd64.tar.gz
-    sudo rm -r /usr/local/go
-    sudo rm /usr/bin/go
-    sudo rm /usr/bin/gofmt
     sudo rm -rf /usr/local/go
+    sudo rm -rf /usr/bin/go
+    sudo rm -rf /usr/bin/gofmt
     sudo mv go /usr/local
     
     export GOROOT=/usr/local/go
