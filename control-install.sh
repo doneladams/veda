@@ -49,12 +49,14 @@ F_UL=0
 #sudo add-apt-repository -y ppa:longsleep/golang-backports
 #sudo apt-get update
 #sudo apt-get install -y golang-go
-
-    whereis go    
+ 
     mkdir tmp
     cd tmp
     wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
-    tar -xvf $GO_VER.linux-amd64.tar.gz
+    tar -xf $GO_VER.linux-amd64.tar.gz
+
+    $GOROOT
+
     sudo rm -rf /usr/local/go
     sudo rm -rf /usr/bin/go
     sudo rm -rf /usr/bin/gofmt
