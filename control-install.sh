@@ -249,17 +249,17 @@ if ! ldconfig -p | grep libtarantool; then
 fi
 
 #lmdb-go
-go get github.com/muller95/lmdb-go/lmdb
+go get -v github.com/muller95/lmdb-go/lmdb
    
 #fasthttp
-go get github.com/valyala/fasthttp
+go get -v github.com/valyala/fasthttp
 
 #go-nanomsg
-go get github.com/op/go-nanomsg
+go get -v github.com/op/go-nanomsg
 
-go get github.com/gorilla/websocket
-go get github.com/divan/expvarmon
-go get gopkg.in/vmihailenco/msgpack.v2
+go get -v github.com/gorilla/websocket
+go get -v github.com/divan/expvarmon
+go get -v gopkg.in/vmihailenco/msgpack.v2
 
 ls $HOME/go 
 
