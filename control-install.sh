@@ -13,7 +13,7 @@ SMD=$PWD
 
 # Get right version of DMD
 if ! dmd --version | grep $DMD_VER ; then    
-    wget http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
+    wget -q http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
     sudo dpkg -i dmd_$DMD_VER-0_amd64.deb
     rm dmd_$DMD_VER-0_amd64.deb
     rm -r ~/.dub
@@ -21,7 +21,7 @@ fi
 
 # Get right version of DUB
 if ! dub --version | grep $DUB_VER ; then
-    wget http://code.dlang.org/files/dub-$DUB_VER-linux-x86_64.tar.gz
+    wget -q http://code.dlang.org/files/dub-$DUB_VER-linux-x86_64.tar.gz
     tar -xvzf dub-$DUB_VER-linux-x86_64.tar.gz    
     sudo cp ./dub /usr/bin/dub
     rm dub-$DUB_VER-linux-x86_64.tar.gz
@@ -52,10 +52,10 @@ F_UL=0
  
     mkdir tmp
     cd tmp
-    wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
+    wget -q https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
     tar -xf $GO_VER.linux-amd64.tar.gz
 
-    $GOROOT
+    sudo rm -rvf $GOROOT
 
     sudo rm -rf /usr/local/go
     sudo rm -rf /usr/bin/go
