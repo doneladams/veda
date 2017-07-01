@@ -4,7 +4,7 @@
 
 DMD_VER=2.073.2
 DUB_VER=1.2.0
-GO_VER=go1.8.1
+GO_VER=go1.8.3
 
 TARANTOOL_VER=1.7.3
 MSGPUCK_VER=2.0
@@ -46,24 +46,26 @@ F_UL=0
 
 # install golang and dependency
 #if ! go version | grep $GO_VER ; then
-sudo add-apt-repository -y ppa:longsleep/golang-backports
-sudo apt-get update
-sudo apt-get install -y golang-go
+#sudo add-apt-repository -y ppa:longsleep/golang-backports
+#sudo apt-get update
+#sudo apt-get install -y golang-go
 
 #    whereis go    
-#    mkdir tmp
-#    cd tmp
-#    wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
-#    tar -xvf $GO_VER.linux-amd64.tar.gz
-#    sudo rm -r /usr/local/go
-#    sudo rm /usr/bin/go
-#    sudo rm /usr/bin/gofmt
-#    sudo mv go /usr/local
-#    export GOROOT=/usr/local/go
-#    export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-#    echo 'export GOROOT=/usr/local/go'  >> ~/.bashrc
-#    echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> ~/.bashrc
-#    source ~/.bashrc
+    mkdir tmp
+    cd tmp
+    wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
+    tar -xvf $GO_VER.linux-amd64.tar.gz
+    sudo rm -r /usr/local/go
+    sudo rm /usr/bin/go
+    sudo rm /usr/bin/gofmt
+    sudo rm -rf /usr/local/go
+    sudo mv go /usr/local
+    
+    export GOROOT=/usr/local/go
+    export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
+    echo 'export GOROOT=/usr/local/go'  >> ~/.bashrc
+    echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> ~/.bashrc
+    source ~/.bashrc
     go version
     cd ..
 #fi
