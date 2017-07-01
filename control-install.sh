@@ -260,6 +260,8 @@ go get -v github.com/divan/expvarmon
 go get -v gopkg.in/vmihailenco/msgpack.v2
 
 ls $GOPATH 
+ls $GOPATH/src 
+ls $GOPATH/src/github.com 
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
 
