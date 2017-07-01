@@ -79,11 +79,6 @@ F_UL=0
     cd ..
 #fi
 
-go get github.com/gorilla/websocket
-go get github.com/divan/expvarmon
-go get gopkg.in/vmihailenco/msgpack.v2
-ls $HOME/go 
-
 for i in "${LIB_NAME[@]}"; do
 
     L1=`dpkg -s $i | grep 'install ok'`
@@ -253,46 +248,53 @@ if ! ldconfig -p | grep libtarantool; then
 
 fi
 
-   cd $SMD
-   mkdir tmp
-   cd tmp
-
-   wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
-   tar -xvzf 2.0.tar.gz
-
-   cd msgpuck-2.0    
-
-   mkdir build
-   cd build
-   cmake ..
-   make
-
-   ls $SMD
-
-   cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
-
-   mkdir tmp
-   cd tmp
-   wget https://github.com/msgpack/msgpack-c/releases/download/cpp-2.1.1/msgpack-2.1.1.tar.gz
-   tar -xvzf msgpack-2.1.1.tar.gz
-   cd msgpack-2.1.1
-   cmake .
-   make
-   sudo make install 
-   cd ..
-   cd ..
-   rm -rf tmp
-
-   cd $SMD/source/lib64/ext-lib-bind-src/v8_d
-   make    
-
-   #lmdb-go
-   go get github.com/muller95/lmdb-go/lmdb
+#lmdb-go
+go get github.com/muller95/lmdb-go/lmdb
    
-   #fasthttp
-   go get github.com/valyala/fasthttp
+#fasthttp
+go get github.com/valyala/fasthttp
 
-   #go-nanomsg
-   go get github.com/op/go-nanomsg
+#go-nanomsg
+go get github.com/op/go-nanomsg
 
-   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
+go get github.com/gorilla/websocket
+go get github.com/divan/expvarmon
+go get gopkg.in/vmihailenco/msgpack.v2
+
+ls $HOME/go 
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
+
+
+cd $SMD
+mkdir tmp
+cd tmp
+
+wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
+tar -xvzf 2.0.tar.gz
+
+cd msgpuck-2.0    
+
+mkdir build
+cd build
+cmake ..
+make
+
+ls $SMD
+
+cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
+
+mkdir tmp
+cd tmp
+wget https://github.com/msgpack/msgpack-c/releases/download/cpp-2.1.1/msgpack-2.1.1.tar.gz
+tar -xvzf msgpack-2.1.1.tar.gz
+cd msgpack-2.1.1
+cmake .
+make
+sudo make install 
+cd ..
+cd ..
+rm -rf tmp
+
+cd $SMD/source/lib64/ext-lib-bind-src/v8_d
+make    
