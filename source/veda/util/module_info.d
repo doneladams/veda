@@ -120,7 +120,7 @@ class ModuleInfoFile
     public void close()
     {
         if (mode == OPEN_MODE.READER && ff_module_info_r !is null)
-	            ff_module_info_r.close();
+            ff_module_info_r.close();
 
         if (mode == OPEN_MODE.READER_WRITER || mode == OPEN_MODE.WRITER)
         {
