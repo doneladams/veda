@@ -63,8 +63,6 @@ F_UL=0
 	export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
 	echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
 	echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
-	source ~/.bashrc
-
 	export GOPATH=$HOME/go
 	echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
 	source ~/.bashrc
@@ -261,7 +259,7 @@ go get -v github.com/gorilla/websocket
 go get -v github.com/divan/expvarmon
 go get -v gopkg.in/vmihailenco/msgpack.v2
 
-ls $HOME/go 
+ls $GOPATH 
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
 
