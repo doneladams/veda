@@ -55,25 +55,29 @@ F_UL=0
     wget -q https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
     tar -xf $GO_VER.linux-amd64.tar.gz
 
-    sudo rm -rf $GOROOT
+    if env | grep -q ^GOROOT=
+    then
+	sudo rm -rf $GOROOT
+    else
+	export GOROOT=/usr/local/go
+	export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
+	echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
+	echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
+	source ~/.bashrc
 
-    sudo rm -rf /usr/local/go
-    sudo rm -rf /usr/bin/go
-    sudo rm -rf /usr/bin/gofmt
-    sudo mv go /usr/local
+	export GOPATH=$HOME/go
+	echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
+	source ~/.bashrc
+    fi
+
+#    sudo rm -rf /usr/local/go
+#    sudo rm -rf /usr/bin/go
+#    sudo rm -rf /usr/bin/gofmt
+    sudo mv go $GOROOT
     
-    export GOROOT=/usr/local/go
-    export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-    echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
-    echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
-    source ~/.bashrc
     go version
     cd ..
 #fi
-
-export GOPATH=$HOME/go
-echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
-source ~/.bashrc
 
 go get github.com/gorilla/websocket
 go get github.com/divan/expvarmon
