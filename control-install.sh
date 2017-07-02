@@ -259,8 +259,13 @@ go get -v github.com/gorilla/websocket
 go get -v github.com/divan/expvarmon
 go get -v gopkg.in/vmihailenco/msgpack.v2
 
-ls $GOPATH 
+echo $GOPATH
+ls $GOPATH
+
+echo $GOPATH/src 
 ls $GOPATH/src 
+
+echo $GOPATH/src/github.com
 ls $GOPATH/src/github.com 
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
