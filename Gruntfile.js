@@ -84,7 +84,7 @@ module.exports = function(grunt) {
 					noGlobals : true,
 					stack : true,
 					force : true,
-					timeout: 220000
+					timeout: 120000
 				}
 			}
 		},
