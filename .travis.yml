@@ -100,7 +100,7 @@ after_script:
   - date    
   - ls  $PWD   
   - ls  $PWD/logs   
-  - send-logs-to-chunk-io.sh
+  - ./send-logs-to-chunk-io.sh
    
 after_success: 
   - ./update-gh-pages.sh
