@@ -63,10 +63,11 @@ F_UL=0
 	export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
 	echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
 	echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
-	export GOPATH=$HOME/go
-	echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
-	source ~/.bashrc
     fi
+
+    export GOPATH=$HOME/go
+    echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
+    source ~/.bashrc
 
 #    sudo rm -rf /usr/local/go
 #    sudo rm -rf /usr/bin/go
