@@ -93,10 +93,12 @@ script:
 
 # Stop deamon and show log
 after_script:
-  - start-stop-daemon -Kp $PWD/veda-pid $PWD/veda
+#  - start-stop-daemon -Kp $PWD/veda-pid $PWD/veda
+  - ./control-stop.sh
   - grunt coveralls
   - date    
   - ps aux | grep veda
+  - ls  $PWD   
   - cat $PWD/logs/tarantool-stderr.log 
   - cat $PWD/logs/tarantool-stdout.log 
   - cat $PWD/logs/veda-core-ttl_reader_*.log 
