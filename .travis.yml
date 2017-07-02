@@ -40,13 +40,11 @@ before_script:
 #  - start-stop-daemon --start --verbose --chdir $PWD --make-pidfile --pidfile $PWD/veda-pid --background --startas /bin/bash -- -c "exec ./veda >> $PWD/veda_s.log 2>&1"
   - ./control-start.sh
   - sleep 120  # give Web server some time to bind to sockets, load startup data, etc
-  - cat $PWD/logs/server-statistics_*.log 
   - cat $PWD/logs/tarantool-stderr.log 
   - cat $PWD/logs/tarantool-stdout.log 
-  - cat $PWD/logs/veda-ccus-stderr.log 
-  - cat $PWD/logs/veda-console.log 
-  - cat $PWD/logs/veda-core-fanout-email_*.log 
-  - cat $PWD/logs/veda-core-fanout-sql_*.log 
+#  - cat $PWD/logs/veda-ccus-stderr.log 
+#  - cat $PWD/logs/veda-core-fanout-email_*.log 
+#  - cat $PWD/logs/veda-core-fanout-sql_*.log 
   - cat $PWD/logs/veda-core-ft-query_*.log 
   - cat $PWD/logs/veda-core-fulltext_indexer_*.log 
   - cat $PWD/logs/veda-core-ltr_scripts_*.log 
