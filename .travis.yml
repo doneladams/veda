@@ -69,27 +69,27 @@ script:
   - grunt test --stack --verbose
 #  - grunt coveralls
 #  - node ./qa/testAPI.js
-#  - node ./qa/testLogin.js
-#  - node ./qa/testPerson.js
-#  - node ./qa/testDrafts.js
-#  - node ./qa/testDeleteAndRecovery.js
-#  - node ./qa/testRights.js
-#  - node ./qa/testComment.js
-#  - node ./qa/testVersionedDocument.js
-#  - node ./qa/testJournal.js
-#  - node ./qa/testAttachment.js
-#  - node ./qa/testPager.js
-#  - node ./qa/testSearchRangeOfDates.js
-#  - node ./qa/testAttributiveSearchPerson.js
-#  - node ./qa/testCreatingNetInterface.js
-#  - node ./qa/testRepeatComplexRoute.js
-#  - node ./qa/testNetComplexRoute.js
-#  - node ./qa/testSimpleNet.js
-#  - node ./qa/testSimpleNet2.js
-#  - node ./qa/testSimpleNet3.js
-#  - node ./qa/testSimpleWorkflow.js
-#  - node ./qa/testDelegationDocument.js
-#  - node ./qa/testLanguage.js
+  - node ./qa/testLogin.js
+  - node ./qa/testPerson.js
+  - node ./qa/testDrafts.js
+  - node ./qa/testDeleteAndRecovery.js
+  - node ./qa/testRights.js
+  - node ./qa/testComment.js
+  - node ./qa/testVersionedDocument.js
+  - node ./qa/testJournal.js
+  - node ./qa/testAttachment.js
+  - node ./qa/testPager.js
+  - node ./qa/testSearchRangeOfDates.js
+  - node ./qa/testAttributiveSearchPerson.js
+  - node ./qa/testCreatingNetInterface.js
+  - node ./qa/testRepeatComplexRoute.js
+  - node ./qa/testNetComplexRoute.js
+  - node ./qa/testSimpleNet.js
+  - node ./qa/testSimpleNet2.js
+  - node ./qa/testSimpleNet3.js
+  - node ./qa/testSimpleWorkflow.js#  
+  - node ./qa/testDelegationDocument.js
+  - node ./qa/testLanguage.js
 
 # Stop deamon and show log
 after_script:
@@ -101,7 +101,7 @@ after_script:
   - ls  $PWD   
   - cat $PWD/logs/tarantool-stderr.log 
   - cat $PWD/logs/tarantool-stdout.log 
-  - cat $PWD/logs/veda-core-ttl_reader_*.log 
+#  - cat $PWD/logs/veda-core-ttl_reader_*.log 
 #  - cat $PWD/logs/veda-ccus-stderr.log 
 #  - cat $PWD/logs/veda-core-fanout-email_*.log 
 #  - cat $PWD/logs/veda-core-fanout-sql_*.log 
