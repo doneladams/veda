@@ -88,6 +88,7 @@ class IndexerProperty
     {
         if (class_property__2__indiviual.length == 0 || force)
         {
+        	log.trace("load indexes:start");
             context.reopen_ro_subject_storage_db();
             context.reopen_ro_fulltext_indexer_db();
 

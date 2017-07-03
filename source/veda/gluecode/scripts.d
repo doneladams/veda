@@ -243,7 +243,7 @@ class ScriptProcess : VedaModule
         if (script_vm is null)
             return;
 
-        if (trace_msg[ 301 ] == 1)
+        //if (trace_msg[ 301 ] == 1)
             log.trace("start load db scripts");
 
         Ticket       sticket = context.sys_ticket();
