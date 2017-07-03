@@ -1,6 +1,7 @@
 mkdir chunk-io
 
 zip -v -r ./chunk-io/logs.zip logs
+zip -v -r ./chunk-io/logs.zip data
 
 cd chunk-io
 
@@ -10,13 +11,9 @@ git ls-files -o
 
 echo ">>>>>>>>> CONTAINERS LOG FILES <<<<<<<<<<<<"
 
-echo "@0"
-
 for (( i=1; i<="$count";i++ ))
 
 do
-
-echo "@1"
 
 file=$(echo $(git ls-files -o | sed "${i}q;d"))
 
