@@ -352,7 +352,7 @@ class XapianReader : SearchReader
 
         foreach (el; using_dbqp.values)
         {
-        	log.trace ("reopen_db %s", el.db);
+        	log.trace ("reopen_db %s", el);
         	
             el.db.reopen(&err);
             if (err != 0)
@@ -361,6 +361,8 @@ class XapianReader : SearchReader
             el.qp.set_database(el.db, &err);
             if (err != 0)
                 log.trace("ERR! xapian_reader:set_database:err=%s", get_xapian_err_msg(err));
+
+        	log.trace ("reopen_db ok");
         }
 //        foreach (db; opened_db.values)
 //        {

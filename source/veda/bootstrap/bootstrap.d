@@ -154,8 +154,8 @@ void main(string[] args)
 
     string[] modules =
     [
-        "veda", "veda-ccus", "veda-server", "veda-ft-query", "veda-ttlreader", "veda-fanout-email", "veda-fanout-sql", "veda-scripts-main",
-        "veda-scripts-lp", "veda-ft-indexer", "veda-ltr-scripts"
+        "veda", "veda-ccus", "veda-server", "veda-ft-query", "veda-ttlreader", "veda-fanout-email", "veda-fanout-sql",
+        "veda-scripts-lp", "veda-ft-indexer", "veda-ltr-scripts", "veda-scripts-main"
     ];
     int[][ string ] command_2_pid;
 
@@ -163,8 +163,8 @@ void main(string[] args)
 
     string[] wr_components =
     [
-        "acl_preparer", "fanout_email", "fanout_sql", "fulltext_indexer", "ltr_scripts", "scripts-main", "scripts-lp", "subject_manager",
-        "ticket_manager", "acl_preparer"
+        "acl_preparer", "fanout_email", "fanout_sql", "fulltext_indexer", "ltr_scripts", "scripts-lp", "subject_manager",
+        "ticket_manager", "acl_preparer", "scripts-main"
     ];
 
     bool is_exist_lock = false;
