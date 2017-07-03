@@ -1,18 +1,26 @@
-cd logs
+mkdir chunk-io
+
+zip -v -r ./chunk-io/logs.zip logs
+
+cd chunk-io
 
 count=$(git ls-files -o | wc -l)
-
+echo "COUNT=$count"
 git ls-files -o
 
 echo ">>>>>>>>> CONTAINERS LOG FILES <<<<<<<<<<<<"
 
-for (( i=1; i<"$count";i++ ))
+echo "@0"
+
+for (( i=1; i<="$count";i++ ))
 
 do
 
+echo "@1"
+
 file=$(echo $(git ls-files -o | sed "${i}q;d"))
 
-echo "$file"
+echo "FILE=$file"
 
 cat $file | curl -sT - chunk.io
 
