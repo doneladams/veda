@@ -46,6 +46,8 @@ public class IndexerContext
     long   counter                         = 0;
     long   last_counter_after_timed_commit = 0;
 
+    long   last_update_time = 0;
+
     ulong  last_size_key2slot = 0;
 
     string thread_name;
@@ -227,7 +229,7 @@ public class IndexerContext
                 indexer.set_document(doc, &err);
 
                 //if (trace_msg[ 220 ] == 1)
-                    log.trace("index document:[%s]", indv.uri);
+                log.trace("index document:[%s]", indv.uri);
 
                 Resources types = indv.getResources(rdf__type);
 
@@ -752,14 +754,17 @@ public class IndexerContext
 //                    log.trace("prepare msg counter:%d,slot size=%d", counter, key2slot.length);
 //            }
 
-                if (counter % 5000 == 0)
+                long now = Clock.currTime().stdTime();
+
+                if (counter % 5000 == 0 || now - last_update_time > 30_000_000)
                 {
                     //if (trace_msg[ 212 ] == 1)
-                        log.trace("commit index..");
+                    log.trace("commit index..");
 
                     if (key2slot.length > 0)
                         store__key2slot();
 
+                    last_update_time = now;
                     commit_all_db();
                 }
 
