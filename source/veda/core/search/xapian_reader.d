@@ -352,6 +352,8 @@ class XapianReader : SearchReader
 
         foreach (el; using_dbqp.values)
         {
+        	log.trace ("reopen_db %s", el.db);
+        	
             el.db.reopen(&err);
             if (err != 0)
                 log.trace("ERR! xapian_reader:reopen_db:err=%s", get_xapian_err_msg(err));
