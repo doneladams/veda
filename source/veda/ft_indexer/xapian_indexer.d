@@ -226,7 +226,7 @@ public class IndexerContext
                 XapianDocument doc      = new_Document(&err);
                 indexer.set_document(doc, &err);
 
-                if (trace_msg[ 220 ] == 1)
+                //if (trace_msg[ 220 ] == 1)
                     log.trace("index document:[%s]", indv.uri);
 
                 Resources types = indv.getResources(rdf__type);
@@ -754,7 +754,7 @@ public class IndexerContext
 
                 if (counter % 5000 == 0)
                 {
-                    if (trace_msg[ 212 ] == 1)
+                    //if (trace_msg[ 212 ] == 1)
                         log.trace("commit index..");
 
                     if (key2slot.length > 0)
