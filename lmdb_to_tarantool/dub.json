@@ -1,0 +1,12 @@
+{
+	"name": "lmdb_to_tarantool",
+	"authors": [
+		"Vadim"
+	],
+	"sourcePaths": [
+		"source"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2017, Vadim",
+	"license": "proprietary"
+}

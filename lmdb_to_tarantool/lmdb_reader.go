@@ -2,11 +2,8 @@ package main
 
 import (
 	"log"
+	"net"
 	"os"
-
-	"cbor"
-
-	"bytes"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
 )
@@ -72,7 +69,7 @@ func main() {
 			return err
 		}
 		for {
-			_, v, err := cursor.Get(nil, nil, lmdb.Next)
+			k, v, err := cursor.Get(nil, nil, lmdb.Next)
 			if lmdb.IsNotFound(err) {
 				return nil
 			}
@@ -81,20 +78,35 @@ func main() {
 				return err
 			}
 
-			// log.Printf("%v -> %v\n", string(k), string(v))
-			// ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
-			individual := make(map[string]interface{})
-			// codec.NewDecoderBytes(v, new(codec.CborHandle)).MustDecode(&individual)
-			decoder := cbor.NewDecoder(bytes.NewReader(v))
-			err = decoder.Decode(&individual)
+			if string(k) == "summ_hash_this_db" {
+				continue
+			}
+
+			log.Printf("%v -> %v\n", string(k), string(v))
+
+			socket, err := net.Dial("tcp", "127.0.0.1:11113")
 			if err != nil {
+				log.Println("Err on dial to listener: ", err)
+			}
+
+			requestSize := len(v)
+			buf := make([]byte, 4)
+			buf[0] = byte((requestSize >> 24) & 0xFF)
+			buf[1] = byte((requestSize >> 16) & 0xFF)
+			buf[2] = byte((requestSize >> 8) & 0xFF)
+			buf[3] = byte(requestSize & 0xFF)
+
+			n, err := socket.Write(buf)
+			if n < 4 || err != nil {
 				return err
 			}
-			for k, v := range individual {
-				log.Printf("%v->%v", k, v)
-			}
-			log.Println("-------------------Done---------------")
 
+			n, err = socket.Write([]byte(v))
+			if int(n) < requestSize || err != nil {
+				return err
+			}
+
+			socket.Close()
 		}
 	})
 
