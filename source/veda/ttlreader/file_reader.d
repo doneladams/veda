@@ -427,7 +427,7 @@ void processed(string[] changes, Context context, bool is_check_changes)
                                 if (res != ResultCode.OK)
                                     log.trace("individual [%s], not store, errcode =%s", indv.uri, text(res));
 
-								if (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
+								while (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
 									core.thread.Thread.sleep(dur!("msecs")(1));							    
 
                             }
