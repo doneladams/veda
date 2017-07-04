@@ -385,6 +385,9 @@ void processed(string[] changes, Context context, bool is_check_changes)
         {
             bool is_loaded = false;
 
+			OpResult op_res;
+			op_res.op_id = -1;
+
             foreach (uri, indv; individuals)
             {
                 if (indv != Individual.init)
@@ -414,16 +417,19 @@ void processed(string[] changes, Context context, bool is_check_changes)
                                // if (trace_msg[ 33 ] == 1)
                                 //log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv), text(indv_in_storage));
 
-				string bin = indv.serialize ();
+								string bin = indv.serialize ();
 
-                                ResultCode res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, false).result;
+								op_res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, false);
+                                ResultCode res = op_res.result;
                                 if (trace_msg[ 33 ] == 1)
                                     log.trace("file reader:store, uri=%s", indv.uri);
 
                                 if (res != ResultCode.OK)
                                     log.trace("individual [%s], not store, errcode =%s", indv.uri, text(res));
 
-                                is_loaded = true;
+								if (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
+									core.thread.Thread.sleep(dur!("msecs")(1));							    
+
                             }
                             else
                             {
@@ -433,6 +439,11 @@ void processed(string[] changes, Context context, bool is_check_changes)
                     }
                 }
             }
+            
+//            if (op_res.op_id > 0)
+//				while (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
+//					core.thread.Thread.sleep(dur!("msecs")(1));							    
+            
         }
     }
 
