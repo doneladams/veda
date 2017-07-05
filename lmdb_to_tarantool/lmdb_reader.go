@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
+	tarantool "github.com/tarantool/go-tarantool"
 )
 
 const (
@@ -83,6 +84,38 @@ func main() {
 			}
 
 			log.Printf("%v -> %v\n", string(k), string(v))
+			if string(k) == "systicket" {
+				individual := make([]interface{}, 2)
+				individual[0] = "systicket"
+
+				resources := make(map[string]interface{})
+
+				rdfType := make([]interface{}, 2)
+				rdfType[0] = 2
+				rdfType[1] = "ticket:Ticket"
+				resources["rdf:type"] = rdfType
+
+				ticketID := make([]interface{}, 2)
+				ticketID[0] = 2
+				ticketID[1] = string(v)
+				resources["ticket:id"] = ticketID
+
+				individual[1] = resources
+
+				opts := tarantool.Opts{User: "guest"}
+				conn, err := tarantool.Connect("127.0.0.1:3309", opts)
+				// conn, err := tarantool.Connect("/path/to/tarantool.socket", opts)
+				if err != nil {
+					return err
+				}
+
+				_, err = conn.Replace(conn.Schema.Spaces["tickets"].Id, individual)
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
 
 			socket, err := net.Dial("tcp", "127.0.0.1:11113")
 			if err != nil {
