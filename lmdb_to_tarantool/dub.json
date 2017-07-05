@@ -3,6 +3,9 @@
 	"authors": [
 		"Vadim"
 	],
+	"dependencies": {
+		"msgpack-d": "1.0.0-beta.6"
+	},
 	"sourcePaths": [
 		"source"
 	],

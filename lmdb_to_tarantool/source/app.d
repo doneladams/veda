@@ -1,5 +1,6 @@
 import std.stdio, std.socket;
 import individual;
+import connector, type, resource, requestresponse;
 
 private string recv(Socket socket)
 {
@@ -18,6 +19,8 @@ private string recv(Socket socket)
 
 void main()
 {
+    Connector connector = new Connector();
+    connector.connect("127.0.0.1", 9999);
 	
     TcpSocket listener = new TcpSocket();
 
@@ -30,10 +33,25 @@ void main()
         while (true)
         {
             Socket socket = listener.accept();
-			stdout.writefln("accepted");
 			string cborv = recv(socket);
 			Individual individual;
 			individual.deserialize(cborv);
+            string new_state = individual.serialize_msgpack();
+            Individual big_individual;
+            big_individual.addResource("uri", Resource(DataType.Uri, "1"));
+            big_individual.uri = "1";
+            big_individual.addResource("new_state", Resource(DataType.String, new_state));
+            string bin = big_individual.serialize_msgpack();
+            RequestResponse rr = connector.put(false, "cfg:VedaSystem", [bin]);
+            if (rr.common_rc != ResultCode.OK) {
+                stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
+                stderr.writeln(new_state);
+                break;
+            } else if (rr.op_rc[0] != ResultCode.OK) {
+                stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
+                stderr.writeln(new_state);
+                break;
+            }
 			socket.close();
         }
     }
