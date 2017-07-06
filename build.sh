@@ -70,9 +70,9 @@ if [ -z $1 ] || [ $1 == "ttlreader" ] || [ $1 == "veda-ttlreader" ] ; then
 fi
 
 if [ -z $1 ] || [ $1 == "db_handler" ] ; then
-  cd rust_db_handler/db_handler
+  cd source/rust_db_handler/db_handler
   cargo build --release
-  cd ../..
+  cd ../../..
 fi
 
 if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
