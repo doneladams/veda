@@ -466,7 +466,7 @@ for (i = 0; i < 1; i++)
             };
 
             var res = put_individual(ticket.id, new_test_doc1);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 //            wait_module(acl_manager, res.op_id);
 
             var read_individual = get_individual(ticket.id, new_test_doc1_uri);
@@ -479,7 +479,7 @@ for (i = 0; i < 1; i++)
             new_test_doc2['@'] = new_test_doc2_uri;
             new_test_doc2['v-s:canRead'] = newBool(false);
             var res = put_individual(ticket.id, new_test_doc2);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 //            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
@@ -492,7 +492,7 @@ for (i = 0; i < 1; i++)
             new_test_doc3['@'] = new_test_doc3_uri;
             new_test_doc3['v-s:canRead'] = newBool(true);
             var res = put_individual(ticket.id, new_test_doc3);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 //            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
@@ -576,7 +576,7 @@ for (i = 0; i < 1; i++)
 
             var res = put_individual(ticket.id, new_test_doc1);
 //            wait_module(acl_manager, res.op_id);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 
             var read_individual = get_individual(ticket.id, new_test_doc1_uri);
 
@@ -589,7 +589,7 @@ for (i = 0; i < 1; i++)
             new_test_doc2['v-s:memberOf'] = newUri(guid());
             var res = put_individual(ticket.id, new_test_doc2);
 //            wait_module(acl_manager, res.op_id);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
 
@@ -601,7 +601,7 @@ for (i = 0; i < 1; i++)
             new_test_doc3['@'] = new_test_doc3_uri;
             new_test_doc3['v-s:memberOf'] = newUri(memberOf);
             var res = put_individual(ticket.id, new_test_doc3);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
 //            wait_module(acl_manager, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
@@ -685,7 +685,7 @@ for (i = 0; i < 1; i++)
             flush (fulltext_indexer, res.op_id);
 
             wait_module(fulltext_indexer, res.op_id);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
             //wait_module(acl_manager, res.op_id);
             //wait_module(condition, res.op_id);
 
@@ -799,7 +799,7 @@ for (i = 0; i < 1; i++)
             var res = put_individual(ticket_user1.id, new_test_doc4, false);
 
             wait_module(fulltext_indexer, res.op_id);
-            wait_module(subject_manager, res.op_id);
+            wait_module(condition, res.op_id);
             //wait_module(acl_manager, res.op_id);
             //wait_module(condition, res.op_id);
 
