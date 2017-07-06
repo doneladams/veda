@@ -7,7 +7,7 @@ import std.conv, std.stdio;
 import veda.core.common.context, veda.common.logger, veda.common.type;
 import veda.connector.connector, veda.connector.requestresponse;
 
-public class TarantoolStorage : Storage
+public class TarantoolStorage
 {
     string    host;
     ushort    port;

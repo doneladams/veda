@@ -10,7 +10,7 @@ module veda.core.common.context;
 
 private import std.concurrency, std.datetime;
 private import veda.common.type, veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.common.define, veda.util.container,
-               veda.common.logger;
+               veda.common.logger, veda.util.module_info, veda.core.storage.tarantool_storage;
 
 /// Имена процессов
 public enum P_MODULE : byte
@@ -219,21 +219,6 @@ struct TransactionItem
     Individual indv;
 }
 
-interface Storage
-{
-    public ubyte authorize (string user_uri, string uri, bool trace);
-    public ResultCode put(bool need_auth, string user_id, string in_key, string in_value, long op_id);    
-    public string find(bool need_auth, string user_id, string uri, bool return_value = true);
-    public string find_ticket(string ticket_id);
-    public ResultCode remove(bool need_auth, string user_id, string in_key);
-    public int get_of_cursor(bool delegate(string key, string value) prepare, bool only_ids);
-    public void unload_to_queue(string path, string queue_id, bool only_ids);
-    public long count_entries();
-    public void reopen_db();
-    public void close_db();
-    public long dump_to_binlog();
-}
-
 interface ScriptVM
 {
     Script compile(string code);
@@ -350,7 +335,7 @@ interface Context
 
     public void subject_storage_commmit(bool isWait = true);
 
-    public Storage get_subject_storage_db();
+    public TarantoolStorage get_subject_storage_db();
 
     /**
        Вернуть индивидуала по его uri

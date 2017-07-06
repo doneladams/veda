@@ -11,7 +11,7 @@ private
     import veda.bind.xapian_d_header;
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context,
-           veda.core.common.log_msg, veda.util.module_info;
+           veda.core.common.log_msg, veda.util.module_info, veda.connector.requestresponse;
     import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.tarantool_storage, veda.core.search.vql;
     import veda.util.module_info;
     import veda.common.logger;
@@ -80,25 +80,25 @@ class PThreadContext : Context
     // // // authorization
     //private Authorization _acl_indexes;
 
-    private Onto       onto;
+    private Onto             onto;
 
-    private string     name;
+    private string           name;
 
-    private            string[ string ] prefix_map;
+    private                  string[ string ] prefix_map;
 
-    private Storage    individuals_storage_r;
-    // private Storage       tickets_storage_r;
-    private VQL        _vql;
+    private TarantoolStorage individuals_storage_r;
 
-    private long       local_last_update_time;
-    private Individual node = Individual.init;
-    private string     node_id;
+    private VQL              _vql;
 
-    private bool       API_ready = true;
-    private string     main_module_url;
-    private Logger     log;
+    private long             local_last_update_time;
+    private Individual       node = Individual.init;
+    private string           node_id;
 
-    private long       last_ticket_manager_op_id = 0;
+    private bool             API_ready = true;
+    private string           main_module_url;
+    private Logger           log;
+
+    private long             last_ticket_manager_op_id = 0;
 
     public Logger get_logger()
     {
@@ -276,7 +276,7 @@ class PThreadContext : Context
         return API_ready;
     }
 
-    public Storage get_subject_storage_db()
+    public TarantoolStorage get_subject_storage_db()
     {
         return individuals_storage_r;
     }
@@ -288,7 +288,7 @@ class PThreadContext : Context
 
         version (isModule)
         {
-	    //log.trace ("get exists system ticket");
+            //log.trace ("get exists system ticket");
             ticket = *get_systicket_from_storage();
             set_global_systicket(ticket);
         }
@@ -297,7 +297,7 @@ class PThreadContext : Context
         {
             if (ticket == Ticket.init || ticket.user_uri == "" || is_new)
             {
-		log.trace ("create new system ticket");
+                log.trace("create new system ticket");
                 try
                 {
                     ticket = create_new_ticket("cfg:VedaSystem", "90000000");
