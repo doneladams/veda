@@ -3,7 +3,7 @@
  */
 import std.stdio, std.socket, std.conv, std.array, std.outbuffer;
 import core.thread, core.atomic;
-import veda.common.logger, veda.core.common.context, veda.core.impl.thread_context;
+import veda.common.logger, veda.core.common.context, veda.core.impl.thread_context, veda.common.type;
 
 class HandlerThread : Thread
 {
@@ -59,7 +59,7 @@ private:
                 {
                     try
                     {
-                        res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, false);
+                        res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, OptAuthorize.YES, false);
 			context.get_logger.trace("res=%s", res);
                     }
                     catch (Throwable tr)

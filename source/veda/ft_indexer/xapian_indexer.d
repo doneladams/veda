@@ -756,10 +756,10 @@ public class IndexerContext
 
                 long now = Clock.currTime().stdTime();
 
-                if (counter % 5000 == 0 || now - last_update_time > 30_000_000)
+                if (counter % 5000 == 0 || (now - last_update_time) > 300_000_000)
                 {
                     //if (trace_msg[ 212 ] == 1)
-                    log.trace("commit index..");
+                    log.trace("commit index, (now - last_update_time)=%d", now - last_update_time);
 
                     if (key2slot.length > 0)
                         store__key2slot();

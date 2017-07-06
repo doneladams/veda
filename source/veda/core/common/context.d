@@ -252,6 +252,7 @@ interface Context
     public Ticket create_new_ticket(string user_id, string duration = "40000", string ticket_id = null);
 
     public long get_operation_state(P_MODULE thread_id, long wait_op_id);
+    public MInfo get_info(P_MODULE module_id);
 
     @property
     public Ticket sys_ticket(bool is_new = false);
@@ -271,7 +272,7 @@ interface Context
         public string execute(string in_msg);
     }
 
-    public Individual[] get_individuals_via_query(Ticket *ticket, string query_str, bool inner_get = false, int top = 10, int limit = 10000);
+    public Individual[] get_individuals_via_query(Ticket *ticket, string query_str, OptAuthorize op_auth, int top = 10, int limit = 10000);
 
 
     public Individual[ string ] get_onto_as_map_individuals();
@@ -325,7 +326,7 @@ interface Context
                 список авторизованных uri
      */
     public SearchResult get_individuals_ids_via_query(Ticket *ticket, string query_str, string sort_str, string db_str, int from, int top, int limit,
-                                                      void delegate(string uri) prepare_element_event,
+                                                      void delegate(string uri) prepare_element_event, OptAuthorize op_auth,
                                                       bool trace);
 
     public void reopen_ro_fulltext_indexer_db();

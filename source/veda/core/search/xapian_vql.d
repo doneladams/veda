@@ -625,7 +625,7 @@ class XapianVQL
                                                               int limit,
                                                               void delegate(string uri) add_out_element,
                                                               Context context,
-                                                              void delegate(string uri) prepare_element_event, bool trace
+                                                              void delegate(string uri) prepare_element_event, bool trace, OptAuthorize op_auth
                                                               )
     {
         SearchResult sr;
@@ -708,7 +708,7 @@ class XapianVQL
                 if (trace)
                     log.trace("found subject_id:[%s]", subject_id);
 
-                if (context.authorize(subject_id, ticket, Access.can_read, acl_db_reopen, null, null))
+                if (op_auth == OptAuthorize.NO || context.authorize(subject_id, ticket, Access.can_read, acl_db_reopen, null, null))
                 {
                     //log.trace("found subject_id:[%s] authorized", subject_id);
 

@@ -12,6 +12,24 @@ import std.math, std.stdio, std.conv, std.string;
 /// Uri
 alias string Uri;
 
+enum OptFreeze
+{
+        INGORE,
+        NONE
+}
+
+enum OptAuthorize
+{
+        NO,
+        YES
+}
+
+enum OptTrace
+{
+        TRACE,
+        NONE
+}
+
 /// Битовые поля для прав
 public enum Access : ubyte
 {

@@ -79,7 +79,7 @@ void main(char[][] args)
 	}
 
     string[] uris =
-        context.get_individuals_ids_via_query(&sticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, null, false).result;
+        context.get_individuals_ids_via_query(&sticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, null, OptAuthorize.NO, false).result;
     log.tracec("INFO: found %d individuals containing [rdfs:isDefinedBy]", uris.length);
 
     if (need_remove_ontology)
@@ -96,7 +96,7 @@ void main(char[][] args)
             context.remove_individual(&sticket, uri, true, "ttl-reader", -1, true, false);
         }
 
-        uris = context.get_individuals_ids_via_query(&sticket, "'rdf:type' == 'v-s:TTLFile'", null, null, 0, 1000, 1000, null, false).result;
+        uris = context.get_individuals_ids_via_query(&sticket, "'rdf:type' == 'v-s:TTLFile'", null, null, 0, 1000, 1000, null, OptAuthorize.NO, false).result;
         foreach (uri; uris)
         {
             log.tracec("WARN: [%s] WILL BE REMOVED", uri);
@@ -427,9 +427,8 @@ void processed(string[] changes, Context context, bool is_check_changes)
                                 if (res != ResultCode.OK)
                                     log.trace("individual [%s], not store, errcode =%s", indv.uri, text(res));
 
-								while (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
-									core.thread.Thread.sleep(dur!("msecs")(1));							    
-
+						        //while (context.get_info(P_MODULE.fulltext_indexer).op_id < op_res.op_id)
+								//	core.thread.Thread.sleep(dur!("msecs")(1));							    
                             }
                             else
                             {
