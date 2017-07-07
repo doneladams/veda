@@ -249,6 +249,18 @@ class ScriptProcess : VedaModule
         Ticket       sticket = context.sys_ticket();
         Individual[] res;
         
+		bool is_ft_busy = true;
+		while (is_ft_busy)
+		{
+		 	auto mi = context.get_info(P_MODULE.fulltext_indexer);
+
+			if (mi.op_id <= mi.committed_op_id)
+				break;
+
+			log.trace("wait for the ft-index to finish.");
+			core.thread.Thread.sleep(dur!("msecs")(10));							    
+		}
+		
         vql.reopen_db();
         
         vql.get(&sticket,
