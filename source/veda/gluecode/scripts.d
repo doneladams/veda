@@ -257,7 +257,7 @@ class ScriptProcess : VedaModule
 			if (mi.op_id <= mi.committed_op_id)
 				break;
 
-			log.trace("wait for the ft-index to finish.");
+			log.trace("wait for the ft-index to finish op_id=%d committed_op_id=%d ...", mi.op_id, mi.committed_op_id);
 			core.thread.Thread.sleep(dur!("msecs")(10));							    
 		}
 		
