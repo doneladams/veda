@@ -418,8 +418,11 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
 
     /// For each deleted element decrease size by 2
     for (_, right) in new_right_set {
-        if right.is_deleted {
+        if right.is_deleted {   
             arr_size -= 2;
+            if (key == "owl:") {
+                writeln!(stderr(), "DELETE FROM OWL {0}", std::str::from_utf8(&right.id[..]).unwrap());
+            }
         }
     }
 
@@ -432,14 +435,21 @@ fn push_into_tarantool(key: &str, new_right_set: &HashMap<String, Right>, space_
         if !right.is_deleted {
             encode::encode_string_bytes(&mut request, &right.id);
             encode::encode_uint(&mut request, right.access as u64);
+            if (key == "owl:") {
+                writeln!(stderr(), "ENCODE IN OWL {0}", std::str::from_utf8(&right.id[..]).unwrap());
+            }
         }
     }
 
+    
     unsafe {
         let request_len = request.len() as isize;
         let key_ptr_start = request[..].as_ptr() as *const i8;
         let key_ptr_end = key_ptr_start.offset(request_len);
 
+        if key == "owl:" {
+            writeln!(stderr(), "OWL ARR SIZE {0}", arr_size);
+        }
         if arr_size > 1 {
             ///Saves right set
             let replace_code = box_replace(space_id, key_ptr_start, key_ptr_end, 
