@@ -98,7 +98,7 @@ private void ltrs_thread(string parent_url)
 
 //    core.thread.Thread.getThis().name = thread_name;
 
-	Ticket systicket;
+    Ticket systicket;
     context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", "", log, systicket, parent_url);
 
 

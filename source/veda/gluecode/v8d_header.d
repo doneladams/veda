@@ -180,10 +180,10 @@ public ResultCode commit(long transaction_id)
         if (item.rc != ResultCode.OK)
             return item.rc;
 
-        Ticket *ticket = g_context.get_ticket(item.ticket_id);
+        Ticket     *ticket = g_context.get_ticket(item.ticket_id);
 
-		Resources rss1 = item.indv.getResources ("rdfs:label"); 
-		
+        Resources  rss1 = item.indv.getResources("rdfs:label");
+
         ResultCode rc;
 
         if (item.cmd == INDV_OP.REMOVE)
@@ -201,8 +201,8 @@ public ResultCode commit(long transaction_id)
             log.trace("FAIL COMMIT");
             return rc;
         }
-        
-        log.trace ("COMMIT : %s", item.indv.uri);
+
+        log.trace("COMMIT : %s", item.indv.uri);
     }
 
     transaction_buff  = transaction_buff.init;
@@ -436,7 +436,7 @@ extern (C++)_Buff * get_env_str_var(const char *_var_name, int _var_name_length)
         }
         else if (var_name == "$ticket")
         {
-        	log.trace ("$ticket=%s %s", g_ticket, g_ticket.data[0..g_ticket.length]);
+            log.trace("$ticket=%s %s", g_ticket, g_ticket.data[ 0..g_ticket.length ]);
             return &g_ticket;
         }
         else if (var_name == "$super_classes")
@@ -502,7 +502,7 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
 {
     try
     {
-        string uri = cast(string)_uri[ 0.._uri_length ];        
+        string uri = cast(string)_uri[ 0.._uri_length ];
 
         //writeln("@p:v8d read_individual, uri=[", uri, "],  ticket=[", _ticket[ 0.._ticket_length ], "]");
 
@@ -552,12 +552,12 @@ extern (C++)_Buff * read_individual(const char *_ticket, int _ticket_length, con
 
                 if (icb is null)
                 {
-		            string ticket_id = cast(string)_ticket[ 0.._ticket_length ];
-                	Ticket* ticket = g_context.get_ticket(ticket_id, false);  
-                	if (ticket.user_uri is null || ticket.user_uri.length < 3)
-	                	log.trace ("ERR! v8d_header.read_individual: invalid user: ticket_uri=%s, ticket=%s", ticket_id, *ticket);
+                    string ticket_id = cast(string)_ticket[ 0.._ticket_length ];
+                    Ticket *ticket   = g_context.get_ticket(ticket_id, false);
+                    if (ticket.user_uri is null || ticket.user_uri.length < 3)
+                        log.trace("ERR! v8d_header.read_individual: invalid user: ticket_uri=%s, ticket=%s", ticket_id, *ticket);
                     icb = g_context.get_from_individual_storage(ticket.user_uri, uri);
-                }    
+                }
 
                 if (icb !is null)
                 {

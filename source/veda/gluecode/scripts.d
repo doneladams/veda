@@ -11,18 +11,17 @@ private import veda.vmodule.vmodule, veda.core.search.vel, veda.core.search.vql,
 
 class ScriptProcess : VedaModule
 {
-    private          ScriptInfo[ string ] event_scripts;
-    private          Array!string event_scripts_order;
+    private ScriptsWorkPlace wpl;
 
-    private VQL      vql;
-    private string   empty_uid;
-    private string   vars_for_event_script;
-    private string   vars_for_codelet_script;
-    private string   before_vars;
-    private string   after_vars;
+    private VQL              vql;
+    private string           empty_uid;
+    private string           vars_for_event_script;
+    private string           vars_for_codelet_script;
+    private string           before_vars;
+    private string           after_vars;
 
-    private ScriptVM script_vm;
-    private string   vm_id;
+    private ScriptVM         script_vm;
+    private string           vm_id;
 
     this(string _vm_id, string _module_name, Logger log)
     {
@@ -31,6 +30,7 @@ class ScriptProcess : VedaModule
         vm_id           = _vm_id;
         g_vm_id         = vm_id;
         g_cache_of_indv = cache_of_indv;
+        wpl             = new ScriptsWorkPlace();
     }
 
     long count_sckip = 0;
@@ -51,7 +51,7 @@ class ScriptProcess : VedaModule
 
 
     override ResultCode prepare(INDV_OP cmd, string user_uri, string prev_bin, ref Individual prev_indv, string new_bin, ref Individual new_indv,
-                                string event_id, long transaction_id, 
+                                string event_id, long transaction_id,
                                 long op_id)
     {
         if (script_vm is null)
@@ -80,13 +80,13 @@ class ScriptProcess : VedaModule
 
         if (prepare_if_is_script == false)
         {
-            if (event_scripts.get(individual_id, ScriptInfo.init) !is ScriptInfo.init)
+            if (wpl.scripts.get(individual_id, ScriptInfo.init) !is ScriptInfo.init)
                 prepare_if_is_script = true;
         }
 
         if (prepare_if_is_script)
         {
-            prepare_script(event_scripts, event_scripts_order, new_indv, script_vm, "", before_vars, vars_for_event_script, after_vars, false);
+            prepare_script(wpl, new_indv, script_vm, "", before_vars, vars_for_event_script, after_vars, false);
         }
 
         set_g_parent_script_id_etc(event_id);
@@ -113,14 +113,14 @@ class ScriptProcess : VedaModule
         set_g_super_classes(indv_types, context.get_onto());
 
         log.trace("-------------------");
-        log.trace ("indv=%s, indv_types=%s, event_scripts_order.length=%d", individual_id, indv_types, event_scripts_order.length());
+        log.trace("indv=%s, indv_types=%s, event_scripts_order.length=%d", individual_id, indv_types, wpl.scripts_order.length);
         //log.trace ("queue of scripts:%s", event_scripts_order.array());
 
-        foreach (_script_id; event_scripts_order)
+        foreach (_script_id; wpl.scripts_order)
         {
             script_id = _script_id;
 
-            ScriptInfo script = event_scripts[ script_id ];
+            ScriptInfo script = wpl.scripts[ script_id ];
 
             if (script.compiled_script !is null)
             {
@@ -244,38 +244,41 @@ class ScriptProcess : VedaModule
             return;
 
         //if (trace_msg[ 301 ] == 1)
-            log.trace("start load db scripts");
+        log.trace("start load db scripts");
 
         Ticket       sticket = context.sys_ticket();
         Individual[] res;
-        
-		bool is_ft_busy = true;
-		while (is_ft_busy)
-		{
-		 	auto mi = context.get_info(P_MODULE.fulltext_indexer);
 
-			if (mi.op_id <= mi.committed_op_id)
-				break;
+        auto         si = context.get_info(P_MODULE.subject_manager);
 
-			log.trace("wait for the ft-index to finish op_id=%d committed_op_id=%d ...", mi.op_id, mi.committed_op_id);
-			core.thread.Thread.sleep(dur!("msecs")(10));							    
-		}
-		
+        bool         is_ft_busy = true;
+        while (is_ft_busy)
+        {
+            auto mi = context.get_info(P_MODULE.fulltext_indexer);
+
+            log.trace("wait for the ft-index to finish subject.op_id=%d ft.committed_op_id=%d ...", si.op_id, mi.committed_op_id);
+
+            if (mi.committed_op_id >= si.op_id - 1)
+                break;
+
+            core.thread.Thread.sleep(dur!("msecs")(10));
+        }
+
         vql.reopen_db();
-        
+
         vql.get(&sticket,
                 "return { 'v-s:script'} filter { 'rdf:type' === 'v-s:Event'}",
                 res, OptAuthorize.NO, false);
 
         foreach (ss; res)
-            prepare_script(event_scripts, event_scripts_order, ss, script_vm, "", before_vars, vars_for_event_script, after_vars, false);
+            prepare_script(wpl, ss, script_vm, "", before_vars, vars_for_event_script, after_vars, false);
 
         string scripts_ordered_list;
-        foreach (_script_id; event_scripts_order)
+        foreach (_script_id; wpl.scripts_order)
             scripts_ordered_list ~= "," ~ _script_id;
 
 //        if (trace_msg[ 300 ] == 1)
-        log.trace("load db scripts, count=%d, scripts_uris=[%s] ", event_scripts_order.length, scripts_ordered_list);
+        log.trace("load db scripts, count=%d, scripts_uris=[%s] ", wpl.scripts_order.length, scripts_ordered_list);
     }
 
     private void set_g_parent_script_id_etc(string event_id)
