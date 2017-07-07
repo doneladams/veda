@@ -12,7 +12,7 @@ public class TarantoolStorage
     string    host;
     ushort    port;
     Logger    log;
-    Connector connector;
+    public Connector connector;
 
     this(string _host, ushort _port, Logger _log)
     {
@@ -24,9 +24,9 @@ public class TarantoolStorage
         log.trace("create TarantoolStorage connector");
     }
 
-    public ResultCode put(bool need_auth, string user_uri, string in_key, string in_value, long op_id)
+    public ResultCode put(OptAuthorize op_auth, string user_uri, string in_key, string in_value, long op_id)
     {
-        RequestResponse rr = connector.put(need_auth, user_uri, [ in_value ]);
+        RequestResponse rr = connector.put(op_auth, user_uri, [ in_value ]);
 
         if (rr !is null)
             return rr.common_rc;
@@ -34,9 +34,9 @@ public class TarantoolStorage
         return ResultCode.Fail_Store;
     }
 
-    public ResultCode remove(bool need_auth, string user_uri, string in_key)
+    public ResultCode remove(OptAuthorize op_auth, string user_uri, string in_key)
     {
-        RequestResponse rr = connector.remove(false, user_uri, [ in_key ], false);
+        RequestResponse rr = connector.remove(op_auth, user_uri, [ in_key ], false);
 
         if (rr !is null)
             return rr.common_rc;
@@ -44,10 +44,10 @@ public class TarantoolStorage
         return ResultCode.Fail_Store;
     }
 
-    public string find(bool need_auth, string user_uri, string uri, bool return_value = true)
+    public string find(OptAuthorize op_auth, string user_uri, string uri, bool return_value = true)
     {
         // stderr.writefln("@FIND [%s] [%s]", user_uri, uri);
-        RequestResponse rr = connector.get(need_auth, user_uri, [ uri ], false);
+        RequestResponse rr = connector.get(op_auth, user_uri, [ uri ], false);
         // stderr.writefln("@FIND RETURN FROM CONNECTOR");
         if (rr !is null && rr.msgpacks.length > 0) {
             return rr.msgpacks[ 0 ];

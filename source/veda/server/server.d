@@ -103,7 +103,7 @@ void main(char[][] args)
     new_ticket.resources[ ticket__accessor ] ~= Resource(ticket.user_uri);
     new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
     new_ticket.resources[ ticket__duration ] ~= Resource("90000000");
-    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type,
+    subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem", type,
                                ticket.id, null, new_ticket.serialize(), -1, null, -1, false, op_id);
 
     Individual systicket;
@@ -112,7 +112,7 @@ void main(char[][] args)
     systicket.resources[ rdf__type ] = type;
     systicket.resources[ "ticket:id" ] ~= Resource(ticket.id);
 
-    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init,
+    subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem", Resources.init,
                                "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
     log.trace("systicket [%s] was created", ticket.id);
     log.trace("CREATE SYSTICKET...OK");

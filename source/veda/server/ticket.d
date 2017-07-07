@@ -35,7 +35,7 @@ public Ticket create_new_ticket(string user_id, string duration, string ticket_i
 
     long       op_id;
     // ResultCode rc = ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
-    ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
+    ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem", type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
                 op_id);
     ticket.result = rc;
 

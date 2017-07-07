@@ -60,8 +60,12 @@ class Connector
     }
 
 
-    public RequestResponse put(bool need_auth, string user_uri, string[] individuals)
+    public RequestResponse put(OptAuthorize op_auth, string user_uri, string[] individuals)
     {
+    	bool need_auth;
+	if (op_auth == OptAuthorize.YES)
+	    need_auth = true;
+    	
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
 
@@ -171,14 +175,18 @@ class Connector
         return request_response;
     }
 
-    public RequestResponse get(bool need_auth, string user_uri, string[] uris, bool trace)
+    public RequestResponse get(OptAuthorize op_auth, string user_uri, string[] uris, bool trace)
     {
+    	bool need_auth;
+	if (op_auth == OptAuthorize.YES)
+	    need_auth = true;
+
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
 
 		if (user_uri is null || user_uri.length < 3)
 		{
-        		stderr.writefln("@CONNECTOR ERR USER URI [%s]", user_uri);
+        	stderr.writefln("@CONNECTOR ERR USER URI [%s]", user_uri);
 			request_response.common_rc = ResultCode.Not_Authorized;
 			log.trace("ERR! connector.get[%s], code=%s", uris, request_response.common_rc);
 			printPrettyTrace(stderr);			
@@ -435,8 +443,12 @@ class Connector
         return request_response;
     }
 
-    public RequestResponse remove(bool need_auth, string user_uri, string[] uris, bool trace)
+    public RequestResponse remove(OptAuthorize op_auth, string user_uri, string[] uris, bool trace)
     {
+    	bool need_auth;
+	if (op_auth == OptAuthorize.YES)
+	    need_auth = true;
+
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
 

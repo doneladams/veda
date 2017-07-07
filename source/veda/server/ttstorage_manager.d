@@ -185,7 +185,7 @@ public long unload(P_MODULE storage_id, string queue_name)
     return count;
 }
 
-public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
+public ResultCode put(P_MODULE storage_id, OptAuthorize op_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
                       string event_id, long transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
@@ -193,7 +193,7 @@ public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Reso
 
     if (tid != Tid.init)
     {
-        send(tid, INDV_OP.PUT, need_auth, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, transaction_id, ignore_freeze, thisTid);
+        send(tid, INDV_OP.PUT, op_auth, user_uri, indv_uri, prev_state, new_state, update_counter, event_id, transaction_id, ignore_freeze, thisTid);
 
         receive((ResultCode _rc, Tid from)
                 {
@@ -206,7 +206,7 @@ public ResultCode put(P_MODULE storage_id, bool need_auth, string user_uri, Reso
     return rc;
 }
 
-public ResultCode remove(P_MODULE storage_id, bool need_auth, string user_uri, string uri, long transaction_id, bool ignore_freeze, out long op_id)
+public ResultCode remove(P_MODULE storage_id, OptAuthorize op_auth, string user_uri, string uri, long transaction_id, bool ignore_freeze, out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
@@ -394,7 +394,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.REMOVE)
                                 {
-			                        RequestResponse request_response = connector.remove(false, user_uri, [ uri ], false);
+			                        RequestResponse request_response = connector.remove(OptAuthorize.NO, user_uri, [ uri ], false);
                                     if (request_response.common_rc != ResultCode.OK)
 	                                    stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);
                                     else if (request_response.op_rc[0] != ResultCode.OK)
@@ -411,7 +411,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 return;
                             }
                         },
-                        (INDV_OP cmd, bool need_auth, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
+                        (INDV_OP cmd, OptAuthorize op_auth, string user_uri, string indv_uri, string prev_state, string new_state, long update_counter, string event_id,
                          long transaction_id, bool ignore_freeze, Tid tid_response_reciever)
                         {
                             ResultCode rc = ResultCode.Not_Ready;
@@ -453,7 +453,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
                                             string binobj = imm.serialize();
                                             
-					                        RequestResponse request_response = connector.put(need_auth, user_uri, [ binobj ]);
+					                        RequestResponse request_response = connector.put(op_auth, user_uri, [ binobj ]);
 												
 											set_subject_manager_op_id(op_id);
 	                                        op_id++;
@@ -463,14 +463,14 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             	rc = request_response.common_rc;
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                log.trace("ERR!, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
+                                                log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
                                             }
                                             else if (request_response.op_rc[0] != ResultCode.OK)
                                             {
                                             	rc = request_response.op_rc[0];
                                             	send(tid_response_reciever, rc, thisTid);												
 
-                                                log.trace("ERR!, ttstorage_manager: PUT, need_auth=%s, res=%s, %s", need_auth, rc, imm);
+                                                log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
                                             }
 										    else 
 											{                                            

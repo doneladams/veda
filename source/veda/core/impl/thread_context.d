@@ -311,7 +311,7 @@ class PThreadContext : Context
                     new_ticket.resources[ ticket__accessor ] ~= Resource(ticket.user_uri);
                     new_ticket.resources[ ticket__when ] ~= Resource(getNowAsString());
                     new_ticket.resources[ ticket__duration ] ~= Resource("90000000");
-                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", type,
+                    subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem", type,
                                                ticket.id, null, new_ticket.serialize(), -1, null, -1, false, op_id);
 
                     Individual systicket;
@@ -320,7 +320,7 @@ class PThreadContext : Context
                     systicket.resources[ rdf__type ] = type;
                     systicket.resources[ "ticket:id" ] ~= Resource(ticket.id);
 
-                    subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem", Resources.init,
+                    subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem", Resources.init,
                                                "systicket", null, systicket.serialize(), -1, null, -1, false, op_id);
 
                     log.trace("systicket [%s] was created", ticket.id);
@@ -332,7 +332,7 @@ class PThreadContext : Context
                     sys_account_permission.addResource("v-s:permissionObject", Resource(DataType.Uri, "v-s:AllResourcesGroup"));
                     sys_account_permission.addResource("v-s:permissionSubject", Resource(DataType.Uri, "cfg:VedaSystem"));
                     OpResult opres = this.put_individual(&ticket, sys_account_permission.uri, sys_account_permission, false, "srv", -1, false,
-                                                         false);
+                                                         OptAuthorize.NO);
 
                     if (opres.result == ResultCode.OK)
                         log.trace("permission [%s] was created", sys_account_permission);
@@ -434,7 +434,7 @@ class PThreadContext : Context
             log.trace("ERR! context.get_from_individual_storage[%s]: invalid user_uri=[%s]", uri, user_id);
 
         if (individuals_storage_r !is null)
-            res = individuals_storage_r.find(true, user_id, uri);
+            res = individuals_storage_r.find(OptAuthorize.YES, user_id, uri);
         else
         {
             res = get_from_individual_storage_thread(user_id, uri);
@@ -582,7 +582,7 @@ class PThreadContext : Context
             // ticket_storage_module.put(P_MODULE.ticket_manager, false, null, type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false,
             //   op_id);
 
-            ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, false, "cfg:VedaSystem",
+            ResultCode rc = subject_storage_module.put(P_MODULE.subject_manager, OptAuthorize.NO, "cfg:VedaSystem",
                                                        type, new_ticket.uri, null, ss_as_binobj, -1, null, -1, false, op_id);
             ticket.result = rc;
 
@@ -720,11 +720,11 @@ class PThreadContext : Context
                     i_usesCredential.uri = user.uri ~ "-crdt";
                     i_usesCredential.addResource("rdf:type", Resource(DataType.Uri, "v-s:Credential"));
                     i_usesCredential.addResource("v-s:password", Resource(DataType.String, pass));
-                    OpResult op_res = this.put_individual(&sticket, i_usesCredential.uri, i_usesCredential, false, "", -1, false, true);
+                    OpResult op_res = this.put_individual(&sticket, i_usesCredential.uri, i_usesCredential, false, "", -1, false, OptAuthorize.NO);
                     log.trace("authenticate: create v-s:Credential[%s], res=%s", i_usesCredential, op_res);
                     user.addResource("v-s:usesCredential", Resource(DataType.Uri, i_usesCredential.uri));
                     user.removeResource("v-s:password");
-                    op_res = this.put_individual(&sticket, user.uri, user, false, "", -1, false, true);
+                    op_res = this.put_individual(&sticket, user.uri, user, false, "", -1, false, OptAuthorize.NO);
                     log.trace("authenticate: update user[%s], res=%s", user, op_res);
                 }
 
@@ -1180,7 +1180,7 @@ class PThreadContext : Context
                 }
 
 
-                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, transaction_id, ignore_freeze, true);
+                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, transaction_id, ignore_freeze, OptAuthorize.YES);
 
                 if (oprc.result != ResultCode.OK)
                 {
@@ -1189,7 +1189,7 @@ class PThreadContext : Context
                 }
                 else
                 {
-                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, false, ticket.user_uri, uri, transaction_id, ignore_freeze,
+                    res.result = subject_storage_module.remove(P_MODULE.subject_manager, OptAuthorize.NO, ticket.user_uri, uri, transaction_id, ignore_freeze,
                                                                res.op_id);
                 }
 
@@ -1230,7 +1230,7 @@ class PThreadContext : Context
 
     private OpResult store_individual(INDV_OP cmd, Ticket *ticket, Individual *indv, bool prepare_events, string event_id, long transaction_id,
                                       bool ignore_freeze,
-                                      bool is_api_request)
+                                      OptAuthorize op_auth)
     {
         //if (trace_msg[ T_API_230 ] == 1)
         //log.trace("[%s] store_individual: %s %s %s", name, text(cmd), *ticket, *indv);
@@ -1384,7 +1384,7 @@ class PThreadContext : Context
                 }
 
                 res.result =
-                    subject_storage_module.put(P_MODULE.subject_manager, is_api_request, ticket.user_uri, _types, indv.uri, prev_state, new_state,
+                    subject_storage_module.put(P_MODULE.subject_manager, op_auth, ticket.user_uri, _types, indv.uri, prev_state, new_state,
                                                update_counter, event_id, transaction_id, ignore_freeze, res.op_id);
                 //log.trace("res.result=%s", res.result);
 
@@ -1433,37 +1433,37 @@ class PThreadContext : Context
     }
 
     public OpResult put_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
-                                   bool ignore_freeze = false, bool is_api_request = true)
+                                   bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.PUT, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, is_api_request);
+        return store_individual(INDV_OP.PUT, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
     public OpResult remove_individual(Ticket *ticket, string uri, bool prepareEvents, string event_id, long transaction_id, bool ignore_freeze,
-                                      bool is_api_request = true)
+                                      OptAuthorize op_auth = OptAuthorize.YES)
     {
         return _remove_individual(ticket, uri, prepareEvents, event_id, transaction_id, ignore_freeze);
     }
 
     public OpResult add_to_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
-                                      bool ignore_freeze = false, bool is_api_request = true)
+                                      bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.ADD_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, is_api_request);
+        return store_individual(INDV_OP.ADD_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
     public OpResult set_in_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
-                                      bool ignore_freeze = false, bool is_api_request = true)
+                                      bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.SET_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, is_api_request);
+        return store_individual(INDV_OP.SET_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
     public OpResult remove_from_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id,
-                                           long transaction_id, bool ignore_freeze = false, bool is_api_request = true)
+                                           long transaction_id, bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.REMOVE_FROM, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, is_api_request);
+        return store_individual(INDV_OP.REMOVE_FROM, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
     public void set_trace(int idx, bool state)
@@ -1600,7 +1600,7 @@ class PThreadContext : Context
         version (isServer)
         {
             //res = subject_storage_module.find(P_MODULE.subject_manager, uri);
-            res = individuals_storage_r.find(false, user_uri, uri);
+            res = individuals_storage_r.find(OptAuthorize.NO, user_uri, uri);
         }
         return res;
     }
@@ -1805,7 +1805,7 @@ class PThreadContext : Context
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
                                 this.put_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
-                                                    true);
+                                                    OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1820,7 +1820,7 @@ class PThreadContext : Context
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
                                 this.add_to_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
-                                                       true);
+                                                       OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1835,7 +1835,7 @@ class PThreadContext : Context
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
                                 this.set_in_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
-                                                       true);
+                                                       OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1850,7 +1850,7 @@ class PThreadContext : Context
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
                                 this.remove_from_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
-                                                            true);
+                                                            OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
                                 transaction_id = ires.op_id;
@@ -1859,7 +1859,7 @@ class PThreadContext : Context
                     else if (sfn == "remove")
                     {
                         JSONValue uri  = jsn[ "uri" ];
-                        OpResult  ires = this.remove_individual(ticket, uri.str, prepare_events, event_id.str, transaction_id, false, true);
+                        OpResult  ires = this.remove_individual(ticket, uri.str, prepare_events, event_id.str, transaction_id, false, OptAuthorize.YES);
                         rc ~= ires;
                         if (transaction_id <= 0)
                             transaction_id = ires.op_id;
