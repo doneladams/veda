@@ -19,6 +19,7 @@ env:
 before_install:
   - mkdir logs    
   - ./control-install.sh&>logs/install.log    
+  - ./send-to-chunk-io.sh
   - npm install selenium-webdriver@2.47.0
   - npm install -g grunt-cli
   - npm install grunt-contrib-qunit --save-dev
