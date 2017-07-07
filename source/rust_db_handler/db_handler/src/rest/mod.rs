@@ -194,6 +194,12 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 return;
             }
         }
+
+        if std::str::from_utf8(&new_state.uri[..]).unwrap() == "d:membership_owl__cfg_OntologyGroup" ||
+            std::str::from_utf8(&new_state.uri[..]).unwrap() == "d:membership_owl__cfg_TTLResourcesGroup" {
+                writeln!(stderr(), "FOUND INDIVIDUAL {0}", 
+                    std::str::from_utf8(&new_state.uri[..]).unwrap());
+            }
         
         let rdf_types: &Vec<put_routine::Resource>;
         match new_state.resources.get(&"rdf:type".to_string()) {

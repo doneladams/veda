@@ -474,6 +474,9 @@ fn update_right_set(resource: &Vec<Resource>, in_set: &Vec<Resource>, is_deleted
     for i in 0 .. resource.len() {
         let mut new_right_set: HashMap<String, Right> = HashMap::new(); 
         let key: &str = std::str::from_utf8(&resource[i].str_data[..]).unwrap();
+        if key == "owl:" {
+            writeln!(stderr(), "update_right_set owl:");
+        }
         peek_from_tarantool(key, &mut new_right_set, space_id, index_id);
         ///Gets subjects uris and its access
         for j in 0 .. in_set.len() {
@@ -560,6 +563,12 @@ pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_reso
     }
 
     let mut delta: Vec<Resource> = Vec::with_capacity(MAX_VECTOR_SIZE);
+    for i in 0 .. new_resource.len() {
+        if std::str::from_utf8(&new_resource[i].str_data[..]).unwrap() == "owl:" {
+            writeln!(stderr(), "PREPARE OWL FROM NEW STATE {0}", 
+                std::str::from_utf8(&new_state.uri[..]).unwrap());
+        }
+    }
     /// Compute delta, store new and delete things that disappeared
     get_delta(prev_resource, new_resource, &mut delta);
     update_right_set(new_resource, new_in_set, is_deleted, space_id, index_id, access);
