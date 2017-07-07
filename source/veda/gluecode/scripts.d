@@ -112,8 +112,8 @@ class ScriptProcess : VedaModule
 
         set_g_super_classes(indv_types, context.get_onto());
 
-        //log.trace("-------------------");
-        log.trace ("indv=%s, indv_types=%s", individual_id, indv_types);
+        log.trace("-------------------");
+        log.trace ("indv=%s, indv_types=%s, event_scripts_order.length=%d", individual_id, indv_types, event_scripts_order.length());
         //log.trace ("queue of scripts:%s", event_scripts_order.array());
 
         foreach (_script_id; event_scripts_order)
