@@ -248,6 +248,9 @@ class ScriptProcess : VedaModule
 
         Ticket       sticket = context.sys_ticket();
         Individual[] res;
+        
+        vql.reopen_db();
+        
         vql.get(&sticket,
                 "return { 'v-s:script'} filter { 'rdf:type' === 'v-s:Event'}",
                 res, OptAuthorize.NO, false);
