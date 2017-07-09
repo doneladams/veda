@@ -27,7 +27,7 @@ void prepare_script(ScriptsWorkPlace wpl, Individual ss, ScriptVM script_vm, str
                     bool trace)
 {
     //if (trace)
-    log.trace("prepare_script uri=%s, scripts_order.length=%d", ss.uri, wpl.scripts_order.length);
+    //log.trace("prepare_script uri=%s, scripts_order.length=%d", ss.uri, wpl.scripts_order.length);
 
     try
     {

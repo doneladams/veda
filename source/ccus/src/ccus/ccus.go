@@ -172,7 +172,7 @@ func queue_reader(ch_collector_update chan updateInfo) {
 				u_count = 0
 			}
 
-			log.Printf("uri=[%s] op_id=[%v] u_count=[%v]", uri, op_id, individual["u_count"].([]interface{}))
+			//log.Printf("uri=[%s] op_id=[%v] u_count=[%v]", uri, op_id, individual["u_count"].([]interface{}))
 
 			new_info := updateInfo{uri, op_id, u_count, nil}
 

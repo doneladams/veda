@@ -202,7 +202,7 @@ public ResultCode commit(long transaction_id)
             return rc;
         }
 
-        log.trace("COMMIT : %s", item.indv.uri);
+        //log.trace("COMMIT : %s", item.indv.uri);
     }
 
     transaction_buff  = transaction_buff.init;
@@ -436,7 +436,7 @@ extern (C++)_Buff * get_env_str_var(const char *_var_name, int _var_name_length)
         }
         else if (var_name == "$ticket")
         {
-            log.trace("$ticket=%s %s", g_ticket, g_ticket.data[ 0..g_ticket.length ]);
+            //log.trace("$ticket=%s %s", g_ticket, g_ticket.data[ 0..g_ticket.length ]);
             return &g_ticket;
         }
         else if (var_name == "$super_classes")

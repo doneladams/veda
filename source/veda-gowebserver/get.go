@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-
 	"github.com/valyala/fasthttp"
 )
 
@@ -14,7 +13,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
-	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
+//	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
 
 	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
@@ -32,7 +31,6 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	log.Println("\t@2")
 	individual, ok := ontologyCache[uri]
 	if ok {
 		individualJSON, err := json.Marshal(individual)
@@ -46,35 +44,27 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(Ok))
 		return
 	}
-	log.Println("\t@3")
 
 	uris := make([]string, 1)
 	uris[0] = uri
 	rr := conn.Get(true, ticket.UserURI, uris, false)
 
-	log.Println("\t@4 rr=", rr)
-
 	if rr.CommonRC != Ok {
-	log.Println("\t@5")
 		log.Println("@ERR GET_INDIVIDUAL: GET INDIVIDUAL COMMON ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
 		return
 	} else if rr.OpRC[0] != Ok {
-	log.Println("\t@6")
 		ctx.Write(codeToJsonException(rr.OpRC[0]))
 		ctx.Response.SetStatusCode(int(rr.OpRC[0]))
-	log.Println("\t@6.1")
 		return
 	} else {
 
-	log.Println("\t@7")
 		individual = MsgpackToMap(rr.Data[0])
 		if individual == nil {
 			log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
-	log.Println("\t@8")
 
 		individualJSON, err := json.Marshal(individual)
 		if err != nil {
@@ -82,13 +72,10 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 			ctx.Response.SetStatusCode(int(InternalServerError))
 			return
 		}
-	log.Println("\t@9")
 
 		tryStoreInOntologyCache(individual)
 		ctx.Write(individualJSON)
 	}
-
-	log.Println("\t@e")
 
 	ctx.Response.SetStatusCode(int(Ok))
 	return

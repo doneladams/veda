@@ -229,7 +229,7 @@ public class IndexerContext
                 indexer.set_document(doc, &err);
 
                 //if (trace_msg[ 220 ] == 1)
-                log.trace("index document:[%s]", indv.uri);
+                //log.trace("index document:[%s]", indv.uri);
 
                 Resources types = indv.getResources(rdf__type);
 

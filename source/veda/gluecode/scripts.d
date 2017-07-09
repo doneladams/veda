@@ -112,8 +112,8 @@ class ScriptProcess : VedaModule
 
         set_g_super_classes(indv_types, context.get_onto());
 
-        log.trace("-------------------");
-        log.trace("indv=%s, indv_types=%s, event_scripts_order.length=%d", individual_id, indv_types, wpl.scripts_order.length);
+        //log.trace("-------------------");
+        //log.trace("indv=%s, indv_types=%s, event_scripts_order.length=%d", individual_id, indv_types, wpl.scripts_order.length);
         //log.trace ("queue of scripts:%s", event_scripts_order.array());
 
         foreach (_script_id; wpl.scripts_order)
@@ -261,7 +261,7 @@ class ScriptProcess : VedaModule
             if (mi.committed_op_id >= si.op_id - 1)
                 break;
 
-            core.thread.Thread.sleep(dur!("msecs")(10));
+            core.thread.Thread.sleep(dur!("msecs")(30));
         }
 
         vql.reopen_db();
