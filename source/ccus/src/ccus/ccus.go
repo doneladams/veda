@@ -158,39 +158,25 @@ func queue_reader(ch_collector_update chan updateInfo) {
 				break
 			}
 
-			var individual *Individual = NewIndividual()
-
-			err := msgpack2individual(individual, data)
-			if err != nil {
-				log.Println(err)
-				log.Println(data)
+			individual := MsgpackToMap(data)
+			if individual == nil {
+				log.Println("@ERR GET_INDIVIDUAL: DECODING INDIVIDUAL")
 				continue
 			}
 
-			uri := individual.resources["uri"][0].data.(string)
-			u_count, _ := individual.getFirstInt("u_count")
-			op_id := individual.resources["op_id"][0].data.(uint64)
-			if uri != "" {
-				new_info := updateInfo{uri, int(op_id), int(u_count), nil}
-				ch_collector_update <- new_info
-			} else {
-				log.Printf("BROKEN INDIVID %v", individual)
+			uri, _ := getFirstString(individual, "uri")
+			op_id, _ := getFirstInt(individual, "op_id")
+			u_count, _ := getFirstInt(individual, "u_count")
+
+			if u_count < 0 {
+				u_count = 0
 			}
-			/*fmt.Println(data)
-			log.Printf("INDIVIDUAL=[%v]", individual)
-			uri := individual.getFirstResource("uri")
-			log.Printf("URI: %s", uri)
-			u_count, ok1 := individual.getFirstInt("u_count")
-			log.Printf("UCOUNT=%v ok1=%v", u_count, ok1)
-			op_id, ok2 := individual.getFirstInt("op_id")
-			log.Printf("OP_ID=%v ok2=%v", op_id, ok2)*/
 
-			/*if ok1 == true && ok2 == true {
-				//log.Printf("@3 uri=[%s], u_count=[%d], op_id=[%d]", uri.data.(string), u_count, op_id)
+			log.Printf("uri=[%s] op_id=[%v] u_count=[%v]", uri, op_id, individual["u_count"].([]interface{}))
 
-				new_info := updateInfo{uri.data.(string), op_id, u_count, nil}
-				ch_collector_update <- new_info
-			}*/
+			new_info := updateInfo{uri, op_id, u_count, nil}
+
+			ch_collector_update <- new_info
 
 			main_cs.commit_and_next(false)
 			count++
@@ -273,5 +259,41 @@ func main() {
 	log.Printf("Listen and serve: %s", WS_LISTEN_ADDR)
 	if err := http.ListenAndServe(WS_LISTEN_ADDR, nil); err != nil {
 		log.Fatal("ERR! listen and serve:", err)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func getFirstInt(indv map[string]interface{}, predicate string) (int, bool) {
+	rss, err := indv[predicate].([]interface{})
+	if err != true {
+		return 0, false
+	}
+
+	_data := rss[0].(map[string]interface{})["data"]
+
+	switch _data.(type) {
+	case int64:
+		return int(_data.(int64)), true
+	case uint64:
+		return int(_data.(uint64)), true
+	default:
+		return 0, false
+	}
+}
+
+func getFirstString(indv map[string]interface{}, predicate string) (string, bool) {
+	rss, err := indv[predicate].([]interface{})
+	if err != true {
+		return "", false
+	}
+
+	_data := rss[0].(map[string]interface{})["data"]
+
+	switch _data.(type) {
+	case string:
+		return _data.(string), true
+	default:
+		return "", false
 	}
 }
