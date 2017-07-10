@@ -177,10 +177,11 @@ class ScriptProcess : VedaModule
 
 
                     //*(cast(char*)script_vm) = 0;
-                }
-                catch (Exception ex)
+                    log.trace("end: %s", script_id);
+	            }
+                catch (Throwable ex)
                 {
-                    log.trace("WARN! fail execute event script : %s %s", script_id, ex.msg);
+                    log.trace("WARN! fail execute event script : %s %s %s", script_id, ex.msg, ex.info);
                 }
             }
         }
