@@ -6,6 +6,8 @@ import (
 
 	"encoding/json"
 
+	"strings"
+
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
@@ -42,6 +44,7 @@ var conn Connector
 var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
+var attachmentsPath = "./data/files/"
 
 func codeToJsonException(code ResultCode) []byte {
 	exception := make(map[string]interface{})
@@ -72,7 +75,13 @@ func codeToJsonException(code ResultCode) []byte {
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	//        log.Println("\t@ctx.Path()=", string(ctx.Path()[:]))
+	routeParts := strings.Split(string(ctx.Path()[:]), "/")
+	if len(routeParts) >= 2 && routeParts[1] == "files" {
+		log.Printf("len=%v arr=%v\n", len(routeParts), routeParts)
+		files(ctx, routeParts)
+		return
+	}
+
 	switch string(ctx.Path()[:]) {
 	case "/get_individual":
 		getIndividual(ctx)
