@@ -1,15 +1,18 @@
 package main
 
 import (
+	"io"
 	"log"
 	"unicode/utf8"
+
+	"strings"
+
+	"os"
 
 	"github.com/valyala/fasthttp"
 )
 
 func uploadFile(ctx *fasthttp.RequestCtx) {
-	log.Println("@UPLOAD")
-	// log.Println("@CONTENT", string(ctx.Request.Body()))
 	form, err := ctx.Request.MultipartForm()
 	if err != nil {
 		log.Println("@ERR REDING FORM: UPLOAD FILE: ", err)
@@ -17,18 +20,36 @@ func uploadFile(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	path := form.Value["path"][0]
-	uri := form.Value["uri"][0]
-	log.Printf("path %s uri %s\n", path, uri)
+	pathParts := strings.Split(form.Value["path"][0], "/")
+	attachmentsPathCurr := attachmentsPath
+	for i := 1; i < len(pathParts); i++ {
+		attachmentsPathCurr += "/" + pathParts[i]
+		os.Mkdir(attachmentsPathCurr, os.ModePerm)
+	}
 
-	// formFile, err := ctx.FormFile()
-	log.Println("@FORM FILES ", form.File["file"][0].Filename)
-	/*if err != nil {
-		log.Println("@ERR REDING FORM FILE: UPLOAD FILE: ", err)
+	destFile, err := os.OpenFile(attachmentsPathCurr+"/"+form.Value["uri"][0], os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Println("@ERR CREATING DESTIONTION FILE ON UPLOAD: ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
-	}*/
-	// log.Println("@FILE ", formFile.Filename)
+	}
+
+	defer destFile.Close()
+	srcFile, err := form.File["file"][0].Open()
+	if err != nil {
+		log.Println("@ERR OPENING FORM FILE ON UPLOAD: ", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+	defer srcFile.Close()
+	_, err = io.Copy(destFile, srcFile)
+	if err != nil {
+		log.Println("@ERR ON COPYING FILE ON UPLOAD: ", err)
+		ctx.Response.SetStatusCode(int(InternalServerError))
+		return
+	}
+
+	ctx.Response.SetStatusCode(int(Ok))
 }
 
 func files(ctx *fasthttp.RequestCtx, routeParts []string) {
@@ -43,6 +64,7 @@ func files(ctx *fasthttp.RequestCtx, routeParts []string) {
 	}
 
 	if utf8.RuneCountInString(uri) > 3 && ticketKey != "" {
+		log.Println("@DOWNLOAD")
 		rc, ticket := getTicket(ticketKey)
 		if rc != Ok {
 			ctx.Response.SetStatusCode(int(rc))
@@ -60,10 +82,23 @@ func files(ctx *fasthttp.RequestCtx, routeParts []string) {
 		}
 
 		fileInfo := MsgpackToMap(rr.Data[0])
+		log.Println(fileInfo)
 		filePath := fileInfo["v-s:filePath"].([]interface{})[0].(map[string]interface{})
 		fileURI := fileInfo["v-s:fileUri"].([]interface{})[0].(map[string]interface{})
+		fileName := fileInfo["v-s:fileName"].([]interface{})[0].(map[string]interface{})
 
-		log.Printf("uri=%v path=%v", fileURI, filePath)
+		filePathStr := attachmentsPath + filePath["data"].(string) + "/" + fileURI["data"].(string)
+
+		_, err := os.Stat(filePathStr)
+		if os.IsNotExist(err) {
+			ctx.Response.SetStatusCode(int(NotFound))
+			return
+		} else if err != nil {
+			log.Println("@ERR ON CHECK FILE EXISTANCE: ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+		ctx.Response.Header.Set("Content-Disposition", "attachment; filename="+fileName["data"].(string))
+		ctx.SendFile(filePathStr)
 	}
-
 }

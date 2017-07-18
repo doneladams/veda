@@ -46,6 +46,8 @@ var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
 var attachmentsPath = "./data/files/"
 
+// string BASE64_START_POS = "base64";
+
 func codeToJsonException(code ResultCode) []byte {
 	exception := make(map[string]interface{})
 
