@@ -9,17 +9,23 @@
     dub build
 
 Сборка модуля на rust:
+    cd ..
     ./build.sh db_handler
 
 Запуск tarantool:
     mkdir logs
     mkdir data
     mkdir data/tarantool
-    cp rust_db_handler/db_handler/target/release/libdb_handler.so data/tarantool/db_handler.so
-    tarantool ./rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
+
+    cp source/rust_db_handler/db_handler/target/release/libdb_handler.so data/tarantool/db_handler.so
+    tarantool ./source/rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
+
+***
+
+cd tools/lmdb_to_tarantool
 
 Запуск переливщика:
     ./lmdb_to_tarantool
 
-Запуск чтения:
+Запуск чтения данных из lmdb:
     ./lmdb_reader path_to_lmdb_base
