@@ -5,7 +5,8 @@ extern crate rmp_bind;
 extern crate serde_json;
 
 use std;
-use std::io::{ Cursor };
+use std::collections::HashMap;
+use std::io::{ Cursor, Write, stderr };
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 use rmp_bind:: { decode, encode };
@@ -66,10 +67,22 @@ fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
     }
 }
 
+fn access_to_string(access: u8) -> String {
+    format!("{0} {1} {2} {3}",
+        if access & ACCESS_CAN_CREATE > 0 {"C"} else {""},
+        if access & ACCESS_CAN_READ > 0 {"R"} else {""},
+        if access & ACCESS_CAN_UPDATE > 0 {"U"} else {""},
+        if access & ACCESS_CAN_DELETE > 0 {"D"} else {""})
+}
+
 /// Finds tree of groups for uri (object or subject)
-fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnection) {
+fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnection, 
+    str_number: &mut  u32, trace: bool) {
     let mut curr: i32 = 0;
     let mut gone_previous = false;
+
+    let mut indent = "\t".to_string();
+    let mut level = 0;
     
     /// Creates root group and saves it
     groups.push(Group::new());
@@ -131,8 +144,14 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             let mut found = false;
             /// Checks for cycle in tree with new node
             for i in 0 .. groups.len() {
-                if groups[i].id == next_group.id {
+                if next_group.access ==  groups[i].access && id == groups[i].id {
                     found = true;
+                    if (trace) {
+                        writeln!(stderr(), "{0} {1}({2})GROUP [{3}].access={4} SKIP, ALREADY ADDED",
+                            str_number, indent, level, id, 
+                            access_to_string(next_group.access)).unwrap();
+                        *str_number += 1;
+                    }
                     break;
                 }
             }
@@ -144,6 +163,11 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             next_group.parent = curr;
             /// Get msgpack buffer if exists and save to vector or just continue
             get_tuple(&id, &mut next_group.buf, conn.memberships_space_id, conn.memberships_index_id);
+            if (trace) {
+                writeln!(stderr(), "{0} {1}({2})GROUP[{3}] {4} -> {5}", str_number, indent, level,
+                    id, access_to_string(groups[curr as usize].access), next_group.access).unwrap();
+                *str_number += 1;
+            }
             groups.push(next_group);
             groups[curr as usize].position = postion;
             if groups[next as usize].buf.len() == 0 {
@@ -153,13 +177,43 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
 
             curr = groups.len() as i32 - 1;
             got_next = true;
+            if trace {
+                level += 1;
+                indent = indent.to_string() + "\t";
+            }
             break;
         }
 
         if !got_next {
             curr = groups[curr as usize].parent;
             gone_previous = true;
+            
+            if trace {
+                indent = std::str::from_utf8(&indent.as_bytes()[..level]).unwrap().to_string();
+                level -= 1;
+            }
         }
+    }
+}
+
+fn prepare_group(groups: &mut Vec<Group>, prepared_groups: &mut Vec<Group>) {
+     let mut data: HashMap<String, u8> = HashMap::new();
+
+     for i in 0 .. groups.len() {
+         let mut prev_access = 0;
+         match data.get(&groups[i].id) {
+             Some(a) => prev_access = *a,
+             _ => {}
+         }
+
+         data.insert(groups[i].id.clone(), prev_access | groups[i].access);
+     }
+
+     for (id, access) in &data {
+        let mut group = Group::new();
+        group.id = id.to_string();
+        group.access = *access;
+        prepared_groups.push(group);
     }
 }
 
@@ -168,14 +222,56 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     aggregate_rights: bool, aggregate_groups: bool) -> (u8, String) {
     let mut aggregated_value = "".to_string();
     let mut result_access:u8 = 0;
+    let mut object_groups_unprepared: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
+    let mut subject_groups_unprepared: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let mut object_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let mut subject_groups: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
     let access_arr: [u8; 4] = [ ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	    ACCESS_CAN_DELETE ];
 
-    /// Computes access of object and subject
-    get_groups(user_id, &mut subject_groups, &conn);
-    get_groups(res_uri, &mut object_groups, &conn);
+    let trace = true;
+    let mut str_number = 2;
+
+    if trace {
+        writeln!(stderr(), "0 authorize uri={0}, user={1}, request_access=C R U D", 
+            res_uri, user_id).unwrap();
+        writeln!(stderr(), "1 user_uri={0}", user_id).unwrap();
+    }
+
+    /*get_groups(user_id, &mut subject_groups , &conn);
+    get_groups(res_uri, &mut object_groups, &conn);*/
+    if trace {
+        writeln!(stderr(), "{0} READ OBJECT GROUPS", str_number).unwrap();
+        str_number += 1;
+    }
+    /// Gets groups of subject 
+    get_groups(res_uri, &mut object_groups_unprepared, &conn, &mut str_number, trace);
+    ///Join repeating object groups with different rights
+    prepare_group(&mut object_groups_unprepared, &mut object_groups);
+    
+    if trace {
+        let mut object_groups_string = "object_groups=".to_string();
+
+        for i in 0 .. object_groups.len() {
+            object_groups_string = format!("{0}({1}, {2}), ", object_groups_string, 
+                object_groups[i].id, access_to_string(object_groups[i].access));
+        }
+
+        writeln!(stderr(), "{0} {1}", str_number, object_groups_string).unwrap();
+        str_number += 1;
+
+        writeln!(stderr(), "{0}", str_number).unwrap();
+        str_number += 1;
+        writeln!(stderr(), "{0} READ SUBJECT GROUPS", str_number).unwrap();
+        str_number += 1;
+    }
+
+    /// Gets groups of object 
+    get_groups(user_id, &mut subject_groups_unprepared, &conn, &mut str_number, trace);
+    ///Join repeating subject groups with different rights
+    prepare_group(&mut subject_groups_unprepared, &mut subject_groups);
+    
+    
 
     /// Add extra group which is not stored in space
     let mut extra_group = Group::new();
