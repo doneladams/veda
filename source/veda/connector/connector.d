@@ -313,7 +313,8 @@ class Connector
         return request_response;
     }
 
-    public RequestResponse authorize(string user_uri, string[] uris, bool trace)
+    public RequestResponse authorize(string user_uri, string[] uris, bool trace, 
+        bool trace_auth = false)
     {
         ubyte[]         response;
         RequestResponse request_response = new RequestResponse();
@@ -340,8 +341,10 @@ class Connector
         if (trace)
             log.trace("connector.authorize PACK AUTHORIZE REQUEST user_uri=%s, uris=%s", user_uri, uris);
 
-        packer.beginArray(uris.length + 3);
-        packer.pack(INDV_OP.AUTHORIZE, false, user_uri);
+        packer.beginArray(uris.length + 4);
+        packer.pack(INDV_OP.AUTHORIZE, false, trace_auth, user_uri);
+       /+ packer.beginArray(uris.length + 3);
+        packer.pack(INDV_OP.AUTHORIZE, false, user_uri);+/
         for (int i = 0; i < uris.length; i++)
             packer.pack(uris[ i ]);
 

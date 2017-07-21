@@ -26,7 +26,7 @@ func getAclData(ctx *fasthttp.RequestCtx, operation uint) {
 		return
 	}
 
-	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, operation, false)
+	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, operation, false, true)
 	if rr.CommonRC != Ok {
 		log.Printf("@ERR GET_ACL_DATA %v: AUTH %v\n", operation, rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))

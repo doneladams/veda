@@ -47,15 +47,24 @@ func (conn *Connector) Connect(addr string) {
 	}
 }
 
-func doRequest(needAuth bool, userUri string, data []string, trace bool, op uint) (ResultCode, []byte) {
+func doRequest(needAuth bool, userUri string, data []string, trace, traceAuth bool, op uint) (ResultCode, []byte) {
 	var request bytes.Buffer
 	var response []byte
 
 	writer := bufio.NewWriter(&request)
 	encoder := msgpack.NewEncoder(writer)
-	encoder.EncodeArrayLen(len(data) + 3)
+	if op == GetRightsOrigin || op == Authorize || op == GetMembership {
+		encoder.EncodeArrayLen(len(data) + 4)
+	} else {
+		encoder.EncodeArrayLen(len(data) + 3)
+	}
+	// encoder.EncodeArrayLen(len(data) + 3)
+
 	encoder.EncodeUint(op)
 	encoder.EncodeBool(needAuth)
+	if op == GetRightsOrigin || op == Authorize || op == GetMembership {
+		encoder.EncodeBool(traceAuth)
+	}
 	encoder.EncodeString(userUri)
 
 	for i := 0; i < len(data); i++ {
@@ -154,7 +163,7 @@ func (conn *Connector) Put(needAuth bool, userUri string, individuals []string, 
 			needAuth, userUri, individuals)
 	}
 
-	rcRequest, response := doRequest(needAuth, userUri, individuals, trace, Put)
+	rcRequest, response := doRequest(needAuth, userUri, individuals, trace, false, Put)
 	if rcRequest != Ok {
 		rr.CommonRC = rcRequest
 		return rr
@@ -200,7 +209,7 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 			needAuth, userUri, uris)
 	}
 
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, Get)
+	rcRequest, response := doRequest(needAuth, userUri, uris, trace, false, Get)
 	if rcRequest != Ok {
 		rr.CommonRC = rcRequest
 		return rr
@@ -235,7 +244,8 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 	return rr
 }
 
-func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, operation uint, trace bool) RequestResponse {
+func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, operation uint,
+	trace, traceAuth bool) RequestResponse {
 	var rr RequestResponse
 
 	if len(userUri) < 3 {
@@ -254,7 +264,7 @@ func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, o
 			needAuth, userUri, uris)
 	}
 
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, operation)
+	rcRequest, response := doRequest(needAuth, userUri, uris, trace, traceAuth, operation)
 	if rcRequest != Ok {
 		rr.CommonRC = rcRequest
 		return rr
@@ -298,7 +308,7 @@ func (conn *Connector) GetTicket(ticketIDs []string, trace bool) RequestResponse
 		log.Printf("@CONNECTOR GET TICKET: PACK GET REQUEST ticket_ids=%v\n", ticketIDs)
 	}
 
-	rcRequest, response := doRequest(false, "cfg:VedaSystem", ticketIDs, trace, GetTicket)
+	rcRequest, response := doRequest(false, "cfg:VedaSystem", ticketIDs, trace, false, GetTicket)
 	if rcRequest != Ok {
 		rr.CommonRC = rcRequest
 		return rr

@@ -220,7 +220,7 @@ fn prepare_group(groups: &mut Vec<Group>, prepared_groups: &mut Vec<Group>) {
 
 /// Function to compute access
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection, 
-    aggregate_rights: bool, aggregate_groups: bool) -> (u8, String) {
+    aggregate_rights: bool, aggregate_groups: bool, trace: bool) -> (u8, String) {
     let mut aggregated_value = "".to_string();
     let mut result_access:u8 = 0;
     let mut object_groups_unprepared: Vec<Group> = Vec::with_capacity(MAX_VECTOR_SIZE);
@@ -230,7 +230,6 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     let access_arr: [u8; 4] = [ ACCESS_CAN_CREATE, ACCESS_CAN_READ, ACCESS_CAN_UPDATE, 
 	    ACCESS_CAN_DELETE ];
 
-    let trace = true;
     let mut str_number = 2;
 
     if trace {

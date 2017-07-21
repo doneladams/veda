@@ -39,7 +39,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, Authorize, false)
+	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, Authorize, false, false)
 
 	if rr.CommonRC != Ok {
 		log.Println("@ERR GET RIGHS: AUTH ", rr.CommonRC)

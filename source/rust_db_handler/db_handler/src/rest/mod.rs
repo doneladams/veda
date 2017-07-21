@@ -229,7 +229,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                             is_update = false;
                             let auth_result = authorization::compute_access(user_id, 
                                 std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn, 
-                                    false, false).0;
+                                    false, false, false).0;
 
                             if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
                                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -245,7 +245,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         if is_update && need_auth {
             let auth_result = authorization::compute_access(user_id, 
-                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn, false, false).0;
+                &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn, false, false, false).0;
 
             if auth_result & authorization::ACCESS_CAN_UPDATE == 0 {
                 encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -400,7 +400,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                     /// If exists and authorization is needed
                     /// computes and checks rights for user
                     let auth_result = authorization::compute_access(user_id, res_uri, &conn, false, 
-                        false).0;
+                        false, false).0;
 
                     if (auth_result & authorization::ACCESS_CAN_READ) == 0 {
                         encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
@@ -443,6 +443,13 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
         Ok(c) => conn = c
     }
 
+    let trace: bool;
+    ///Decodes trace_auth prametr
+    match decode::decode_bool(cursor) {
+        Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
+        Ok(t) => trace = t
+    }
+
     let mut user_id_buf = Vec::default();
     let user_id: &str;
     ///Decodes user_id to authorization
@@ -452,11 +459,11 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
     }
 
     ///Encodes answer's msgpack array
-    encode::encode_array(resp_msg, ((arr_size - 3) * 3 + 1) as u32);
+    encode::encode_array(resp_msg, ((arr_size - 4) * 3 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
     ///For each resource's uri performs authorization
-    for _ in 3 .. arr_size {
+    for _ in 4 .. arr_size {
      let mut res_uri_buf = Vec::default();    
         let res_uri: &str;
         let mut request = Vec::new();
@@ -485,7 +492,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
 
         /// Computes access
         let auth_result = authorization::compute_access(user_id, res_uri, &conn, aggregate_rights, 
-            aggregate_groups);
+            aggregate_groups, trace);
         encode::encode_uint(resp_msg, Codes::Ok as u64);
         encode::encode_uint(resp_msg, auth_result.0 as u64);
         if !(aggregate_rights || aggregate_groups) {
@@ -539,7 +546,8 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
 
             if need_auth {
                 /// Does authorization if needed
-                let auth_result = authorization::compute_access(user_id, res_uri, &conn, false, false).0;
+                let auth_result = authorization::compute_access(user_id, res_uri, &conn, false, 
+                false, false).0;
 
                 if (auth_result & authorization::ACCESS_CAN_DELETE) == 0 {
                     encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
