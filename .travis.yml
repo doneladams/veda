@@ -45,9 +45,9 @@ before_script:
 
 # Run API & integration test
 script:
-  - grunt test --timeout=30000 --stack --verbose
+  - grunt test --stack --verbose
 #  - grunt coveralls
-  - node ./qa/testAPI.js
+#  - node ./qa/testAPI.js
 #  - node ./qa/testSendGet.js
   - node ./qa/testLogin.js
   - node ./qa/testDrafts.js
