@@ -229,7 +229,7 @@ veda.Module(function Backend(veda) { "use strict";
 
   window.wait_module = function (module_id, op_id) {
     var timeout = 1;
-    if (module_id = acl_manager)
+    if (module_id == acl_manager)
 	return;
     var op_id_from_module;
     for (var i = 0; i < 100; i++) {
