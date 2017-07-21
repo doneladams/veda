@@ -23,6 +23,7 @@ const (
 	TicketExpired       ResultCode = 471
 	NoContent           ResultCode = 204
 	SizeTooLarge        ResultCode = 1118
+	UnprocessableEntity ResultCode = 422
 )
 
 type ticket struct {
@@ -68,6 +69,8 @@ func codeToJsonException(code ResultCode) []byte {
 		exception["statusMessage"] = "NoContent"
 	case SizeTooLarge:
 		exception["statusMessage"] = "SizeToLarge"
+	case UnprocessableEntity:
+		exception["statusMessage"] = "UnprocessableEntity"
 	default:
 		exception["statusMessage"] = "UnknownError"
 	}

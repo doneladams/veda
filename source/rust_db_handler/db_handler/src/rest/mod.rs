@@ -26,7 +26,8 @@ pub enum Codes {
     TicketExpired = 471,
     NotAuthorized = 472,
     NotFound = 404,
-    InternalServerError = 500
+    InternalServerError = 500,
+    UnprocessableEntity = 422
 }
 
 #[derive(Default)]
@@ -420,7 +421,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 encode::encode_string_bytes(resp_msg, &tuple_buf);
             } else if count == 0 {
-                encode::encode_uint(resp_msg, Codes::NotFound as u64);
+                encode::encode_uint(resp_msg, Codes::UnprocessableEntity as u64);
                 encode::encode_nil(resp_msg);
             } else if count < 0 {
                 writeln!(stderr(), "@ERR ON COUNT {0}", res_uri).unwrap();

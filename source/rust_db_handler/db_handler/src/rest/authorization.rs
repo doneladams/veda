@@ -165,7 +165,8 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             get_tuple(&id, &mut next_group.buf, conn.memberships_space_id, conn.memberships_index_id);
             if (trace) {
                 writeln!(stderr(), "{0} {1}({2})GROUP[{3}] {4} -> {5}", str_number, indent, level,
-                    id, access_to_string(groups[curr as usize].access), next_group.access).unwrap();
+                    id, access_to_string(groups[curr as usize].access), 
+                    access_to_string(next_group.access)).unwrap();
                 *str_number += 1;
             }
             groups.push(next_group);
@@ -271,7 +272,20 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     ///Join repeating subject groups with different rights
     prepare_group(&mut subject_groups_unprepared, &mut subject_groups);
     
-    
+    if trace {
+        let mut subject_groups_string = "subject_groups=".to_string();
+
+        for i in 0 .. subject_groups.len() {
+            subject_groups_string = format!("{0}({1}, {2}), ", subject_groups_string, 
+                subject_groups[i].id, access_to_string(subject_groups[i].access));
+        }
+
+        writeln!(stderr(), "{0} {1}", str_number, subject_groups_string).unwrap();
+        str_number += 1;
+
+        writeln!(stderr(), "{0}", str_number).unwrap();
+        str_number += 1;
+    }
 
     /// Add extra group which is not stored in space
     let mut extra_group = Group::new();
@@ -384,6 +398,12 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             "v-s:resource":[{"type":"Uri","data": res_uri}],
             "v-s:memberOf": jsons
         }).to_string();
+    }
+
+    if trace {
+        // authorize test13:8b78wyvvz543obosoaj4ir6u, request=C R U D , answer=[C R U D ]
+        writeln!(stderr(), "{0} authorize {1}, request=C R U D, answer=[{2}]", str_number, res_uri,
+            access_to_string(result_access)).unwrap();
     }
 
     return (result_access, aggregated_value);
