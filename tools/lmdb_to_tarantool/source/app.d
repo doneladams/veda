@@ -1,6 +1,6 @@
 import std.stdio, std.socket;
 import individual;
-import connector, type, resource, requestresponse;
+import connector, type, resource, requestresponse, queue;
 
 private string recv(Socket socket)
 {
@@ -28,6 +28,14 @@ void main()
     listener.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
     listener.listen(65535);
 
+
+    Queue uris_queue;
+	const string   uris_db_path        = "./data/uris";
+
+    uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW);
+    stderr.writefln("open queue [%s]", uris_queue);
+    uris_queue.open();
+
     try
     {
         while (true)
@@ -36,6 +44,9 @@ void main()
 			string cborv = recv(socket);
 			Individual individual;
 			individual.deserialize(cborv);
+			
+			uris_queue.push(individual.uri);
+			
             string new_state = individual.serialize_msgpack();
             Individual big_individual;
             big_individual.addResource("uri", Resource(DataType.Uri, "1"));
@@ -52,6 +63,7 @@ void main()
                 stderr.writeln(new_state);
                 break;
             }
+            
 			socket.close();
         }
     }
@@ -60,5 +72,11 @@ void main()
         //printPrettyTrace(stderr);
         stderr.writefln("@ERR %s", ex.msg);
         listener.close();
-    }
+
+        if (uris_queue !is null)
+        {
+            uris_queue.close();
+            uris_queue = null;
+        }   
+	     }
 }
