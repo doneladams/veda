@@ -43,7 +43,7 @@ impl Group {
 }
 
 /// Get tuple with key form Tarantool if exists
-fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32){
+fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32) {
     let mut request = Vec::new();
     encode::encode_array(&mut request, 1);
     encode::encode_string(&mut request, key);
@@ -77,7 +77,7 @@ fn access_to_string(access: u8) -> String {
 
 /// Finds tree of groups for uri (object or subject)
 fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnection, 
-    str_number: &mut  u32, trace: bool) {
+    str_number: &mut  u32, trace: bool, trace_vec: &mut Vec<u8>) {
     let mut curr: i32 = 0;
     let mut gone_previous = false;
 
@@ -147,7 +147,7 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                 if next_group.access ==  groups[i].access && id == groups[i].id {
                     found = true;
                     if (trace) {
-                        writeln!(stderr(), "{0} {1}({2})GROUP [{3}].access={4} SKIP, ALREADY ADDED",
+                        writeln!(trace_vec, "{0} {1}({2})GROUP [{3}].access={4} SKIP, ALREADY ADDED",
                             str_number, indent, level, id, 
                             access_to_string(next_group.access)).unwrap();
                         *str_number += 1;
@@ -164,7 +164,7 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             /// Get msgpack buffer if exists and save to vector or just continue
             get_tuple(&id, &mut next_group.buf, conn.memberships_space_id, conn.memberships_index_id);
             if (trace) {
-                writeln!(stderr(), "{0} {1}({2})GROUP[{3}] {4} -> {5}", str_number, indent, level,
+                writeln!(trace_vec, "{0} {1}({2})GROUP[{3}] {4} -> {5}", str_number, indent, level,
                     id, access_to_string(groups[curr as usize].access), 
                     access_to_string(next_group.access)).unwrap();
                 *str_number += 1;
@@ -231,21 +231,25 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
 	    ACCESS_CAN_DELETE ];
 
     let mut str_number = 2;
+    let mut trace_vec = Vec::default();
+    if trace {
+        trace_vec = Vec::with_capacity(131072);
+    }
 
     if trace {
-        writeln!(stderr(), "0 authorize uri={0}, user={1}, request_access=C R U D", 
+        writeln!(&mut trace_vec, "0 authorize uri={0}, user={1}, request_access=C R U D", 
             res_uri, user_id).unwrap();
-        writeln!(stderr(), "1 user_uri={0}", user_id).unwrap();
+        writeln!(&mut trace_vec, "1 user_uri={0}", user_id).unwrap();
     }
 
     /*get_groups(user_id, &mut subject_groups , &conn);
     get_groups(res_uri, &mut object_groups, &conn);*/
     if trace {
-        writeln!(stderr(), "{0} READ OBJECT GROUPS", str_number).unwrap();
+        writeln!(&mut trace_vec, "{0} READ OBJECT GROUPS", str_number).unwrap();
         str_number += 1;
     }
     /// Gets groups of subject 
-    get_groups(res_uri, &mut object_groups_unprepared, &conn, &mut str_number, trace);
+    get_groups(res_uri, &mut object_groups_unprepared, &conn, &mut str_number, trace, &mut trace_vec);
     ///Join repeating object groups with different rights
     prepare_group(&mut object_groups_unprepared, &mut object_groups);
     
@@ -257,17 +261,18 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 object_groups[i].id, access_to_string(object_groups[i].access));
         }
 
-        writeln!(stderr(), "{0} {1}", str_number, object_groups_string).unwrap();
+        writeln!(&mut trace_vec, "{0} {1}", str_number, object_groups_string).unwrap();
         str_number += 1;
 
-        writeln!(stderr(), "{0}", str_number).unwrap();
+        writeln!(&mut trace_vec, "{0}", str_number).unwrap();
         str_number += 1;
-        writeln!(stderr(), "{0} READ SUBJECT GROUPS", str_number).unwrap();
+        writeln!(&mut trace_vec, "{0} READ SUBJECT GROUPS", str_number).unwrap();
         str_number += 1;
     }
 
     /// Gets groups of object 
-    get_groups(user_id, &mut subject_groups_unprepared, &conn, &mut str_number, trace);
+    get_groups(user_id, &mut subject_groups_unprepared, &conn, &mut str_number, trace, 
+        &mut trace_vec);
     ///Join repeating subject groups with different rights
     prepare_group(&mut subject_groups_unprepared, &mut subject_groups);
     
@@ -279,10 +284,10 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 subject_groups[i].id, access_to_string(subject_groups[i].access));
         }
 
-        writeln!(stderr(), "{0} {1}", str_number, subject_groups_string).unwrap();
+        writeln!(&mut trace_vec, "{0} {1}", str_number, subject_groups_string).unwrap();
         str_number += 1;
 
-        writeln!(stderr(), "{0}", str_number).unwrap();
+        writeln!(&mut trace_vec, "{0}", str_number).unwrap();
         str_number += 1;
     }
 
@@ -297,7 +302,13 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     for i in 0 .. object_groups.len() {
         let mut perm_buf: Vec<u8> = Vec::default();
         let object_access = object_groups[i].access;
-        /// Gets permission right set buffer
+        if trace {
+            writeln!(&mut trace_vec, "{0} look acl_key: [{1}, ({2})]", str_number, 
+                object_groups[i].id, access_to_string(object_groups[i].access)).unwrap();
+            str_number += 1;
+        }
+        
+        /// Gets permission right set buffer        
         get_tuple(&object_groups[i].id, &mut perm_buf, conn.permissions_space_id, conn.permissions_index_id);
         if perm_buf.len() == 0 {
             continue;
@@ -306,6 +317,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         let nperms = decode::decode_array(&mut cursor).unwrap();
         decode::decode_string(&mut cursor, &mut Vec::default()).unwrap();
         let mut j = 1;
+
         /// For each permission to object tries to find it in subjects
         while j < nperms {
             j += 2;
@@ -317,6 +329,13 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
 
             let mut perm_access = decode::decode_uint(&mut cursor).unwrap() as u8;
             perm_access = (((perm_access & 0xF0) >> 4) ^ 0x0F) & perm_access;
+
+            if trace {
+                writeln!(&mut trace_vec, "{0}\t permission [{1}, ({2})]", str_number, 
+                    perm_uri, access_to_string(perm_access)).unwrap();
+                    str_number += 1;
+            }
+
             let mut idx = 0;
             while idx < subject_groups.len() {
                 if perm_uri == subject_groups[idx].id {
@@ -326,10 +345,18 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             }
 
             if idx < subject_groups.len() {
+                
                 // If found, check access of subject in group to object
                 for k in 0 .. 4 {
                     if (access_arr[k] & object_access) > 0 {
                         result_access |= access_arr[k] & perm_access;
+                        if trace {
+                            if access_arr[k] & perm_access > 0 {
+                                writeln!(&mut trace_vec, "{0}\t\t add rigth ({1})", str_number,
+                                    access_to_string(access_arr[k] & perm_access)).unwrap();
+                                    str_number += 1;
+                            }
+                        }
                         if (access_arr[k] & perm_access) > 0 && aggregate_rights {
                             triplets.push((subject_groups[idx].id.clone(), object_groups[i].id.clone(), 
                                 access_arr[k]));
@@ -340,6 +367,14 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 
             }
         }
+    }
+
+    if trace {
+        writeln!(&mut trace_vec, "{0}", str_number).unwrap();
+        str_number += 1;
+        
+        writeln!(&mut trace_vec, "{0} authorize {1}, request=C R U D, answer=[{2}]", str_number, res_uri,
+            access_to_string(result_access)).unwrap();
     }
 
     if aggregate_rights {
@@ -381,7 +416,21 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                 });
             }
             
+            
             jsons.push(right_resource);
+        }
+
+        if trace {
+            let trace_json: serde_json::Value;
+            trace_json = json!({
+                "@":"_",
+                "rdf:type":[{"type":"Uri","data":"v-s:PermissionStatement"}],
+                "v-s:permissionSubject":[{"type":"Uri","data":"?"}],
+                "rdfs:comment":[{"lang":"NONE","type":"String","data": 
+                    std::str::from_utf8(&trace_vec[..]).unwrap()}]
+            });
+
+            jsons.push(trace_json);
         }
 
         aggregated_value = json!(jsons.as_slice()).to_string();
@@ -397,12 +446,6 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             "v-s:resource":[{"type":"Uri","data": res_uri}],
             "v-s:memberOf": jsons
         }).to_string();
-    }
-
-    if trace {
-        // authorize test13:8b78wyvvz543obosoaj4ir6u, request=C R U D , answer=[C R U D ]
-        writeln!(stderr(), "{0} authorize {1}, request=C R U D, answer=[{2}]", str_number, res_uri,
-            access_to_string(result_access)).unwrap();
     }
 
     return (result_access, aggregated_value);
