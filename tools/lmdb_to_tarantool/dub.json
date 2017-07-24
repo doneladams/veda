@@ -9,6 +9,9 @@
 	"sourcePaths": [
 		"source"
 	],
+	"sourceFiles": [
+		"source/liblmdb.a"
+	],
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2017, Vadim",
 	"license": "proprietary"
