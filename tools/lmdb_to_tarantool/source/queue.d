@@ -3,7 +3,7 @@ module queue;
 import std.conv, std.stdio, std.file, std.array, std.digest.crc, std.format;
 import type, tools;
 
-string queue_db_path = "queue";
+string queue_db_path = "./data/queue";
 
 enum QMessageType
 {
