@@ -6,7 +6,7 @@ DMD_VER=2.073.2
 DUB_VER=1.2.0
 GO_VER=go1.8.3
 
-TARANTOOL_VER=1.7.3
+TARANTOOL_VER=1.7.4
 MSGPUCK_VER=2.0
 
 SMD=$PWD
@@ -94,7 +94,12 @@ for i in "${LIB_NAME[@]}"; do
 
 done
 
-curl https://sh.rustup.rs -sSf | sh -s -- -y
+if ! rustc -V; then
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+else
+    rustup update stable
+fi
+
 rustc -V
 cargo -V
 
