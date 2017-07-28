@@ -266,8 +266,17 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 let mut request = Vec::new();
 
                 encode::encode_array(&mut request,2);
-                encode::encode_string_bytes(&mut request, &new_state.resources.
-                    get(&"v-s:login".to_string()).unwrap()[0].str_data);
+                let account_str;
+                match new_state.resources.get("v-s:login") {
+                    Some(vsl) => account_str = &vsl[0].str_data,
+                    None => {
+                        writeln!(stderr(), "@NO v-s:login FOUND {0} ", 
+                            std::str::from_utf8(&individual.uri[..]).unwrap());
+                        encode::encode_uint(resp_msg, Codes::BadRequest as u64);
+                        return;
+                    }
+                }
+                encode::encode_string_bytes(&mut request, account_str);
                 encode::encode_string_bytes(&mut request, &new_state.uri);
                 unsafe {
                     let request_len = request.len() as isize;
