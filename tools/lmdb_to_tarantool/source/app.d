@@ -1,4 +1,4 @@
-import std.stdio, std.socket;
+import std.stdio, std.socket, std.datetime, std.conv;
 import individual;
 import connector, type, resource, requestresponse, queue, lmdb_header;
 
@@ -29,6 +29,14 @@ void main(string[] args)
     uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW);
     stderr.writefln("open queue [%s]", uris_queue);
     uris_queue.open();
+
+    long count;
+
+    StopWatch sw_total;
+    StopWatch sw;
+
+    sw.start;
+    sw_total.start;
 
     try
     {
@@ -86,23 +94,33 @@ void main(string[] args)
                 systicket.addResource("ticket:id", Resource(DataType.Uri, data_str));
                 new_state = systicket.serialize_msgpack();
             }
-
             
-
             Individual big_individual;
             big_individual.addResource("uri", Resource(DataType.Uri, "1"));
             big_individual.uri = "1";
             big_individual.addResource("new_state", Resource(DataType.String, new_state));
+
+	    count++;	    
+
+	    if (count % 1000 == 0)
+	    {
+		sw.stop;
+    		long t = cast(long)sw.peek().seconds;
+		sw.reset;
+		sw.start;
+        	stderr.writefln("send to tarantool %d, batch %d seconds, total %d seconds", count, t, cast(long)sw_total.peek().seconds);
+	    }
+
             string bin = big_individual.serialize_msgpack();
             RequestResponse rr = connector.put(false, "cfg:VedaSystem", [bin]);
             if (rr.common_rc != ResultCode.OK) {
                 stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
                 stderr.writeln(new_state);
-                break;
+                continue;
             } else if (rr.op_rc[0] != ResultCode.OK) {
                 stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
                 stderr.writeln(new_state);
-                break;
+                continue;
             }  
         }
     }
