@@ -553,8 +553,17 @@ pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_reso
     }
 
     access = if access > 0 { access } else { authorization::DEFAULT_ACCESS };
-    let new_resource = new_state.resources.get(p_resource).unwrap();
-    let new_in_set = new_state.resources.get(p_in_set).unwrap();
+    let new_resource;
+    match new_state.resources.get(p_resource) {
+        Some(nr) => new_resource = nr,
+        None => return Err(format!("@ERR GETTING NEW_RESOURCE {0}", p_resource))
+    }
+    
+    let new_in_set;
+    match new_state.resources.get(p_in_set) {
+        Some(nis) => new_in_set = nis,
+        None => return Err(format!("@ERR GETTING NEW_IN_SET {0}", p_in_set))
+    }
     
     let mut prev_resource = &Vec::default();    
     match prev_state.resources.get(p_resource) {

@@ -326,7 +326,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:permissionObject", 
                     "v-s:permissionSubject", conn.permissions_space_id, conn.permissions_index_id) {
                     Err(err) => {
-                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err).unwrap();
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}: ", err).unwrap();
                         encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         return;
                     }
@@ -337,7 +337,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 match put_routine::prepare_right_set(&prev_state, &new_state, "v-s:resource", 
                     "v-s:memberOf", conn.memberships_space_id, conn.memberships_index_id) {
                     Err(err) => {
-                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}", err).unwrap();
+                        writeln!(stderr(), "@ERR PREPARE PEMISSION {0}: ", err).unwrap();
                         encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                         return;
                     }
