@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 #[macro_use]    
 extern crate serde_json;
+
+#[macro_use] extern crate juniper;
 /// This module represents handler for REST requests in Tarantool
 
 extern crate core;

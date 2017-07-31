@@ -713,3 +713,21 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         }
     }
 }
+
+graphql_object!(put_routine::Individual: () |&self| {
+    // Field resolver methods look almost like ordinary methods. The macro picks
+    // up arguments and return types for the introspection schema, and verifies
+    // it during compilation.
+    field get_individual(uri: String) -> &str {
+        std::str::from_utf8(&self.uri[..]).unwrap()
+    }
+});
+
+graphql_object!(TarantoolConnection: () as "Query" |&self| {
+    // Field resolver methods look almost like ordinary methods. The macro picks
+    // up arguments and return types for the introspection schema, and verifies
+    // it during compilation.
+    field get_individual(uri: String) -> put_routine::Individual {
+        put_routine::Individual::new()
+    }
+});

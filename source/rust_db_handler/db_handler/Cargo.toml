@@ -13,3 +13,4 @@ rmp_bind = { path = "../rmp_bind" }
 libc = "0.2"
 serde_json = "1.0"
 chrono = "0.3"
+juniper = "0.8.1"
