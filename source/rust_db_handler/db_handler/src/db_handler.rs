@@ -81,7 +81,7 @@ pub extern "C" fn db_handle_request(L: *mut lua_State) -> i32 {
     let mut msg: Vec<u8> = Vec::default();
     lua::tolstring(L, -1, &mut msg);
     let mut cursor = Cursor::new(&msg[..]);
-    let mut resp_msg = Vec::new();
+    let mut resp_msg = Vec::with_capacity(4096);
     
     match  decode::decode_array(&mut cursor) {
         Err(err) => fail(&mut resp_msg, rest::Codes::InternalServerError, err),

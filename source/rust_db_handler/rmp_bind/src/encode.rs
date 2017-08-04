@@ -25,6 +25,10 @@ pub fn encode_bin(buf: &mut Vec<u8>, val: &Vec<u8>) {
     encode::write_bin(buf, val).unwrap();
 }
 
+pub fn encode_bool(buf: &mut Vec<u8>, val: bool) {
+    encode::write_bool(buf, val).unwrap();
+}
+
 pub fn encode_string_bytes<W: Write>(w: &mut W, val: &Vec<u8>) {
     encode::write_str_len(w, val.len() as u32).unwrap();
     w.write_all(val).unwrap();

@@ -1,0 +1,8 @@
+[package]
+name = "graphql"
+version = "0.1.0"
+authors = ["Vadim <muller95@yandex.ru>"]
+
+[dependencies]
+juniper = "0.8.1"
+rmp_bind = { path = "../rmp_bind" }
