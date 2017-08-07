@@ -5,11 +5,14 @@ use std::net::TcpStream;
 use std::io::stderr;
 use std::io::Write;
 use std::io::Read;
+use std::io::Cursor;
 use std::thread;
 use std::time;
 use std::default;
 
+static MAX_PACKET_SIZE: u32 = 1024 * 1024 * 10;
 
+#[derive(PartialEq, Eq)]
 pub enum ResultCode {
     Ok = 200,
     NoContent = 204,
@@ -32,14 +35,34 @@ pub enum Operation {
 }
 
 pub struct RequestResponse {
-    pub result_code: ResultCode,
+    pub common_rc: ResultCode,
+	pub op_rc: Vec<ResultCode>,
     pub data: Vec<Vec<u8>>,
     pub rights: Vec<u8>
 }
 
+impl ResultCode {
+	pub fn from_uint(rc: u64) -> ResultCode {
+		match rc {
+			200 => return ResultCode::Ok,
+			204 => return ResultCode::NoContent,
+			400 => return ResultCode::BadRequest,
+			471 => return ResultCode::TicketExpired,
+			472 => return ResultCode::NotAuthorized,
+			404 => return ResultCode::NotFound,
+			500 => return ResultCode::InternalServerError,
+			422 => return ResultCode::UnprocessableEntity,
+			_ => {}
+		}
+
+		ResultCode::UnprocessableEntity
+	}
+}
+
 impl RequestResponse {
     pub fn new() -> RequestResponse {
-        RequestResponse { result_code: ResultCode::Ok, data: Vec::new(), rights: Vec::new() }
+        RequestResponse { common_rc: ResultCode::Ok, op_rc: Vec::default(), 
+			data: Vec::default(), rights: Vec::default() }
     }
 }
 
@@ -67,8 +90,10 @@ impl Connector {
         }
     }
 
-    fn do_request(&mut self, need_auth: bool, user_uri: String, data: Vec<String>, trace: bool, trace_auth: bool, op: u64) {
+    fn do_request(&mut self, need_auth: bool, user_uri: &String, data: &Vec<String>, 
+		trace: bool, trace_auth: bool, op: u64) -> (ResultCode, Vec<u8>) {
 		let mut request = Vec::with_capacity(4096);
+		let mut response;
 		if op == Operation::GetRightsOrigin as u64 || op == Operation::Authorize as u64 || 
 			op == Operation::GetMembership as u64 {
 			encode::encode_array(&mut request, data.len() as u32 + 4)
@@ -101,7 +126,6 @@ impl Connector {
 		buf.append(&mut request);
 
 		loop {
-			// let resp_size;
 			let mut errored = false;
 
 			let mut written = 0;
@@ -112,11 +136,11 @@ impl Connector {
 							Ok(nbytes) => {
 								written += nbytes;
 								if trace {
-									writeln!(stderr(), "@SENT {0} BYTES", nbytes);
+									writeln!(stderr(), "@SENT {0} BYTES", nbytes).unwrap();
 								}
 							}
 							Err(e) => {
-								writeln!(stderr(), "@ERR ON SENDING REQUEST FOR OP {0}: {1}", op, e);
+								writeln!(stderr(), "@ERR ON SENDING REQUEST FOR OP {0}: {1}", op, e).unwrap();
 								errored = true;
 								break;
 							}
@@ -132,19 +156,19 @@ impl Connector {
 			}
 
 			let mut read = 0;
+			buf = vec![0; 4];
 			while read < 4 {
-				buf = Vec::with_capacity(4);
 				match self.stream {
 					Some(ref mut s) => {
-						match s.read(&mut buf) {
+						match s.read(&mut buf[read..]) {
 							Ok(nbytes) => {
 								read += nbytes;
 								if trace {
-									writeln!(stderr(), "@READ {0} BYTES", nbytes);
+									writeln!(stderr(), "@READ {0} RESPONSE SIZE BYTES", nbytes).unwrap();
 								}
 							}
 							Err(e) => {
-								writeln!(stderr(), "@ERR ON READING RESPONSE SIZE FOR OP {0}: {1}", op, e);
+								writeln!(stderr(), "@ERR ON READING RESPONSE SIZE FOR OP {0}: {1}", op, e).unwrap();
 								errored = true;
 								break;
 							}
@@ -154,75 +178,72 @@ impl Connector {
 				}
 			}
 
-			
+			if errored {
+				self.connect();
+				continue;
+			}
 
+			let mut response_size: u32 = 0;
+			for i in 0 .. 4 {
+				response_size = (response_size << 8) + buf[i] as u32;
+			}
 
-/*		buf = make([]byte, 4)
-		n, err = conn.conn.Read(buf)
-		if trace {
-			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE BUF %v\n", op, n)
+			if trace {
+				writeln!(stderr(), "@CONNECTOR OP {0}: RESPONSE SIZE {1}", op, response_size).unwrap();
+			}
+
+			if response_size > MAX_PACKET_SIZE {
+				writeln!(stderr(), "@ERR OP {0}: RESPONSE IS TOO LARGE {1}", op, response_size).unwrap();
+			}
+
+			response = vec![0; response_size as usize];
+			read = 0;
+			while (read as u32) < response_size {
+				match self.stream {
+					Some(ref mut s) => {
+						match s.read(&mut response[read..]) {
+							Ok(nbytes) => {
+								read += nbytes;
+								if trace {
+									writeln!(stderr(), "@READ {0} RESPONSE BYTES", nbytes).unwrap();
+								}
+							}
+							Err(e) => {
+								writeln!(stderr(), "@ERR ON READING RESPONSE OP {0}: {1}", op, e).unwrap();
+								errored = true;
+								break;
+							}
+						}
+					}
+					_ => {}
+				}
+			}
+
+			if errored {
+				self.connect();
+				continue;
+			}
+
+			if trace {
+				writeln!(stderr(), "@CONNECTOR OP {0}: RECEIVED RESPONSE", op).unwrap();
+			}
+
+			break;
 		}
 
-		if err != nil {
-			log.Printf("@ERR OP %v: RECEIVING RESPONSE SIZE BUF %v\n", op, err)
-		}
-
-		for i := 0; i < 4; i++ {
-			responseSize = (responseSize << 8) + uint32(buf[i])
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE %v\n", op, responseSize)
-		}
-
-		if responseSize > MaxPacketSize {
-			log.Printf("@ERR OP %v: RESPONSE IS TOO LARGE %v\n", op, data)
-			return SizeTooLarge, nil
-		}
-
-		response = make([]byte, responseSize)
-		n, err = conn.conn.Read(response)
-
-		if trace {
-			log.Printf("@CONNECTOR OP %v: RECEIVE RESPONSE %v\n", op, n)
-		}
-
-		if err != nil {
-			log.Printf("@ERR RECEIVING OP %v: RESPONSE %v\n", op, err)
-		}
-
-		if uint32(n) < responseSize || err != nil {
-			time.Sleep(3000 * time.Millisecond)
-			conn.conn, err = net.Dial("tcp", conn.addr)
-			log.Printf("@RECONNECT %v REQUEST\n", op)
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR %v RECEIVED RESPONSE %v\n", op, string(response))
-		}
-		break*/
-
-		}
-        /*
-
-
-
-	for {
-	}
-	return Ok, response
-        */
+		(ResultCode::Ok, response)
     }
 
-    pub fn get(need_auth: bool, user_uri: String, uris: Vec<String>, trace: bool) -> RequestResponse {
+    pub fn get(&mut self, need_auth: bool, user_uri: &String, uris: &Vec<String>, trace: bool) -> RequestResponse {
         let mut rr = RequestResponse::new();
         if user_uri.len() < 3 {
-            rr.result_code = ResultCode::NotAuthorized;
+            rr.common_rc = ResultCode::NotAuthorized;
             writeln!(stderr(), "@ERR CONNECTOR GET: SHORT USER URI {0}", user_uri);
             return rr;
         }
 
         if uris.len() == 0{
-            rr.result_code = ResultCode::NoContent;
+            rr.common_rc = ResultCode::NoContent;
             return rr;
         }
 
@@ -230,25 +251,47 @@ impl Connector {
             writeln!(stderr(), "@CONNECTOR GET: PACK REQUEST need_auth={0}, user_uri=[{1}]",
                 need_auth, user_uri);
         }
+
+		let rr_tuple = self.do_request(need_auth, &user_uri, &uris, trace, false, Operation::Get as u64);
+		if rr_tuple.0 != ResultCode::Ok {
+			rr.common_rc = rr_tuple.0;
+			return rr;
+		}
+
+		let cursor = &mut Cursor::new(&rr_tuple.1[..]);
+		let arr_len = decode::decode_array(cursor).unwrap();
+
+		let mut common_rc = decode::decode_uint(cursor).unwrap();		
+		rr.common_rc = ResultCode::from_uint(common_rc);
+
+		if trace {
+			writeln!(stderr(), "@CONNECTOR GET: COMMON RC {0}", common_rc);
+		}
+
+		rr.data = Vec::with_capacity(uris.len());
+		rr.op_rc = Vec::with_capacity(uris.len());
+
+		let mut i = 1;
+		while i < arr_len {
+			let op_rc = decode::decode_uint(cursor).unwrap();
+			rr.op_rc.push(ResultCode::from_uint(op_rc));
+
+			if trace {
+				writeln!(stderr(), "@CONNECTOR GET: OP CODE: {0}", op_rc);
+			}
+
+			if op_rc == ResultCode::Ok as u64 {
+				let mut data = Vec::new();
+				decode::decode_string(cursor, &mut data).unwrap();
+				rr.data.push(data);
+			} else {
+				decode::decode_nil(cursor);
+			}
+			i += 2;
+		}
 /*
 
 
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, false, Get)
-	if rcRequest != Ok {
-		rr.CommonRC = rcRequest
-		return rr
-	}
-	decoder := msgpack.NewDecoder(bytes.NewReader(response))
-	arrLen, _ := decoder.DecodeArrayLen()
-	rc, _ := decoder.DecodeUint()
-	rr.CommonRC = ResultCode(rc)
-
-	if trace {
-		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
-	}
-
-	rr.Data = make([]string, 0)
-	rr.OpRC = make([]ResultCode, len(uris))
 
 	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
 		rc, _ = decoder.DecodeUint()

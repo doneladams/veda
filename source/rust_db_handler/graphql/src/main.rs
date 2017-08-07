@@ -35,13 +35,6 @@ pub struct Resource {
     decimal_exponent_data: i64,
 }
 
-#[derive(Hash, Eq, PartialEq)]
-struct Right {
-    id: Vec<u8>,
-    access: u8,
-    is_deleted: bool
-}
-
 impl Clone for ResourceType {
     fn clone(&self) -> ResourceType {
         *self
@@ -73,12 +66,6 @@ impl Resource {
     }
 }
 
-impl Right {
-    pub fn new() -> Right {
-        return Right { id: Vec::default(), access: 0, is_deleted: false };
-    } 
-}
-
 impl Individual {
     pub fn new() -> Individual {
         return Individual { uri: Vec::default(), resources: HashMap::new() };
@@ -100,8 +87,11 @@ pub struct IndividualDatabase {
 }
 
 impl IndividualDatabase {
-    fn get_individual(&self, uri: &str) -> Option<&Individual> {
-        return self.individuals.get(uri);
+    fn get_individual(&self, uris: &Vec<String>) -> Option<Individual> {
+        let mut conn = connector::Connector::new("127.0.0.1:9999".to_string());
+        conn.connect();
+        conn.get(true, &"cfg:VedaSystem".to_string(), uris, true);
+        Some(Individual::new())
     }
 }
 
@@ -113,7 +103,8 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
         let mut uris_copy = uris.clone();
 
         let mut i = 0;
-        loop {
+        self.get_individual(&uris_copy);
+       /* loop {
             if i == uris_copy.len() {
                 break;
             }
@@ -142,7 +133,7 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
             }
 
             i += 1;
-        }
+        }*/
 
         // let mut
         
@@ -157,31 +148,10 @@ impl juniper::Context for IndividualDatabase {}
 fn main() {
     let mut db = IndividualDatabase{ individuals: HashMap::new() };
 
-    db.individuals.insert("1".to_string(), {
-        let mut individual = Individual::new();
-        individual.uri = "1".as_bytes().to_vec();
-        let mut resource = Resource::new();
-        resource.res_type = ResourceType::Uri;
-        resource.str_data = "2".as_bytes().to_vec();
-        let mut resources = Vec::new();
-        resources.push(resource); 
-        individual.resources.insert("link".to_string(), resources);
-        individual
-    });
-
-    
-
-    db.individuals.insert("2".to_string(), {
-        let mut individual = Individual::new();
-        individual.uri = "2".as_bytes().to_vec();
-        individual
-    });
-
     let query = r#" 
     { 
-        individual(uris: ["1"])
+        individual(uris: ["cfg:VedaSystem"])
     }"#;
-
 
     let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
     let result  = juniper::execute(query, None, &schema, &juniper::Variables::new(), &db).unwrap();
