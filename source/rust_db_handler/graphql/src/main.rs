@@ -2,6 +2,7 @@
 #[macro_use] extern crate serde_json;
 extern crate rmp_bind;
 extern crate iron;
+extern crate chrono;
 
 use rmp_bind::{ decode, encode };
 use std::collections::HashMap;
@@ -14,7 +15,8 @@ use iron::prelude::*;
 use iron::*;
 use iron::request::*;
 use serde_json::{Value, Error};
-
+use chrono::prelude::*;
+use chrono::*;
 
 mod connector;
 
@@ -28,6 +30,19 @@ enum ResourceType {
     Datetime = 8,
     Decimal = 32,
     Boolean = 64
+}
+
+impl ResourceType {
+    pub fn to_string(&self) -> String {
+        match *self {
+            ResourceType::Uri => return "Uri".to_string(),
+            ResourceType::Str => return "String".to_string(),
+            ResourceType::Integer => return "Integer".to_string(),
+            ResourceType::Datetime => return "Datetime".to_string(),
+            ResourceType::Decimal => return "Decimal".to_string(),
+            ResourceType::Boolean => return "Boolean".to_string()
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Copy)]
@@ -91,6 +106,14 @@ impl Lang {
             1 => Lang::LangRu,
             2 => Lang::LangEn,
             _ => Lang::LangNone
+        }
+    }
+
+    fn to_string(&self) -> String {
+        match *self {
+            Lang::LangRu => return "RU".to_string(),
+            Lang::LangEn => return "EN".to_string(),
+            Lang::LangNone => return "NONE".to_string()
         }
     } 
 }
@@ -323,10 +346,103 @@ impl IndividualDatabase {
     }
 }
 
+fn decimal_to_string(mantissa: i64, exponent: i64) -> String {
+    let mut m = mantissa;
+    let mut e = exponent;
+    let mut res = "".to_string();
+
+    let mut negative = false;
+    if mantissa < 0 {
+        negative = true;
+        m = -m;
+    }
+
+    if e > 0 {
+        for i in 0 .. e {
+            res = res + "0";
+        }
+    } else if e < 0 {
+        e = -e;
+        if res.len() as i64 > e {
+            let len = res.len();
+            res.insert(len - e as usize + 1, '.');
+        } else {
+            for i in 1 .. e {
+                res = "0".to_string() + &res;
+            }
+            res = ".".to_string() + &res;            
+        }        
+    }
+
+    if negative {
+        res = "-".to_string() + &res;            
+    }    
+
+    res
+}
+
 fn individual_to_json(individual: &Individual) -> serde_json::Value {
-    json!({
+    let mut individual_json = json!({
         "@": std::str::from_utf8(&individual.uri[..]).unwrap()
-    })
+    });
+
+    for (k, v) in &individual.resources {
+        let mut resources: Vec<serde_json::Value> = Vec::with_capacity(v.len());
+
+        for i in 0 .. v.len() {
+            match v[i].res_type {
+                ResourceType::Boolean => {
+                    resources.push(json!({
+                        "type": v[i].res_type.to_string(),
+                        "data": v[i].bool_data
+                    }));
+                }
+
+                ResourceType::Datetime => {
+                    let utc: DateTime<Utc> = DateTime::<Utc>::from_utc(
+                            NaiveDateTime::from_timestamp(v[i].long_data, 0), Utc);
+
+                    resources.push(json!({
+                       "type": v[i].res_type.to_string(),
+                       "data": format!("{0}-{1}-{2}T{3}:{4}:{5}Z", utc.year(), utc.month(), utc.day(),
+                            utc.hour(), utc.minute(), utc.second())
+                    }));
+                }
+
+                ResourceType::Decimal => {
+                    resources.push(json!({
+                        "type": v[i].res_type.to_string(),
+                        "data": decimal_to_string(v[i].decimal_mantissa_data, v[i].decimal_exponent_data)
+                    }));
+                }
+
+                ResourceType::Integer => {
+                    resources.push(json!({
+                        "type": v[i].res_type.to_string(),
+                        "data": v[i].long_data
+                    }));
+                }
+
+                ResourceType::Str => {
+                    resources.push(json!({
+                        "type": v[i].res_type.to_string(),
+                        "data": std::str::from_utf8(&v[i].str_data[..]).unwrap(),
+                        "lang": v[i].lang.to_string()
+                    }));
+                }
+
+                ResourceType::Uri => {
+                    resources.push(json!({
+                        "type": v[i].res_type.to_string(),
+                        "data": std::str::from_utf8(&v[i].str_data[..]).unwrap()
+                    }));
+                }
+            }
+        }
+        individual_json[k] = serde_json::to_value(resources).unwrap();
+    }
+
+    individual_json
 }
 
 graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
@@ -418,7 +534,7 @@ fn request_handler(req: &mut Request) -> IronResult<Response> {
     let query: String = serde_json::from_value(v["query"].clone()).unwrap();
 
     writeln!(stderr(), "@REQUEST {0}", query);   
-    let mut db = IndividualDatabase{ individuals: HashMap::new() };    
+    let db = IndividualDatabase{ individuals: HashMap::new() };    
     let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
     let result  = juniper::execute(&query, None, &schema, &juniper::Variables::new(), &db).unwrap();
     // result.0.as_string_value().unwrap();
@@ -433,22 +549,5 @@ fn request_handler(req: &mut Request) -> IronResult<Response> {
 }
 
 fn main() {
-    let mut db = IndividualDatabase{ individuals: HashMap::new() };
-
-    let query = r#" 
-    { 
-        individual(uris: ["cfg:VedaSystem"], ticket: "cb946b3f-5909-4d92-a1ad-76ee33059856")
-    }"#;
-
-    /*let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
-    let result  = juniper::execute(query, None, &schema, &juniper::Variables::new(), &db).unwrap();
-    // result.0.as_string_value().unwrap();
-    // writeln!(stderr(), "RESULT {:?}", result.0);
-    let hash_object = result.0.as_object_value().unwrap();
-    
-    for (k, v) in hash_object {
-        writeln!(stderr(), "{0} => {1}", k, v.as_string_value().unwrap());
-    }*/
-
     let _server = Iron::new(request_handler).http("0.0.0.0:8081").unwrap();
 }
