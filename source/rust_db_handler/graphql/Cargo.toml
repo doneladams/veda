@@ -6,3 +6,5 @@ authors = ["Vadim <muller95@yandex.ru>"]
 [dependencies]
 juniper = "0.8.1"
 rmp_bind = { path = "../rmp_bind" }
+serde_json = "1.0"
+iron = "0.5.*"
