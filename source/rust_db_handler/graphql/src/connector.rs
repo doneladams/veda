@@ -8,7 +8,6 @@ use std::io::Read;
 use std::io::Cursor;
 use std::thread;
 use std::time;
-use std::default;
 
 static MAX_PACKET_SIZE: u32 = 1024 * 1024 * 10;
 
@@ -24,6 +23,7 @@ pub enum ResultCode {
     UnprocessableEntity = 422
 }
 
+#[allow(dead_code)]
 pub enum Operation {
 	Put             = 1,
 	Get             = 2,
@@ -59,16 +59,6 @@ impl ResultCode {
 	}
 
 	pub fn as_uint(code: &ResultCode) -> u64 {
-		/*
-		  Ok = 200,
-    NoContent = 204,
-    BadRequest = 400,
-    TicketExpired = 471,
-    NotAuthorized = 472,
-    NotFound = 404,
-    InternalServerError = 500,
-    UnprocessableEntity = 422
-		*/
 		match *code {
 			ResultCode::BadRequest => return 400,
 			ResultCode::InternalServerError => return 500,
@@ -79,8 +69,6 @@ impl ResultCode {
 			ResultCode::TicketExpired => return 471,
 			ResultCode::UnprocessableEntity => return 422,
 		}
-
-		422
 	}
 }
 
@@ -108,8 +96,8 @@ impl Connector {
                     return;
                 }
                 Err(e) => {
-                    writeln!(stderr(), "@ERR ON CONNECTION TO TARANTOOL: {0}: RETRY", e);
-                    thread::sleep_ms(3000);
+                    writeln!(stderr(), "@ERR ON CONNECTION TO TARANTOOL: {0}: RETRY", e).unwrap();
+                    thread::sleep(time::Duration::from_secs(3));
                 }
             }
         }
@@ -139,7 +127,7 @@ impl Connector {
 		}
 
 		if trace {
-			writeln!(stderr(), "@CONNECTOR OP {0} DATA SIZE {1}", op, request.len());
+			writeln!(stderr(), "@CONNECTOR OP {0} DATA SIZE {1}", op, request.len()).unwrap();
 		}
 
 		let request_size = request.len() as u32;
@@ -301,11 +289,11 @@ impl Connector {
 		let cursor = &mut Cursor::new(&rr_tuple.1[..]);
 		let arr_len = decode::decode_array(cursor).unwrap();
 
-		let mut common_rc = decode::decode_uint(cursor).unwrap();		
+		let common_rc = decode::decode_uint(cursor).unwrap();		
 		rr.common_rc = ResultCode::from_uint(common_rc);
 
 		if trace {
-			writeln!(stderr(), "@CONNECTOR GET: COMMON RC {0}", common_rc);
+			writeln!(stderr(), "@CONNECTOR GET: COMMON RC {0}", common_rc).unwrap();
 		}
 
 		rr.data = Vec::with_capacity(uris.len());
@@ -317,7 +305,7 @@ impl Connector {
 			rr.op_rc.push(ResultCode::from_uint(op_rc));
 
 			if trace {
-				writeln!(stderr(), "@CONNECTOR GET: OP CODE: {0}", op_rc);
+				writeln!(stderr(), "@CONNECTOR GET: OP CODE: {0}", op_rc).unwrap();
 			}
 
 			if op_rc == ResultCode::Ok as u64 {
@@ -325,7 +313,7 @@ impl Connector {
 				decode::decode_string(cursor, &mut data).unwrap();
 				rr.data.push(data);
 			} else {
-				decode::decode_nil(cursor);
+				decode::decode_nil(cursor).unwrap();
 			}
 			i += 2;
 		}
@@ -361,11 +349,11 @@ impl Connector {
 		let cursor = &mut Cursor::new(&rr_tuple.1[..]);
 		let arr_len = decode::decode_array(cursor).unwrap();
 
-		let mut common_rc = decode::decode_uint(cursor).unwrap();		
+		let common_rc = decode::decode_uint(cursor).unwrap();		
 		rr.common_rc = ResultCode::from_uint(common_rc);
 
 		if trace {
-			writeln!(stderr(), "@CONNECTOR GET_TICKET: COMMON RC {0}", common_rc);
+			writeln!(stderr(), "@CONNECTOR GET_TICKET: COMMON RC {0}", common_rc).unwrap();
 		}
 
 		rr.data = Vec::with_capacity(ticket_ids.len());
@@ -377,7 +365,7 @@ impl Connector {
 			rr.op_rc.push(ResultCode::from_uint(op_rc));
 
 			if trace {
-				writeln!(stderr(), "@CONNECTOR GET: OP CODE: {0}", op_rc);
+				writeln!(stderr(), "@CONNECTOR GET: OP CODE: {0}", op_rc).unwrap();
 			}
 
 			if op_rc == ResultCode::Ok as u64 {
@@ -385,7 +373,7 @@ impl Connector {
 				decode::decode_string(cursor, &mut data).unwrap();
 				rr.data.push(data);
 			} else {
-				decode::decode_nil(cursor);
+				decode::decode_nil(cursor).unwrap();
 			}
 			i += 2;
 		}

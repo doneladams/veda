@@ -4,19 +4,16 @@ extern crate rmp_bind;
 extern crate iron;
 extern crate chrono;
 
-use rmp_bind::{ decode, encode };
+use rmp_bind::decode;
 use std::collections::HashMap;
 use std::io::stderr;
 use std::io::Write;
 use std::io::Read;
 use std::io::Cursor;
-use juniper::Context;
 use iron::prelude::*;
 use iron::*;
-use iron::request::*;
-use serde_json::{Value, Error};
+use serde_json::Value;
 use chrono::prelude::*;
-use chrono::*;
 
 mod connector;
 
@@ -80,6 +77,7 @@ pub struct Individual {
     pub resources: HashMap<String, Vec<Resource>>    
 }
 
+#[allow(dead_code)]
 impl Resource {
     pub fn new() -> Resource {
         return Resource { res_type: ResourceType::Uri, lang: Lang::LangNone, str_data: Vec::default(),
@@ -118,9 +116,7 @@ impl Lang {
     } 
 }
 
-pub struct IndividualDatabase {
-    individuals: HashMap<String, Individual>
-}
+pub struct IndividualDatabase;
 
 /// Converts msgpach to individual structure
 pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Individual) -> Result<(), String> {
@@ -349,16 +345,16 @@ impl IndividualDatabase {
 fn decimal_to_string(mantissa: i64, exponent: i64) -> String {
     let mut m = mantissa;
     let mut e = exponent;
-    let mut res = "".to_string();
 
     let mut negative = false;
     if mantissa < 0 {
         negative = true;
         m = -m;
     }
-
+    let mut res = format!("{0}", m);
+    
     if e > 0 {
-        for i in 0 .. e {
+        for _ in 0 .. e {
             res = res + "0";
         }
     } else if e < 0 {
@@ -367,7 +363,7 @@ fn decimal_to_string(mantissa: i64, exponent: i64) -> String {
             let len = res.len();
             res.insert(len - e as usize + 1, '.');
         } else {
-            for i in 1 .. e {
+            for _ in 1 .. e {
                 res = "0".to_string() + &res;
             }
             res = ".".to_string() + &res;            
@@ -527,14 +523,15 @@ impl juniper::Context for IndividualDatabase {}
 
 fn request_handler(req: &mut Request) -> IronResult<Response> {
      let mut body = "".to_string();
-     req.body.read_to_string(&mut body);
+     req.body.read_to_string(&mut body).unwrap();
 
-    writeln!(stderr(), "@BODY {0}", body);
+    // writeln!(stderr(), "@BODY {0}", body);
     let v: Value = serde_json::from_str(&body).unwrap();
     let query: String = serde_json::from_value(v["query"].clone()).unwrap();
+    writeln!(stderr(), "{0}", query).unwrap();
 
-    writeln!(stderr(), "@REQUEST {0}", query);   
-    let db = IndividualDatabase{ individuals: HashMap::new() };    
+    // writeln!(stderr(), "@REQUEST {0}", query);   
+    let db = IndividualDatabase{};    
     let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
     let result  = juniper::execute(&query, None, &schema, &juniper::Variables::new(), &db).unwrap();
     // result.0.as_string_value().unwrap();
