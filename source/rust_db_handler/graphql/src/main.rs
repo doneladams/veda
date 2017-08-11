@@ -442,7 +442,7 @@ fn individual_to_json(individual: &Individual) -> serde_json::Value {
 }
 
 graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
-    field individual(uris: Vec<String>, ticket: String) -> String {
+    field individual(uris: Vec<String>, ticket: String, child_restrictions: Vec<String>) -> String {
         let mut individuals: Vec<serde_json::Value> = Vec::new();
         let mut checked: HashMap<String, bool> = HashMap::new();
         let mut uris_copy = uris.clone();
@@ -484,17 +484,39 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
                 let mut individual = Individual::new();
                 msgpack_to_individual(&mut Cursor::new(&rr.data[i][..]), &mut individual).unwrap();                
                 // writeln!(stderr(), "@URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap().to_string());                
-                for (k, r) in &individual.resources {
-                    // writeln!(stderr(), "\tres {0}", k);
-                    for j in 0 .. r.len() {
-                        // writeln!(stderr(), "\t\tres type {0}", r[j].res_type as u64);                        
-                        if r[j].res_type == ResourceType::Uri {
-                            let val = std::str::from_utf8(&r[j].str_data[..]).unwrap();
-                            // writeln!(stderr(), "\t\t\tval {0}", val);
-                            if !checked.contains_key(val) {
-                                uris_copy.push(val.to_string());
-                                // writeln!(stderr(), "\t\t\tpush {0}", uris_copy.len());                                   
+                if child_restrictions.len() == 0 {
+                    for (k, r) in &individual.resources {
+                        // writeln!(stderr(), "\tres {0}", k);
+                        for j in 0 .. r.len() {
+                            // writeln!(stderr(), "\t\tres type {0}", r[j].res_type as u64);                        
+                            if r[j].res_type == ResourceType::Uri {
+                                let val = std::str::from_utf8(&r[j].str_data[..]).unwrap();
+                                // writeln!(stderr(), "\t\t\tval {0}", val);
+                                if !checked.contains_key(val) {
+                                    uris_copy.push(val.to_string());
+                                    // writeln!(stderr(), "\t\t\tpush {0}", uris_copy.len());                                   
+                                }
                             }
+                        }
+                    }
+                } else {
+                    for i in 0 .. child_restrictions.len() {
+                        match individual.resources.get(&child_restrictions[i]) {
+                            Some(r) => {
+                                for j in 0 .. r.len() {
+                                    // writeln!(stderr(), "\t\tres type {0}", r[j].res_type as u64);                        
+                                    if r[j].res_type == ResourceType::Uri {
+                                        let val = std::str::from_utf8(&r[j].str_data[..]).unwrap();
+                                        // writeln!(stderr(), "\t\t\tval {0}", val);
+                                        if !checked.contains_key(val) {
+                                            uris_copy.push(val.to_string());
+                                            // writeln!(stderr(), "\t\t\tpush {0}", uris_copy.len());                                   
+                                        }
+                                    }
+                                }
+                            }
+
+                            _ => {}
                         }
                     }
                 }
@@ -530,7 +552,7 @@ fn request_handler(req: &mut Request) -> IronResult<Response> {
     let query: String = serde_json::from_value(v["query"].clone()).unwrap();
     writeln!(stderr(), "{0}", query).unwrap();
 
-    // writeln!(stderr(), "@REQUEST {0}", query);   
+    writeln!(stderr(), "@REQUEST {0}", query);   
     let db = IndividualDatabase{};    
     let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
     let result  = juniper::execute(&query, None, &schema, &juniper::Variables::new(), &db).unwrap();
