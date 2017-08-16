@@ -20,6 +20,7 @@ killall -9 veda-gowebserver
 # killall -9 tarantool 
 # pkill -f tarantool
 pkill tarantool
+pkill -9 graphql
 
 rm data/module-info/*.lock
 rm data/queue/*.lock

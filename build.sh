@@ -83,3 +83,9 @@ if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
     cp source/veda-gowebserver/veda-gowebserver ./
 fi
 
+if [ -z $1 ] || [ $1 == "graphql" ] || [ $1 == "veda-graphql" ]; then
+    cd source/rust_db_handler/graphql
+    cargo build
+    cd ../../..
+fi
+
