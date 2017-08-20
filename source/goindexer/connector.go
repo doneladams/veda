@@ -11,9 +11,31 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
+type ResultCode uint32
+
+const (
+	Ok                  ResultCode = 200
+	BadRequest          ResultCode = 400
+	NotAuthorized       ResultCode = 472
+	NotFound            ResultCode = 404
+	InternalServerError ResultCode = 500
+	TicketExpired       ResultCode = 471
+	NoContent           ResultCode = 204
+	SizeTooLarge        ResultCode = 1118
+	UnprocessableEntity ResultCode = 422
+)
+
 type Connector struct {
 	conn net.Conn
 	addr string
+}
+
+type ticket struct {
+	Id        string
+	UserURI   string
+	result    ResultCode
+	StartTime int64
+	EndTime   int64
 }
 
 type RequestResponse struct {
