@@ -1,130 +1,68 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
-	"strconv"
-	"time"
-
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+	"strings"
 )
 
 var conn Connector
 
-func getTicket(ticketKey string) (ResultCode, ticket) {
-	var ticket ticket
+type Names map[string]bool
 
-	rr := conn.GetTicket([]string{ticketKey}, true)
-	if rr.CommonRC != Ok {
-		log.Println("@ERR ON GET TICKET FROM TARANTOOL")
-		return InternalServerError, ticket
+var systicket ticket
+
+func main() {
+	var rc ResultCode
+	conn.Connect("127.0.0.1:9999")
+
+	rc, systicket = getTicket("systicket")
+	if rc != Ok {
+		log.Fatal("@ERR GETTING SYSTICKET ", rc)
 	}
 
-	if rr.OpRC[0] != Ok {
-		return rr.OpRC[0], ticket
-	}
+	onto := NewOnto()
+	onto.Load()
+	/*
+		ResType             DataType
+		Lang                Lang
+		StrData             string
+		BoolData            bool
+		LongData            int64
+		DecimalMantissaData int64
+		DecimalExponentData int64
+	*/
+	/*	configCommon := `
+			rt_field = uri
+			rt_field = res_type
+			rt_filed = lang
+			rt_field = str_data
+			rt_field = bool_data
+			rt_field = long_data
+			rt_field = decimal_mantissa_data
+			rt_field = decimal_exponent_data
 
-	decoder := msgpack.NewDecoder(bytes.NewReader([]byte(rr.Data[0])))
-	decoder.DecodeArrayLen()
-
-	var duration int64
-
-	ticket.Id, _ = decoder.DecodeString()
-	resMapI, _ := decoder.DecodeMap()
-	resMap := resMapI.(map[interface{}]interface{})
-	for mapKeyI, mapValI := range resMap {
-		mapKey := mapKeyI.(string)
-
-		switch mapKey {
-		case "ticket:accessor":
-			ticket.UserURI = mapValI.([]interface{})[0].([]interface{})[1].(string)
-
-		case "ticket:when":
-			tt := mapValI.([]interface{})[0].([]interface{})[1].(string)
-			mask := "2006-01-02T15:04:05.00000000"
-			startTime, _ := time.Parse(mask[0:len(tt)], tt)
-			ticket.StartTime = startTime.Unix()
-
-		case "ticket:duration":
-			duration, _ = strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
+			rt_attr_string = uri_attr
+			rt_attr_biging = res_type_attr
+			rt_attr_bigint = lang_attr
+			rt_attr_bool = bool_data_attr
+			rt_attr_bigint = long_data_attr
+			rt_attr_bigint = decimal_mantissa_data_attr
+			rt_attr_bigint = decimal_exponent_data_attr
 		}
-	}
-	ticket.EndTime = ticket.StartTime + duration
+		`*/
 
-	return Ok, ticket
-}
-
-func query(request string) (ResultCode, []byte) {
-
-	socket, err := net.Dial("tcp", "127.0.0.1:11112")
-	if err != nil {
-		log.Println("@ERR QUERY: ERR ON DIAL ", err)
-		return InternalServerError, []byte(""[:])
-	}
-
-	requestSize := uint32(len(request))
-	buf := make([]byte, 4)
-	buf[0] = byte((requestSize >> 24) & 0xFF)
-	buf[1] = byte((requestSize >> 16) & 0xFF)
-	buf[2] = byte((requestSize >> 8) & 0xFF)
-	buf[3] = byte(requestSize & 0xFF)
-
-	n, err := socket.Write(buf)
-	if n < 4 || err != nil {
-		log.Println("@ERR QUERY: ERR SENDING REQUEST SIZE ", err)
-		return InternalServerError, []byte(""[:])
-	}
-
-	n, err = socket.Write([]byte(request))
-	if uint32(n) < requestSize || err != nil {
-		log.Println("@ERR QUERY: ERR SENDING REQUEST ", err)
-		return InternalServerError, []byte(""[:])
-	}
-
-	n, err = socket.Read(buf)
-	if n < 4 || err != nil {
-		log.Println("@ERR QUERY: ERR READING RESPONSE SIZE ", err)
-		return InternalServerError, []byte(""[:])
-
-	}
-	responseSize := uint32(0)
-	for i := 0; i < 4; i++ {
-		responseSize = (responseSize << 8) + uint32(buf[i])
-	}
-
-	response := make([]byte, responseSize)
-	n, err = socket.Read(response)
-	if uint32(n) < responseSize || err != nil {
-		log.Println("@ERR QUERY: ERR READING RESPONSE ", err)
-		return InternalServerError, []byte(""[:])
-	}
-
-	socket.Close()
-
-	return Ok, response
-}
-
-func loadOntology() {
-	rc, ticket := getTicket("systicket")
-
-	if rc != Ok {
-		return
-	}
-
-	request := fmt.Sprintf("%v�'rdf:type' === 'rdfs:Class' || 'rdf:type' === 'rdf:Property' || 'rdf:type' === 'owl:Class' || 'rdf:type' === 'owl:ObjectProperty' || 'rdf:type' === 'owl:DatatypeProperty'���false�0�10000�0", ticket.Id)
+	request := fmt.Sprintf("%v�'rdfs:domain'==='%s'���false�0�10000�0", systicket.Id, "v-s:Person")
 	rc, queryBytes := query(request)
-
 	if rc != Ok {
-		log.Println("@ERR ON QUERY ONTOLOGY ", rc)
+		log.Printf("@ERR ON QUERY RDFS:DOMAIN %v: %v\n", "v-s:Person", rc)
 	}
 
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(queryBytes, &jsonData)
 	if err != nil {
-		log.Println("@ERR ON DECODING QUERY RESPONSE JSON: ", err)
+		log.Printf("@ERR ON DECODING QUERY RDFS:DOMAIN %v RESPONSE JSON: %v\n", "v-s:Person", err)
 		return
 	}
 
@@ -137,23 +75,40 @@ func loadOntology() {
 	rr := conn.Get(false, "cfg:VedaSystem", uris, false)
 
 	if rr.CommonRC != Ok {
-		log.Println("@ERR COMMON ON GET ONTOLOGY ", rr.CommonRC)
+		log.Printf("@ERR COMMON ON GET RDFS:DOMAIN %v: %v\n", "v-s:Person", rr.CommonRC)
 		return
 	}
 
-	log.Printf("%v == %v", len(uris), len(rr.Data))
-	for i := 0; i < len(rr.OpRC); i++ {
-		if rr.OpRC[i] != Ok {
-			log.Println(rr.OpRC[i])
+	fmt.Printf("index %s {\n", "v_s_Person")
+	fmt.Printf("\ttype=rt\n")
+	fmt.Printf("\tpath=data/sphinx-indexes/%s\n", "v_s_Person")
+	fmt.Printf("\trt_field = uri\n\trt_attr_string=uri_attr\n")
+	for i := 0; i < len(rr.Data); i++ {
+		domain := MsgpackToIndividual(rr.Data[i])
+		rdfsRange := domain.Resources["rdfs:range"][0].StrData
+		attr := strings.Replace(strings.Replace(domain.Uri, ":", "_", -1), "-", "_", -1)
+		fmt.Printf("\trt_field = %s\n", attr)
+		switch rdfsRange {
+		case "xsd:string":
+			fmt.Printf("\trt_attr_string = %s_attr\n", attr)
+		case "xsd:dateTime":
+			fmt.Printf("\trt_attr_bigint = %s_attr\n", attr)
+		default:
+			log.Printf("@UNKNOWN RDFS:RANGE %v\n", rdfsRange)
 		}
 	}
-	/*for i := 0; i < len(uris); i++ {
-		log.Println(uris[i].(string))
-		conn.Get(false, "cfg:VedaSystem", []string{uris[i].(string)}, false)
-	}*/
-}
 
-func main() {
-	conn.Connect("127.0.0.1:9999")
-	loadOntology()
+	fmt.Println("}")
+
+	/*for k, i := range onto.individuals {
+		if i.Resources["rdf:type"][0].StrData != "v-s:Person" {
+			continue
+		}
+		log.Println(k)
+		fmt.Printf("index %s {\n", strings.Replace(i.Resources["rdf:type"][0].StrData, ":", "_", -1))
+		fmt.Printf("\ttype=rt\n")
+		fmt.Printf("\tpath=data/sphinx-indexes/%s\n", strings.Replace(i.Resources["rdf:type"][0].StrData, ":", "_", -1))
+		fmt.Printf("%s", configCommon)
+		break
+	}*/
 }

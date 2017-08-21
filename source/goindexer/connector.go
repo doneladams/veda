@@ -30,14 +30,6 @@ type Connector struct {
 	addr string
 }
 
-type ticket struct {
-	Id        string
-	UserURI   string
-	result    ResultCode
-	StartTime int64
-	EndTime   int64
-}
-
 type RequestResponse struct {
 	CommonRC ResultCode
 	OpRC     []ResultCode
