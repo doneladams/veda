@@ -9,19 +9,112 @@ import (
 	"time"
 )
 
-func generateQuery(individual *Individual) {
+func generateQuery(individual *Individual, id int, hashStr [16]byte) string {
 	// query = fmt.Sprintf("REPLACE INTO i%x (id, uri, uri_attr) VALUES (%d, '%s', '%s')", hashStr, id,
 	// individual.Uri, individual.Uri)
-	// fieldNames := "(id, uri, uri_attr"
-	// fieldArgs := "(%d, '%s', '%s'"
+	fieldNames := "(id, uri, uri_attr"
+	fieldArgs := fmt.Sprintf("(%d, '%s', '%s'", id, individual.Uri, individual.Uri)
 
 	attrs := classAttrs[individual.Resources["rdf:type"][0].StrData]
 	for i := 0; i < len(attrs); i++ {
-		// resources, ok := individual.Resources[attrs[i].name]
-		// if !ok {
-		// continue
-		// }
+		resources, ok := individual.Resources[attrs[i].name]
+		if !ok {
+			continue
+		}
+
+		resource := resources[0]
+		switch resource.ResType {
+
+		/*
+						const (
+				Uri      DataType = 1
+				String   DataType = 2
+				Integer  DataType = 4
+				Datetime DataType = 8
+				Decimal  DataType = 32
+				Boolean  DataType = 64
+				Unknown  DataType = 0
+			)
+		*/
+
+		case Uri:
+			if attrs[i].fieldName != "" {
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+			}
+
+			if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName
+				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+			}
+		case String:
+			langPrefix := ""
+			switch resource.Lang {
+			case LangRu:
+				langPrefix = "_ru"
+			case LangEn:
+				langPrefix = "_en"
+			default:
+				langPrefix = "_none"
+			}
+
+			if attrs[i].fieldName != "" {
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+			}
+
+			if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName + langPrefix
+				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+			}
+		case Integer:
+			if attrs[i].fieldName != "" {
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%d'", fieldArgs, resource.LongData)
+			}
+
+			if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName
+				fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+			}
+		case Datetime:
+			if attrs[i].fieldName != "" {
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%d'", fieldArgs, resource.LongData)
+			}
+
+			if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName
+				fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+			}
+		case Decimal:
+			if attrs[i].fieldName != "" {
+				// fieldNames += ", " + attrs[i].fieldName
+				// fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+			}
+
+			if attrs[i].attrName != "" {
+				// fieldNames += ", " + attrs[i].attrName
+				// fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+			}
+		case Boolean:
+
+			if attrs[i].fieldName != "" {
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, resource.LongData)
+			}
+
+			if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, resource.LongData)
+			}
+		}
+
 	}
+	fieldNames += ")"
+	fieldArgs += ")"
+
+	return fmt.Sprintf("REPLACE INTO i%x %s VALUES %s", hashStr, fieldNames, fieldArgs)
 }
 
 func serveQueue(onto *Onto) {
@@ -113,19 +206,19 @@ func serveQueue(onto *Onto) {
 					rows.Close()
 				}
 
-				generateQuery(individual)
-				query = fmt.Sprintf("REPLACE INTO i%x (id, uri, uri_attr) VALUES (%d, '%s', '%s')", hashStr, id,
-					individual.Uri, individual.Uri)
-				_, err = dbConn.Exec(query, id, individual.Uri, individual.Uri)
+				query = generateQuery(individual, id, hashStr)
+				// query = fmt.Sprintf("REPLACE INTO i%x (id, uri, uri_attr) VALUES (%d, '%s', '%s')", hashStr, id,
+				// individual.Uri, individual.Uri)
+				_, err = dbConn.Exec(query)
 
 				if err != nil {
-					log.Println("@ERR ON EXECUTING QUERY: ", err)
-					log.Println("\t ", query)
+					log.Printf("@ERR ON EXECUTING QUERY (%s): %v\n", rdfType, err)
+					log.Fatal("\t ", query)
 				}
 
 				log.Println(query)
 			} else {
-				log.Println("@UNKNOWN RDF:TYPE ", rdfType)
+				// log.Println("@UNKNOWN RDF:TYPE ", rdfType)
 			}
 		}
 

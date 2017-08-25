@@ -18,7 +18,8 @@ func createSphinxConfig(onto *Onto) {
 	}
 
 	wr := bufio.NewWriter(config)
-	for requestDomain := range onto.individuals {
+	for requestDomainOrig := range onto.individuals {
+		requestDomain := requestDomainOrig
 		domainAttrs := make([]ClassAttr, 0)
 
 		alreadyHad := make(map[string]bool)
@@ -79,11 +80,13 @@ func createSphinxConfig(onto *Onto) {
 				rdfsRange := res[0].StrData
 
 				switch rdfsRange {
-				case "xsd:string":
+				case "xsd:string", "rdfs:Literal":
 					domainAttrs = append(domainAttrs,
 						ClassAttr{name: domain.Uri, fieldName: attr, attrName: attr + "_attr"})
 					wr.WriteString(fmt.Sprintf("\trt_field = %s\n", attr))
-					wr.WriteString(fmt.Sprintf("\trt_attr_string = %s_attr\n", attr))
+					wr.WriteString(fmt.Sprintf("\trt_attr_string = %s_attr_none\n", attr))
+					wr.WriteString(fmt.Sprintf("\trt_attr_string = %s_attr_ru\n", attr))
+					wr.WriteString(fmt.Sprintf("\trt_attr_string = %s_attr_en\n", attr))
 				case "xsd:dateTime":
 					domainAttrs = append(domainAttrs,
 						ClassAttr{name: domain.Uri, fieldName: attr, attrName: attr + "_attr"})
@@ -122,7 +125,7 @@ func createSphinxConfig(onto *Onto) {
 			break
 		}
 
-		classAttrs[requestDomain] = domainAttrs
+		classAttrs[requestDomainOrig] = domainAttrs
 		wr.WriteString("}\n\n")
 	}
 

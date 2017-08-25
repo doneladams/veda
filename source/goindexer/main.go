@@ -80,6 +80,5 @@ func main() {
 
 	classAttrs = make(map[string][]ClassAttr)
 	createSphinxConfig(&onto)
-
-	serveQueue(&onto)
+	// serveQueue(&onto)
 }
