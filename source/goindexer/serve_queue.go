@@ -24,19 +24,6 @@ func generateQuery(individual *Individual, id int, hashStr [16]byte) string {
 
 		resource := resources[0]
 		switch resource.ResType {
-
-		/*
-						const (
-				Uri      DataType = 1
-				String   DataType = 2
-				Integer  DataType = 4
-				Datetime DataType = 8
-				Decimal  DataType = 32
-				Boolean  DataType = 64
-				Unknown  DataType = 0
-			)
-		*/
-
 		case Uri:
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
@@ -54,8 +41,6 @@ func generateQuery(individual *Individual, id int, hashStr [16]byte) string {
 				langPrefix = "_ru"
 			case LangEn:
 				langPrefix = "_en"
-			default:
-				langPrefix = "_none"
 			}
 
 			if attrs[i].fieldName != "" {
