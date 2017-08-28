@@ -64,7 +64,13 @@ type ClassAttr struct {
 	attrName  string
 }
 
+type IndexerInfo struct {
+	Ids   map[string]int64
+	Count int64
+}
+
 var classAttrs map[string][]ClassAttr
+var indexerInfo IndexerInfo
 
 func main() {
 	var rc ResultCode
@@ -79,6 +85,8 @@ func main() {
 	onto.Load()
 
 	classAttrs = make(map[string][]ClassAttr)
+	indexerInfo = IndexerInfo{Ids: make(map[string]int64), Count: int64(0)}
 	createSphinxConfig(&onto)
+
 	serveQueue(&onto)
 }

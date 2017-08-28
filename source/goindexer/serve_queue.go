@@ -3,13 +3,19 @@ package main
 import (
 	"crypto/md5"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"math"
+	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
-func generateQuery(individual *Individual, id int, hashStr [16]byte) string {
+func generateQuery(individual *Individual, id int64, hashStr [16]byte) string {
 	// query = fmt.Sprintf("REPLACE INTO i%x (id, uri, uri_attr) VALUES (%d, '%s', '%s')", hashStr, id,
 	// individual.Uri, individual.Uri)
 	fieldNames := "(id, uri, uri_attr"
@@ -22,76 +28,144 @@ func generateQuery(individual *Individual, id int, hashStr [16]byte) string {
 			continue
 		}
 
-		resource := resources[0]
-		switch resource.ResType {
+		vals := make([]interface{}, len(resources))
+		fieldVal := ""
+		ru := make([]interface{}, len(resources))
+		en := make([]interface{}, len(resources))
+		none := make([]interface{}, len(resources))
+
+		j := 0
+		jEn, jRu, jNone := 0, 0, 0
+		for _, resource := range resources {
+			switch resource.ResType {
+			case Uri:
+				vals[j] = resource.StrData
+				fieldVal += strings.Replace(resource.StrData, "'", "\\'", -1) + "|"
+			case String:
+				vals[j] = resource.StrData
+				// vals[i] = map[string]interface{}{"data": resource.StrData, "lang": resource.Lang}
+				fieldVal += strings.Replace(resource.StrData, "'", "\\'", -1) + "|"
+			case Integer:
+				vals[j] = resource.LongData
+				fieldVal += strconv.FormatInt(resource.LongData, 10) + "|"
+			case Datetime:
+				vals[j] = resource.LongData
+				switch resource.Lang {
+				case LangRu:
+					ru[jRu] = resource.StrData
+					jRu++
+				case LangEn:
+					en[jEn] = resource.StrData
+					jEn++
+				default:
+					none[jNone] = resource.StrData
+					jNone++
+				}
+				fieldVal += strconv.FormatInt(resource.LongData, 10) + "|"
+			case Decimal:
+				decimal := math.Pow(float64(resource.DecimalMantissaData), float64(resource.DecimalExponentData))
+				vals[j] = decimal
+				fieldVal += strconv.FormatFloat(decimal, 'f', -1, 64)
+			case Boolean:
+				vals[j] = resource.BoolData
+				fieldVal += strconv.FormatBool(resource.BoolData) + "|"
+			}
+			j++
+		}
+
+		// valsMap := make(map[string]interface{})
+		// valsMap["data"] = vals
+		data, _ := json.Marshal(vals[:j])
+
+		jsonStr := strings.Replace(string(data), "'", "\\'", -1)
+		switch resources[0].ResType {
 		case Uri:
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
-				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
 				fieldNames += ", " + attrs[i].attrName
-				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
 			}
 		case String:
-			langPrefix := ""
-			switch resource.Lang {
-			case LangRu:
-				langPrefix = "_ru"
-			case LangEn:
-				langPrefix = "_en"
-			}
-
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
-				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
-				fieldNames += ", " + attrs[i].attrName + langPrefix
-				fieldArgs = fmt.Sprintf("%s, '%s'", fieldArgs, resource.StrData)
+				if jRu > 0 {
+					fieldNames += ", " + attrs[i].attrName
+					// fieldNames += ", " + attrs[i].attrName + langPrefix
+					dataRu, _ := json.Marshal(ru[:jRu])
+					jsonStrRu := strings.Replace(string(dataRu), "'", "\\'", -1)
+					fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs+"_ru", jsonStrRu)
+				}
+
+				if jEn > 0 {
+					fieldNames += ", " + attrs[i].attrName
+					// fieldNames += ", " + attrs[i].attrName + langPrefix
+					dataEn, _ := json.Marshal(ru[:jEn])
+					jsonStrEn := strings.Replace(string(dataEn), "'", "\\'", -1)
+					fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs+"_en", jsonStrEn)
+				}
+
+				if jNone > 0 {
+					fieldNames += ", " + attrs[i].attrName
+					// fieldNames += ", " + attrs[i].attrName + langPrefix
+					dataNone, _ := json.Marshal(ru[:jNone])
+					jsonStrNone := strings.Replace(string(dataNone), "'", "\\'", -1)
+					fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStrNone)
+				}
 			}
+
+			/*if attrs[i].attrName != "" {
+				fieldNames += ", " + attrs[i].attrName
+				// fieldNames += ", " + attrs[i].attrName + langPrefix
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
+			}*/
 		case Integer:
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
-				fieldArgs = fmt.Sprintf("%s, '%d'", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
 				fieldNames += ", " + attrs[i].attrName
-				fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
 			}
 		case Datetime:
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
-				fieldArgs = fmt.Sprintf("%s, '%d'", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
 				fieldNames += ", " + attrs[i].attrName
-				fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
 			}
 		case Decimal:
 			if attrs[i].fieldName != "" {
-				// fieldNames += ", " + attrs[i].fieldName
-				// fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+				fieldNames += ", " + attrs[i].fieldName
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
-				// fieldNames += ", " + attrs[i].attrName
-				// fieldArgs = fmt.Sprintf("%s, %d", fieldArgs, resource.LongData)
+				fieldNames += ", " + attrs[i].attrName
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
 			}
 		case Boolean:
 
 			if attrs[i].fieldName != "" {
 				fieldNames += ", " + attrs[i].fieldName
-				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, fieldVal)
 			}
 
 			if attrs[i].attrName != "" {
 				fieldNames += ", " + attrs[i].attrName
-				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, resource.LongData)
+				fieldArgs = fmt.Sprintf("%s, '%v'", fieldArgs, jsonStr)
 			}
 		}
 
@@ -119,14 +193,14 @@ func serveQueue(onto *Onto) {
 	main_cs.open()
 
 	data := ""
-	count := 0
 
+	start := int64(0)
 	for {
 		time.Sleep(300 * time.Millisecond)
 
+		start = time.Now().Unix()
 		main_queue.reopen_reader()
 
-		//log.Printf("@start prepare batch, count=%d", count)
 		for true {
 			data = main_cs.pop()
 			if data == "" {
@@ -142,58 +216,20 @@ func serveQueue(onto *Onto) {
 			individual := MsgpackToIndividual(tmp.Resources["new_state"][0].StrData)
 
 			main_cs.commit_and_next(false)
-			count++
+			indexerInfo.Count++
 
 			rdfType := individual.Resources["rdf:type"][0].StrData
 
 			_, ok := onto.individuals[rdfType]
 			if ok {
-				id := 1
 				hashStr := md5.Sum([]byte(strings.Replace(strings.Replace(rdfType, ":", "_", -1), "-", "_", -1)))
-				//  	INSERT INTO e66c69899d879f63e8ae29efa74f10df (id, uri, uri_attr) VALUES (2, 'avc', 'avc');
-
-				query := fmt.Sprintf("SELECT id FROM i%x WHERE MATCH('%s');", hashStr, individual.Uri)
-				rows, err := dbConn.Query(query)
-
-				if err != nil && err != sql.ErrNoRows {
-					log.Printf("@ERR ON SELECTING EXISTING ID FOR i%x(%s): %v\n", hashStr, rdfType, err)
-					log.Println("\t ", query)
-					continue
+				id, ok := indexerInfo.Ids[individual.Uri]
+				if !ok {
+					id = indexerInfo.Count
+					indexerInfo.Ids[individual.Uri] = id
 				}
 
-				if rows.Next() {
-					err = rows.Scan(&id)
-					if err != nil {
-						log.Println("@ERR READING EXISTING ID: ", err)
-						continue
-					}
-
-					rows.Close()
-				} else {
-					query = fmt.Sprintf("SELECT MAX(id) FROM i%x;", hashStr)
-					rows, err = dbConn.Query(query)
-
-					if err != nil && err != sql.ErrNoRows {
-						log.Printf("@ERR ON SELECTING MAX ID FOR i%x(%s): %v\n", hashStr, rdfType, err)
-						log.Println("\t ", query)
-						continue
-					}
-
-					if rows.Next() {
-						err = rows.Scan(&id)
-						if err != nil {
-							log.Fatalln("@ERR READING MAX ID: ", err)
-							continue
-						}
-						id++
-					}
-
-					rows.Close()
-				}
-
-				query = generateQuery(individual, id, hashStr)
-				// query = fmt.Sprintf("REPLACE INTO i%x (id, uri, uri_attr) VALUES (%d, '%s', '%s')", hashStr, id,
-				// individual.Uri, individual.Uri)
+				query := generateQuery(individual, id, hashStr)
 				_, err = dbConn.Exec(query)
 
 				if err != nil {
@@ -201,12 +237,25 @@ func serveQueue(onto *Onto) {
 					log.Fatal("\t ", query)
 				}
 
-				log.Println(query)
-			} else {
-				// log.Println("@UNKNOWN RDF:TYPE ", rdfType)
+				if indexerInfo.Count%10000 == 0 {
+					f, err := os.Create("data/indexer-info.data")
+					if err != nil {
+						log.Println("@ERR CREATING INDEXER INFO FILE: ", err)
+						continue
+					}
+
+					encoder := msgpack.NewEncoder(f)
+					encoder.Encode(indexerInfo)
+				}
 			}
 		}
 
 		main_cs.sync()
+		break
 	}
+
+	end := time.Now().Unix()
+	log.Println(indexerInfo.Count)
+	log.Printf("speed %f\n", float64(indexerInfo.Count)/float64(end-start))
+	log.Printf("total %v\n", end-start)
 }
