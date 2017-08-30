@@ -1,7 +1,6 @@
-var webdriver = require('selenium-webdriver'),
-    basic = require('./basic.js'),
-    person = require('./person.js'),
+var basic = require('./basic.js'),
     delegationRequest = require('./delegationRequest.js'),
+    person = require('./person.js'),
     timeStamp = ''+Math.round(+new Date()/1000);
 
 /**
@@ -10,7 +9,7 @@ var webdriver = require('selenium-webdriver'),
  * @param somethingUnique - элемент
  * @param count - количество, которое должно быть после поиска
  * @param phase - текуща фаза теста
-*/
+ */
 
 function check(driver, somethingUnique, count, phase) {
     basic.execute(driver, 'click', 'a[id="params-pill-ft"]', "****** PHASE#" + phase + " : ERROR = Cannot click on 'params-pill-ft' button");
@@ -35,13 +34,13 @@ function check(driver, somethingUnique, count, phase) {
  * 2.Login(as bychinat) -> Check number of persons(0) -> Logout;
  * 3.Login(as kaprovrt) -> Create delegation request -> Logout;
  * 4.Login(as bychinat) -> Check number of persons(1) -> Logout;
- * 
+ *
  * 0.Открываем страницу -> Входим в систему под karpovrt;
  * 1.Создаем Персону1 -> Выходи из системы;
  * 2.Входим в систему под bychinat -> Проверяем, что в поиске не ищется наша Персона1 -> Выходим из системы;
  * 3.Входим в систему под karpovrt -> Создаем делегирование -> Выходим из системы;
  * 4.Входим в систему под bychinat -> Проверяем, что после делегирования наша Персона1 ищется -> Выходим из системы;
-*/
+ */
 
 basic.getDrivers().forEach(function (drv) {
     //PHASE#0: Login
@@ -63,7 +62,7 @@ basic.getDrivers().forEach(function (drv) {
 
     //PHASE#3: Delegation request
     basic.login(driver, 'karpovrt', '123', '2', 'Администратор2', 3);
-    delegationRequest.createRequestDelegation(driver, 'Администратор4', 'Администратор4 : Аналитик', 3);
+    delegationRequest.createRequestDelegation(driver, 'Администратор4', 'Администратор4 : Аналитик', "td:Analyst1", 3);
     driver.sleep(basic.FAST_OPERATION);
     basic.execute(driver, 'click', 'a[href="#/v-l:Welcome"]', "****** PHASE#3 : ERROR = Cannot click on 'Welcome' button");
     basic.logout(driver, 3);

@@ -1,10 +1,10 @@
-var webdriver = require('selenium-webdriver'),
+var basic = require('./basic.js'),
     person = require('./person.js'),
-    basic = require('./basic.js');
+    webdriver = require('selenium-webdriver');
 
 /**
  * Поиск
- *
+ * @param driver
  * @param templateName - поля аттрибутивного поиска "Персона", по которому необходимо произвести поиск
  * @param somethingUnigue - строки, по которой необходимо произвести поиск
  * @param count - количество элементов, ожидаемое по окончанию поиска
@@ -19,7 +19,8 @@ function search(driver, templateName, somethingUnique, count) {
             : basic.execute(driver, 'sendKeys', '[property="' + templateName[i] + '"] + veda-control input',
                 "****** PHASE#2 : ERROR = Cannot fill " + templateName[i] + " field", somethingUnique[i]);
     }
-    driver.executeScript("document.querySelector('#find').scrollIntoView(true);");
+    driver.executeScript("document.querySelector('#find').scrollIntoView(true);")
+        .thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#2 : ERROR = Cannot scroll to find button");});
     basic.execute(driver, 'click', '#find', "****** PHASE#2 : ERROR = Cannot click on `Find/Найти` button");
     driver.wait
     (

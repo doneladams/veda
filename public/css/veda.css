@@ -63,6 +63,7 @@ body {
   color: #fff;
   font-weight: bold;
   font-size: 0.9em;
+  white-space: nowrap;
   transform: rotate(-45deg);
   -webkit-transform: rotate(-45deg);
   z-index: 0;
@@ -385,7 +386,9 @@ textarea {
 .deleted, .deleted *:not(.btn) {
   text-decoration: line-through!important;
 }
-.deleted[typeof='v-s:Appointment'], .deleted[typeof='v-s:Appointment'] * {
+.deleted[typeof='v-s:Appointment'], .deleted[typeof='v-s:Appointment'] *,
+.deleted[typeof='v-s:Position'], .deleted[typeof='v-s:Position'] *,
+.deleted[typeof='v-s:Person'], .deleted[typeof='v-s:Person'] * {
   text-decoration: none!important;
   color: #888;
 }
@@ -722,18 +725,6 @@ span.twitter-typeahead .tt-hint {
 /* [END] Typeahead */
 
 
-/* Codemirror editor */
-.codemirror-editor {
-  font-size: 12px;
-  position: relative;
-}
-
-.fs-btn {
-  margin: 5px;
-  font-size: 14px;
-  position:absolute;right:0px;z-index:999;
-}
-
 .has-success .panel {
   color: #3c763d;
   border-color: #3c763d;
@@ -744,29 +735,11 @@ span.twitter-typeahead .tt-hint {
   border-color: #a94442;
 }
 
-/*html, body {
-  height:99%;
-}*/
-.fs-wrapper {
-  min-height:100%;
-  position:relative;
-}
-.fs {
-  position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  z-index: 999999;
-}
 .CodeMirror {
   font-family: monospace;
   height: 300px;
   color: black;
-}
-
-.CodeMirror-fs {
-  height: 100%!important;
+  font-size: 12px;
 }
 
 /* Controls & values */
@@ -795,7 +768,7 @@ td > #rel-actions {
   position:absolute !important;
   top:0px;
   right:0px;
-  z-index:10;
+  z-index:1;
   padding:inherit;
 }
 .red-outline {
@@ -860,6 +833,29 @@ button.close {
   display: block;
   white-space: nowrap;
   display: none;
+}
+
+.sidebar {
+  position:fixed;
+  top:70px;
+  left:0px;
+  bottom:0px;
+  border-right: 1px solid #eee;
+  background-color: #fafafa;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+.mainbar {
+  position:fixed;
+  top:70px;
+  rigth:0px;
+  bottom:0px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
 }
 
 /* [BEGIN] NET EDITOR */
@@ -1257,4 +1253,9 @@ svg.process-path-highlight path
 .label-template > #rel-actions {
   position: relative!important;
   margin: 0 0 0 7px!important;
+}
+
+/* Buttons */
+.btn-block {
+  white-space: normal;
 }

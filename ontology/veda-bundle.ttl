@@ -186,6 +186,11 @@ v-s:Delete
   rdfs:label "Удалить"@ru ;
   rdfs:label "Delete"@en ;
 .
+v-s:Destroy
+  rdf:type v-s:Bundle ;
+  rdfs:label "Уничтожить"@ru ;
+  rdfs:label "Destroy"@en ;
+.
 v-s:DeleteAll
   rdf:type v-s:Bundle ;
   rdfs:label "Удалить все"@ru ;
@@ -356,4 +361,9 @@ v-s:RefreshBundle
   rdf:type v-s:Bundle ;
   rdfs:label "Обновить"@ru ;
   rdfs:label "Refresh"@en ;
+.
+v-s:CoordinationList
+  rdf:type v-s:Bundle ;
+  rdfs:label "Лист согласования"@ru ;
+  rdfs:label "Coordination list"@en ;
 .

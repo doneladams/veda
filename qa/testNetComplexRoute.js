@@ -2,6 +2,7 @@ var console = require('console');
 var basic = require('./basic.js'),
     complexRoute = require('./complexRoute.js'),
     assert = require('assert');
+
 /**
  * 0.Open page -> login(as karpovrt);
  * 1.Open create Complex route test template document form -> Start route -> Logout;
@@ -47,10 +48,12 @@ basic.getDrivers().forEach (function (drv) {
 
     //PHASE#1: Start route
     basic.openCreateDocumentForm(driver, 'Тестовый шаблон комплексного маршурута', 's-wf:ComplexRouteTest', 1);
-    driver.executeScript("document.querySelector('#send').scrollIntoView(true)");
+    driver.executeScript("document.querySelector('#send').scrollIntoView(true)")    
+        .thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#1 : ERROR = Cannot scroll to send button");});
     basic.execute(driver, 'click', 'button[id="send"]', "****** PHASE#1 : ERROR = Cannot click on 'Send' button");
     driver.sleep(basic.SLOW_OPERATION);
-    driver.executeScript("document.querySelector('#save_and_start_process').scrollIntoView(true)");
+    driver.executeScript("document.querySelector('#save_and_start_process').scrollIntoView(true)")
+        .thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#1 : ERROR = Cannot scroll to save_and_start_process button");});
     driver.sleep(basic.FAST_OPERATION);
     basic.execute(driver, 'click', 'button[id="save_and_start_process"]',
         "****** PHASE#1 : ERROR = Cannot click on 'save_and_start_process' button");

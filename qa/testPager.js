@@ -1,5 +1,4 @@
-var webdriver = require('selenium-webdriver'),
-	basic = require('./basic.js');
+var	basic = require('./basic.js');
 
 /**
  * Проверка pager
@@ -7,12 +6,14 @@ var webdriver = require('selenium-webdriver'),
  * @param phase - текущая фаза теста
 */
 function testPager(driver, phase) {
-	driver.executeScript("document.querySelector('ul[id=\"pager\"]').scrollIntoView(true);");
+	driver.executeScript("document.querySelector('ul[id=\"pager\"]').scrollIntoView(true);")
+		.thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#" + phase + " : ERROR = Cannot scroll to pager");});
 	driver.findElements({css:'#pager > li:nth-child(2) > a'}).then(function (result) {
 		if (result.length > 0) {
 			basic.execute(driver, 'click', '#pager > li:nth-child(2) > a', "****** PHASE#" + phase + " : ERROR = Cannot click on 2 page");
 			driver.sleep(basic.EXTRA_SLOW_OPERATION);
-			driver.executeScript("document.querySelector('ul[id=\"pager\"]').scrollIntoView(true);");
+			driver.executeScript("document.querySelector('ul[id=\"pager\"]').scrollIntoView(true);")
+				.thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#" + phase + " : ERROR = Cannot scroll to pager");});
 			basic.execute(driver, 'click', '#pager > li:nth-child(1) > a', "****** PHASE#" + phase + " : ERROR = Cannot click on 1 page");
 			driver.sleep(basic.SLOW_OPERATION);
 		}
@@ -48,6 +49,6 @@ basic.getDrivers().forEach(function(drv) {
 	basic.execute(driver, 'click', 'button[id="submit"]', "****** PHASE#2 : ERROR = Cannot click on 'submit' button");
 	driver.sleep(basic.EXTRA_SLOW_OPERATION);
 	testPager(driver, 2);
-	// TO DO: testPager in messages; OPTIMIZE;
+	// TO DO: testPager in messages; OPTIMIZATION;
 	driver.quit();
 });
