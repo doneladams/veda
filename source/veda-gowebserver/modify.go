@@ -37,5 +37,6 @@ func modifyIndividual(cmd, ticketKey, dataKey string, dataJSON interface{}, prep
 	responseData := responseJSON["data"].([]interface{})[0].(map[string]interface{})
 	ctx.Response.SetStatusCode(int(responseData["result"].(float64)))
 	responseDataJSON, _ := json.Marshal(responseData)
+	log.Println(string(responseDataJSON))
 	ctx.Write(responseDataJSON)
 }

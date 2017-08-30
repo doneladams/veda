@@ -135,13 +135,13 @@ func getTicketTrusted(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
-	log.Println(responseJSON)
 
 	getTicketResponse := make(map[string]interface{})
 	getTicketResponse["end_time"] = responseJSON["end_time"]
 	getTicketResponse["id"] = responseJSON["id"]
 	getTicketResponse["user_uri"] = responseJSON["user_uri"]
 	getTicketResponse["result"] = responseJSON["result"]
+
 	if err != nil {
 		log.Printf("@ERR GET_TICKET_TRUSTED: ENCODE JSON RESPONSE: %v\n", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))

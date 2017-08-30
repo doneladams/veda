@@ -502,19 +502,19 @@ for (i = 0; i < 1; i++)
             wait_module(condition, res.op_id);
 
             //#4
-            test_fail_read(ticket, new_test_doc3['@'], new_test_doc3);
+            test_fail_read(ticket, new_test_doc3_uri, new_test_doc3);
             
-            read_individual = remove_individual(ticket.id, new_test_doc2['@']);
+            read_individual = remove_individual(ticket.id, new_test_doc2_uri);
             wait_module(condition, res.op_id);
 
             //#5
-            test_fail_read(ticket, new_test_doc2['@'], new_test_doc2);
+            test_fail_read(ticket, new_test_doc2_uri, new_test_doc2_uri);
             
-            read_individual = remove_individual(ticket.id, new_test_doc1['@']);
+            read_individual = remove_individual(ticket.id, new_test_doc1_uri);
             wait_module(condition, res.op_id);
 
             //#6
-            test_fail_read(ticket, new_test_doc1['@'], new_test_doc1);
+            test_fail_read(ticket, new_test_doc1_uri, new_test_doc1_uri);
         });
 
     test("#010 Individual of [v-s:Membership]",
@@ -615,23 +615,23 @@ for (i = 0; i < 1; i++)
             //#3
             ok((read_individual['@'] == new_test_doc3_uri) == true);
 
-            read_individual = remove_individual(ticket.id, new_test_doc1['@']);
+            read_individual = remove_individual(ticket.id, new_test_doc1_uri);
             wait_module(condition, res.op_id);
 
             //#4
-            test_fail_read(ticket, new_test_doc1['@'], new_test_doc1);
+            test_fail_read(ticket, new_test_doc1_uri, new_test_doc1);
             
-            read_individual = remove_individual(ticket.id, new_test_doc2['@']);
+            read_individual = remove_individual(ticket.id, new_test_doc2_uri);
             wait_module(condition, res.op_id);
 
             //#5
-            test_fail_read(ticket, new_test_doc2['@'], new_test_doc2);
+            test_fail_read(ticket, new_test_doc2_uri, new_test_doc2);
 
-            read_individual = remove_individual(ticket.id, new_test_doc3['@']);
+            read_individual = remove_individual(ticket.id, new_test_doc3_uri);
             wait_module(condition, res.op_id);
 
             //#6
-            test_fail_read(ticket, new_test_doc3['@'], new_test_doc3);
+            test_fail_read(ticket, new_test_doc3_uri, new_test_doc3);
         });
 
     test(
@@ -736,7 +736,6 @@ for (i = 0; i < 1; i++)
             //#9
             ok(compare(data.length, 2));
 
-            
             res = remove_individual(ticket_user1.id, new_test_doc1['@']);
             wait_module(condition, res.op_id);
 

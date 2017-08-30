@@ -394,6 +394,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.REMOVE)
                                 {
+                                    stderr.writefln("@TRY REMOVE %s", uri);
 			                        RequestResponse request_response = connector.remove(OptAuthorize.NO, user_uri, [ uri ], false);
                                     if (request_response.common_rc != ResultCode.OK)
 	                                    stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);

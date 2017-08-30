@@ -545,6 +545,8 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
             Ok(_) => res_uri = std::str::from_utf8(&res_uri_buf).unwrap()
         }
 
+        writeln!(stderr(), "@REMOVE {0}", res_uri);
+
         encode::encode_array(&mut request, 1);
         encode::encode_string(&mut request, res_uri);
         /// Unsafe call to delete in Tarantool
@@ -559,6 +561,7 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
                 false, false).0;
 
                 if (auth_result & authorization::ACCESS_CAN_DELETE) == 0 {
+                    writeln!(stderr(), "@NOT AUTH");
                     encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
                     encode::encode_nil(resp_msg);
                     continue;
@@ -575,6 +578,8 @@ pub fn remove(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_ms
             box_delete(conn.memberships_space_id, conn.memberships_index_id, 
                 key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
         }
+
+        writeln!(stderr(), "@OK");
         encode::encode_uint(resp_msg, Codes::Ok as u64);        
     }
 }
