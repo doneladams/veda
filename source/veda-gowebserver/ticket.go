@@ -68,6 +68,24 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 		ticketCache[ticketKey] = ticket
 	}
 
+	if areExternalUsers {
+		log.Printf("check external user (%s)\n", ticket.UserURI)
+		_, ok := externalUsersTicketId[ticket.Id]
+		if !ok {
+			rr := conn.Get(false, "cfg:VedaSystem", []string{ticket.UserURI}, false)
+			user := MsgpackToMap(rr.Data[0])
+			data, ok := user["v-s:origin"]
+			if !ok || (ok && !data.(map[string]interface{})["data"].(bool)) {
+				log.Printf("ERR! user (%s) is not external\n", ticket.UserURI)
+				ticket.Id = "?"
+				ticket.result = NotAuthorized
+			} else if ok && data.(map[string]interface{})["data"].(bool) {
+				log.Printf("user is external (%s)\n", ticket.UserURI)
+				externalUsersTicketId[ticket.UserURI] = true
+			}
+		}
+	}
+
 	return Ok, ticket
 }
 

@@ -47,6 +47,8 @@ var socket *nanomsg.Socket
 var endpoint *nanomsg.Endpoint
 var vedaServerURL = "tcp://127.0.0.1:9112"
 var attachmentsPath = "./data/files/"
+var areExternalUsers = false
+var externalUsersTicketId map[string]bool
 
 // string BASE64_START_POS = "base64";
 
@@ -160,6 +162,7 @@ func main() {
 	ticketCache = make(map[string]ticket)
 	ontologyCache = make(map[string]map[string]interface{})
 	mifCache = make(map[int]*ModuleInfoFile)
+	externalUsersTicketId = make(map[string]bool)
 
 	err = fasthttp.ListenAndServe("0.0.0.0:8080", requestHandler)
 	if err != nil {

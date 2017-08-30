@@ -44,6 +44,22 @@ func authenticate(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if areExternalUsers {
+		log.Printf("authenticate:check external user (%v)\n", authResponse["user_uri"])
+		rr := conn.Get(false, "cfg:VedaSystem", []string{authResponse["user_uri"].(string)}, false)
+		user := MsgpackToMap(rr.Data[0])
+		data, ok := user["v-s:origin"]
+		if !ok || (ok && !data.(map[string]interface{})["data"].(bool)) {
+			log.Printf("ERR! user (%v) is not external\n", authResponse["user_uri"])
+			authResponse["end_time"] = 0
+			authResponse["id"] = ""
+			authResponse["user_uri"] = ""
+			authResponse["result"] = NotAuthorized
+		} else if ok && data.(map[string]interface{})["data"].(bool) {
+			externalUsersTicketId[authResponse["user_uri"].(string)] = true
+		}
+	}
+
 	ctx.SetStatusCode(int(Ok))
 	ctx.Write(authResponseBuf)
 }
