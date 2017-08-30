@@ -24,6 +24,7 @@ const (
 	NoContent           ResultCode = 204
 	SizeTooLarge        ResultCode = 1118
 	UnprocessableEntity ResultCode = 422
+	InvalidIdentifier   ResultCode = 904
 )
 
 type ticket struct {

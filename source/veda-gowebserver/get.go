@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"strings"
+	"time"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -13,7 +16,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
-//	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
+	//	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
 
 	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
@@ -22,12 +25,62 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		log.Println("@ERR GET TICKET GET_INDIVIDUAL ", rc)
 		log.Println("\t@REQUEST BODY ", string(ctx.Request.Body()))
 		ctx.Response.SetStatusCode(int(rc))
+		return
+	}
+
+	queueStatePrefix := "srv:queue-state-"
+	if strings.Index(uri, queueStatePrefix) == 0 {
+		queueName := string(uri[len(queueStatePrefix):])
+		var main_queue *Queue
+		var main_cs *Consumer
+
+		main_queue_name := "individuals-flow"
+		main_queue = NewQueue(main_queue_name, R)
+		if !main_queue.open(CURRENT) {
+			log.Println("@ERR OPENING QUEUE: ", queueName)
+			ctx.Response.SetStatusCode(int(InvalidIdentifier))
+			return
+		}
+
+		// main_queue.open(CURRENT)
+
+		main_cs = NewConsumer(main_queue, queueName)
+		if !main_cs.open() {
+			log.Println("@ERR OPENING CONSUMER: ", queueName)
+			ctx.Response.SetStatusCode(int(InvalidIdentifier))
+			return
+		}
+
+		main_cs.open()
+		main_cs.get_info()
+		if !main_cs.get_info() {
+			log.Println("@ERR GETTING INFO: ", queueName)
+			ctx.Response.SetStatusCode(int(InvalidIdentifier))
+			return
+		}
+
+		individual := make(map[string]interface{})
+		individual["@"] = uri
+		individual["rdf:type"] = map[string]interface{}{"data": "v-s:AppInfo", "type": "Uri"}
+		individual["v-s:created"] = map[string]interface{}{"data": time.Now().Format("2006-01-02T15:04:05Z"),
+			"type": "Datetime"}
+		individual["srv:queue"] = map[string]interface{}{"data": "srv:" + queueName, "type": "Uri"}
+		individual["srv:total_count"] = map[string]interface{}{"data": main_queue.count_pushed, "type": "Integer"}
+		individual["srv:current_count"] = map[string]interface{}{"data": main_cs.count_popped, "type": "Integer"}
+		individualJSON, err := json.Marshal(individual)
+		if err != nil {
+			log.Println("@ERR GET_INDIVIDUAL: ENCODING INDIVIDUAL TO JSON ", err)
+			ctx.Response.SetStatusCode(int(InternalServerError))
+			return
+		}
+
+		ctx.Write(individualJSON)
+		ctx.Response.SetStatusCode(int(Ok))
 		return
 	}
 
