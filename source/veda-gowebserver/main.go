@@ -8,8 +8,8 @@ import (
 
 	"strings"
 
+	"github.com/muller95/traildb-go"
 	"github.com/op/go-nanomsg"
-	"github.com/traildb/traildb-go"
 	"github.com/valyala/fasthttp"
 )
 

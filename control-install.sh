@@ -261,6 +261,9 @@ go get -v github.com/valyala/fasthttp
 #go-nanomsg
 go get -v github.com/op/go-nanomsg
 
+#traildb-go
+go get github.com/traildb/traildb-go
+
 go get -v github.com/gorilla/websocket
 go get -v github.com/divan/expvarmon
 go get -v gopkg.in/vmihailenco/msgpack.v2

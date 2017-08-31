@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	"github.com/traildb/traildb-go"
+	"github.com/muller95/traildb-go"
 )
 
 func trail(ticketId, userId, action string, args map[string]interface{}, result string, resultCode ResultCode, startTime int64) {
