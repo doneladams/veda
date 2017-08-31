@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/op/go-nanomsg"
+	"github.com/traildb/traildb-go"
 	"github.com/valyala/fasthttp"
 )
 
@@ -37,6 +38,7 @@ type ticket struct {
 
 const (
 	lmdbTicketsDBPath = "./data/lmdb-tickets"
+	tdbPath           = "./data/trails/	"
 )
 
 var ticketCache map[string]ticket
@@ -49,6 +51,10 @@ var vedaServerURL = "tcp://127.0.0.1:9112"
 var attachmentsPath = "./data/files/"
 var areExternalUsers = false
 var externalUsersTicketId map[string]bool
+var cons *tdb.TrailDBConstructor
+var isTrail = true
+var countTrails = 0
+var portStr = "8080"
 
 // string BASE64_START_POS = "base64";
 
@@ -164,7 +170,7 @@ func main() {
 	mifCache = make(map[int]*ModuleInfoFile)
 	externalUsersTicketId = make(map[string]bool)
 
-	err = fasthttp.ListenAndServe("0.0.0.0:8080", requestHandler)
+	err = fasthttp.ListenAndServe("0.0.0.0:"+portStr, requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
 	}
