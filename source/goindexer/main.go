@@ -70,6 +70,9 @@ type IndexerInfo struct {
 }
 
 var classAttrs map[string][]ClassAttr
+var testIndividuals []*Individual
+var testIndividualsCount int
+var testCountMax = 80000000
 var indexerInfo IndexerInfo
 
 func main() {
@@ -88,5 +91,24 @@ func main() {
 	indexerInfo = IndexerInfo{Ids: make(map[string]int64), Count: int64(0)}
 	createSphinxConfig(&onto)
 
+	testIndividuals = make([]*Individual, testCountMax)
+	/*getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='v-s:Person'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='v-s:Appointment'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:Contract'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:ActOfViolation'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:BusinessTrip'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:ActFailure'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:AuditInternal'")
+	getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", "'rdf:type'==='mnd-s:AuditSafety'")*/
+
+	// getTestIndividuals("84dc117d-5fd4-4ce0-9c32-f4faa724250b")
+	// data, _ := ioutil.ReadFile("data/test.data")
+	// msgpack.Unmarshal(data, &testIndividuals)
+	// testIndividualsCount = len(testIndividuals)
+
+	/*	for request := range onto.individuals {
+		getTestIndividuals("0444a2df-1403-4925-9371-536de5672b6f", fmt.Sprintf("'rdf:type'==='%s'", request))
+	}*/
+	log.Println(testIndividualsCount)
 	serveQueue(&onto)
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -43,6 +45,137 @@ type Individual struct {
 	Resources map[string][]Resource
 }
 
+func stringToDecimal(str string) (int64, int64) {
+	var exponent, mantissa int64
+
+	runes := []rune(str)
+
+	i := 0
+	negative := false
+	if runes[0] == '-' {
+		i++
+		negative = true
+	}
+
+	j := len(runes) - 1
+	for ; j >= i; j-- {
+		if runes[j] != '0' {
+			break
+		}
+
+		exponent += 1
+	}
+
+	expStep := int64(0)
+	for ; i <= j; i++ {
+		if runes[i] == '.' {
+			expStep = -1
+			continue
+		}
+
+		number, _ := strconv.ParseInt(string(runes[i]), 10, 64)
+		mantissa = mantissa*10 + number
+		exponent += expStep
+	}
+
+	if negative {
+		mantissa = -mantissa
+	}
+
+	return mantissa, exponent
+}
+
+func stringToDataType(str string) DataType {
+	switch str {
+	case "Uri":
+		return Uri
+	case "String":
+		return String
+	case "Integer":
+		return Integer
+	case "Datetime":
+		return Datetime
+	case "Decimal":
+		return Decimal
+	case "Boolean":
+		return Boolean
+	}
+
+	log.Println("@ERR UNKNOWN DATA TYPE STRING")
+	return Unknown
+}
+
+func stringToLang(str string) Lang {
+	switch str {
+	case "RU":
+		return LangRu
+	case "EN":
+		return LangEn
+	default:
+		return LangNone
+	}
+}
+
+func MapToIndividual(jsonMap map[string]interface{}) *Individual {
+	var indiv Individual
+
+	indiv.Uri = jsonMap["@"].(string)
+	indiv.Resources = make(map[string][]Resource)
+	for k, v := range jsonMap {
+		if k == "@" {
+			continue
+		}
+
+		resourcesJson := v.([]interface{})
+		resources := make([]Resource, len(resourcesJson))
+		for i := 0; i < len(resourcesJson); i++ {
+			var resource Resource
+			resourceJson := resourcesJson[i].(map[string]interface{})
+			datatype := Unknown
+			switch resourceJson["type"].(type) {
+			case float64:
+				datatype = DataType(resourceJson["type"].(float64))
+			case string:
+				datatype = stringToDataType(resourceJson["type"].(string))
+			}
+
+			resource.ResType = datatype
+			switch datatype {
+			case Uri:
+				resource.StrData = resourceJson["data"].(string)
+				resource.Lang = LangNone
+			case Integer:
+				resource.LongData = int64(resourceJson["data"].(float64))
+			case Datetime:
+				datetime, _ := time.Parse("2006-01-02T15:04:05.000Z", resourceJson["data"].(string))
+				resource.LongData = datetime.Unix()
+			case Decimal:
+				mantissa, exponent := stringToDecimal(resourceJson["data"].(string))
+				resource.DecimalMantissaData, resource.DecimalExponentData = mantissa, exponent
+			case Boolean:
+				resource.BoolData = resourceJson["data"].(bool)
+			case String:
+				lang := LangNone
+				switch resourceJson["lang"].(type) {
+				case float64:
+					lang = Lang(resourceJson["lang"].(float64))
+				case string:
+					lang = stringToLang(resourceJson["lang"].(string))
+				}
+
+				resource.Lang = lang
+				resource.StrData = resourceJson["data"].(string)
+			}
+
+			resources[i] = resource
+		}
+
+		indiv.Resources[k] = resources
+	}
+
+	return &indiv
+}
+
 func MsgpackToIndividual(msgpackStr string) *Individual {
 	individual := Individual{Resources: make(map[string][]Resource)}
 	decoder := msgpack.NewDecoder(strings.NewReader(msgpackStr))
@@ -51,7 +184,10 @@ func MsgpackToIndividual(msgpackStr string) *Individual {
 	// log.Printf("@MSGPACK %v\n", msgpackStr)
 
 	individual.Uri, _ = decoder.DecodeString()
-	resMapI, _ := decoder.DecodeMap()
+	resMapI, err := decoder.DecodeMap()
+	if err != nil {
+		log.Println("@ERR DECODING MAP: ", err)
+	}
 	resMap := resMapI.(map[interface{}]interface{})
 	// log.Println("@URI ", individual["@"])
 	for keyI, resArrI := range resMap {

@@ -195,6 +195,8 @@ func serveQueue(onto *Onto) {
 	data := ""
 
 	start := int64(0)
+	start = time.Now().Unix()
+
 	for {
 		time.Sleep(300 * time.Millisecond)
 
@@ -246,6 +248,7 @@ func serveQueue(onto *Onto) {
 
 					encoder := msgpack.NewEncoder(f)
 					encoder.Encode(indexerInfo)
+					f.Close()
 				}
 			}
 		}
@@ -254,6 +257,42 @@ func serveQueue(onto *Onto) {
 		break
 	}
 
+	/*	for i := 0; i < testIndividualsCount; i++ {
+			individual := testIndividuals[i]
+			indexerInfo.Count++
+
+			rdfType := individual.Resources["rdf:type"][0].StrData
+
+			_, ok := onto.individuals[rdfType]
+			if ok {
+				hashStr := md5.Sum([]byte(strings.Replace(strings.Replace(rdfType, ":", "_", -1), "-", "_", -1)))
+				id, ok := indexerInfo.Ids[individual.Uri]
+				if !ok {
+					id = indexerInfo.Count
+					indexerInfo.Ids[individual.Uri] = id
+				}
+
+				query := generateQuery(individual, id, hashStr)
+				_, err = dbConn.Exec(query)
+
+				if err != nil {
+					log.Printf("@ERR ON EXECUTING QUERY (%s): %v\n", rdfType, err)
+					log.Fatal("\t ", query)
+				}
+
+				if indexerInfo.Count%10000 == 0 {
+					f, err := os.Create("data/indexer-info.data")
+					if err != nil {
+						log.Println("@ERR CREATING INDEXER INFO FILE: ", err)
+						continue
+					}
+
+					encoder := msgpack.NewEncoder(f)
+					encoder.Encode(indexerInfo)
+				}
+			}
+		}
+	*/
 	end := time.Now().Unix()
 	log.Println(indexerInfo.Count)
 	log.Printf("speed %f\n", float64(indexerInfo.Count)/float64(end-start))
