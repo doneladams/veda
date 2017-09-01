@@ -712,7 +712,7 @@ s-wf:SimpleRouteStartFormMinimal_Template
   rdfs:label "Шаблон стартовых данных простого маршрута"@ru ;
   rdfs:label "Single route start form template"@en ;
   v-ui:template """
-<div style="min-height:300px">
+<div style="min-height:300px; height:300px; overflow-y:auto; overflow-x:hidden;">
   <em about="s-wf:SimpleRouteStartForm_participant" property="rdfs:label"></em>
   <div rel="s-wf:SimpleRouteStartForm_participant" class="view edit -search" data-template="v-ui:LabelTemplate"></div>
   <veda-control data-type="link" rel="s-wf:SimpleRouteStartForm_participant" class="-view edit search fulltext"></veda-control>
@@ -729,7 +729,7 @@ s-wf:SimpleRouteStartFormShort_Template
   rdfs:label "Шаблон стартовых данных простого маршрута"@ru ;
   rdfs:label "Single route start form template"@en ;
   v-ui:template """
-<div style="min-height:300px">
+<div style="min-height:300px; height:300px; overflow-y:auto; overflow-x:hidden;">
   <em about="s-wf:SimpleRouteStartForm_participant" property="rdfs:label"></em>
   <div rel="s-wf:SimpleRouteStartForm_participant" class="view edit -search" data-template="v-ui:LabelTemplate"></div>
   <veda-control data-type="link" rel="s-wf:SimpleRouteStartForm_participant" class="-view edit search fulltext"></veda-control>
@@ -749,7 +749,7 @@ s-wf:SimpleRouteStartFormFull_Template
   rdfs:label "Шаблон стартовых данных простого маршрута"@ru ;
   rdfs:label "Single route start form template"@en ;
   v-ui:template """
-<div style="min-height:300px">
+<div style="min-height:300px; height:300px; overflow-y:auto; overflow-x:hidden;">
   <em about="s-wf:SimpleRouteStartForm_participant" property="rdfs:label"></em>
   <div rel="s-wf:SimpleRouteStartForm_participant" class="view edit -search" data-template="v-ui:LabelTemplate"></div>
   <veda-control data-type="link" rel="s-wf:SimpleRouteStartForm_participant" class="-view edit search fulltext"></veda-control>
@@ -1056,6 +1056,93 @@ if (doc) {
     routes['review'][simple+'editable'] = [true];
     routes['review'][simple+'deadlineDays'] = [3];
   }
+//--------------------------------------------------------------------------------Демонтаж-------
+  if (doc['rdf:type'][0].id === "mnd-s:DismantlingProject") {
+    var chief, owner;
+    if (doc.hasValue("v-s:projectManager")){
+      chief = doc["v-s:projectManager"][0].getChief();
+    }
+    if (doc.hasValue("v-s:owner") && (doc["v-s:owner"][0] == doc["v-s:creator"][0])){
+      owner = [];
+    } else {
+      owner = doc["v-s:owner"];
+    }
+    var arr = owner.concat(chief);/*
+    routes['introduction'][simple+'visible'] = [false];
+    routes['introduction'][simple+'editable'] = [false];
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [false];
+    routes['coordination1'][simple+'participant'] = arr;
+    routes['coordination2'][simple+'visible'] = [true];
+    routes['coordination2'][simple+'editable'] = [true];
+    routes['coordination3'][simple+'visible'] = [false];
+    routes['coordination3'][simple+'editable'] = [false];
+    routes['sign'][simple+'visible'] = [false];
+    routes['sign'][simple+'editable'] = [false];
+    routes['approval'][simple+'visible'] = [false];
+    routes['approval'][simple+'editable'] = [false];
+    routes['review'][simple+'visible'] = [false];
+    routes['review'][simple+'editable'] = [false];
+    routes['instruction'][simple+'visible'] = [true];
+    routes['instruction'][simple+'editable'] = [false];
+    routes['instruction'][simple+'participant'] =  [new veda.IndividualModel("d:ff670646-d509-4ff9-92f2-482c255441e8")];
+    routes['instruction'][simple+'deadlineDays'] =[2];
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];*/
+
+
+
+
+    routes['coordination1'][simple+'visible'] = [true]; //согласование 1
+    routes['coordination1'][simple+'editable'] = [false];
+    routes['coordination1'][simple+'participant'] = arr;
+    routes['coordination2'][simple+'visible'] = [true]; //согласование 2
+    routes['coordination2'][simple+'editable'] = [true];
+    routes['instruction'][simple+'visible'] = [true];
+    routes['instruction'][simple+'editable'] = [false];
+    routes['instruction'][simple+'participant'] =  [new veda.IndividualModel("d:ff670646-d509-4ff9-92f2-482c255441e8")];
+    routes['instruction'][simple+'deadlineDays'] =[2];
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];
+  }
+
+//--------------------------------------------------------------------------Внутренний документ
+  if (doc['rdf:type'][0].id === "mnd-s:InternalDocument") {
+    routes['informing'][simple+'visible'] = [true];
+    routes['informing'][simple+'editable'] = [true];
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+    routes['coordination2'][simple+'visible'] = [true];
+    routes['coordination2'][simple+'editable'] = [true];
+    routes['coordination3'][simple+'visible'] = [true];
+    routes['coordination3'][simple+'editable'] = [true];
+
+    var chief;
+    if (doc.hasValue("v-s:initiator")){
+      chief = doc["v-s:initiator"][0].getChief();
+    } else {
+      chief = doc["v-s:creator"][0].getChief();
+    }
+    routes['sign'][simple+'visible'] = [true];
+    routes['sign'][simple+'editable'] = [true];
+    routes['sign'][simple+'deadlineDays'] = [5];
+    routes['sign'][simple+'participant'] = [chief];
+    routes['approval'][simple+'visible'] = [true];
+    routes['approval'][simple+'editable'] = [true];
+    routes['approval'][simple+'deadlineDays'] = [5];
+
+    var chief2;
+    if (doc.hasValue("v-s:responsibleDepartment")){
+      chief2 = doc["v-s:responsibleDepartment"][0].getChief();
+    } else {
+      chief2 = doc["v-s:creator"][0].getChief();
+    }
+    routes['review'][simple+'visible'] = [true];
+    routes['review'][simple+'editable'] = [true];
+    routes['review'][simple+'deadlineDays'] = [3];
+    routes['review'][simple+'participant'] = [chief2];
+  }
+
 //--------------------------------------------------------------------------Заявка на контракт
   function objectOrParent(doc, objectId) {
     return doc.hasValue('v-s:hasContractObject') &&
@@ -1968,7 +2055,7 @@ if (doc) {
     }
 
     var orderCreator = []; // Создатель заказа
-    if ( doc.hasValue("mnd-s:hasPurchaseOrder") && doc["mnd-s:hasPurchaseOrder"][0].hasValue("v-s:creator") ) {
+    if ( doc.hasValue("mnd-s:hasPurchaseOrder") && doc["mnd-s:hasPurchaseOrder"][0].hasValue("v-s:creator") && !doc["mnd-s:hasPurchaseOrder"][0].hasValue("v-s:creator", "d:SYK-PORTALMS_appointment") ) {
       orderCreator = doc["mnd-s:hasPurchaseOrder"][0]["v-s:creator"];
     }
 
@@ -2168,7 +2255,8 @@ if (doc) {
 
       // согласование 1 уровня
       if (doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00063551_70013758") // Пеллер
-        || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00069177_71015289") // Шаллеггер
+        || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00009992_71024618") // Дмитриева
+        || doc.hasValue("v-s:businessTripEmployee", "d:73ff1ce67c77f6815c56b697") // Дмитриева
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00064206_71017819") // Бендер
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00068750_71017804") // Дружков
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00010043_71018870") // Третьяков
@@ -2194,7 +2282,7 @@ if (doc) {
         function calculationHeadUnit(occupation){
           if(occupation.hasValue("v-s:hasChief") ) {
             if (occupation["v-s:hasChief"][0]["rdf:type"][0].id !== "rdfs:Resource") {
-              return occupation["v-s:hasChief"][0];
+              return occupation["v-s:hasChief"];
             } else {return [];}
           } else  if ( !occupation.hasValue("v-s:parentUnit") ){
             return [];
@@ -2224,13 +2312,14 @@ if (doc) {
         || doc.hasValue("mnd-s:hasBusinessTripPurpose", "d:6c0bbecd077d4dff8b9481da73ea5350")//(Общественные организации отраслевые (ЦБП, Леспром))
         || doc.hasValue("mnd-s:hasBusinessTripPurpose", "d:236170912d8f40a08178baab6449ff05")// (Организации конкуренты)
       ) {
-        routes['coordination2'][simple+'participant'] = [new veda.IndividualModel("d:791faba3-440c-49bd-9d20-4612684f43fb")];//Специалист УЦ
+        routes['coordination2'][simple+'participant'] = [new veda.IndividualModel("d:791faba3-440c-49bd-9d20-4612684f43fb")];//Юрисконсульт по конкурентному праву
         routes['coordination2'][simple+'visible'] = [true];
         routes['coordination2'][simple+'editable'] = [true];
       }
 
       // Подписание
-      if(doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00069177_71015289") // Шаллеггер*
+      if( doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00009992_71024618") // Дмитриева
+        || doc.hasValue("v-s:businessTripEmployee", "d:73ff1ce67c77f6815c56b697") // Дмитриева
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00064206_71017819") // Бендер*
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00068750_71017804") // Дружков*
         || doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00010043_71018870") // Третьяков*
@@ -2250,7 +2339,7 @@ if (doc) {
         routes['sign'][simple+'editable'] = [false];
       } else if(doc.hasValue("v-s:businessTripEmployee", "d:mondi_appointment_00063551_70013758")//Пеллер
       ) {
-        routes['sign'][simple+'participant'] = [new veda.IndividualModel("d:mondi_appointment_00069177_71015289")];//Шаллеггер*
+        routes['sign'][simple+'participant'] = [new veda.IndividualModel("d:mondi_position_71015289")];//Финансовый директор
         routes['sign'][simple+'visible'] = [true];
         routes['sign'][simple+'editable'] = [false];
       } else if(!doc.hasValue("v-s:hasClassifierCountry", "d:Country_RUS")){
@@ -2292,15 +2381,22 @@ if (doc) {
       routes['instruction'][simple+'deadlineDays'] =[data];
 
     } else {
-
       routes['sign'][simple+'visible'] = [true];
       routes['sign'][simple+'editable'] = [true];
-      routes['sign'][simple+'comment'] = [new String('Подтвердить изменение сроков')];
-
       routes['review'][simple+'participant'] = [new veda.IndividualModel('d:c273dde3-5a8c-4f83-b9ed-b24f86d1b21d')]; // Бухгалтер КФО
       routes['review'][simple+'participant'] = routes['review'][simple+'participant'].concat(new veda.IndividualModel('d:f90f75d3-0718-45a6-a696-74a8aa24d35c')); // Специалист ОК по командировкам
       routes['review'][simple+'visible'] = [true];
       routes['review'][simple+'editable'] = [false];
+
+
+      var lastIndex = doc["mnd-s:hasChangeOfTerms"].length - 1;
+      if ( doc["mnd-s:hasChangeOfTerms"][lastIndex].hasValue("v-s:hasStatus", "v-s:StatusCanceled") ) {
+        routes['sign'][simple+'comment'] = [new String('Отмена командировки')];
+        routes['review'][simple+'comment'] = [new String('Отмена командировки')];
+      } else {
+        routes['sign'][simple+'comment'] = [new String('Подтвердить изменение сроков')];
+        routes['review'][simple+'comment'] = [new String('Изменение сроков')];
+      }
     }
   }
 
@@ -2315,7 +2411,7 @@ if (doc) {
     routes['sign'][simple+'visible'] = [true];
     routes['sign'][simple+'editable'] = [true];
 
-    routes['approval'][simple+'participant'] = [new veda.IndividualModel("d:7af25dfb-5319-466f-afca-0c0289f2557c")]; //Регистратор документов СЛПК
+    routes['approval'][simple+'participant'] = [new veda.IndividualModel("d:7af25dfb-5319-466f-afca-0c0289f2557c")]; //Руководитель ОООИ СЭБ
     routes['approval'][simple+'visible'] = [true];
     routes['approval'][simple+'editable'] = [true];
     routes['approval'][simple+'comment'] = [new String('Зарегистрировать')];
@@ -2324,7 +2420,7 @@ if (doc) {
     routes['examination'][simple+'editable'] = [true];
   }
 
-//---------------------------------------------------------ПРЕДСТАВИТЕЛЬСКИЕ-РАССХОДЫ
+//---------------------------------------------------------ПРЕДСТАВИТЕЛЬСКИЕ-РАСХОДЫ
   if (doc['rdf:type'][0].id === "mnd-s:RepresentativeCosts") {
 
     routes['coordination1'][simple+'visible'] = [true];
@@ -2375,6 +2471,290 @@ if (doc) {
       routes['review'][simple+'comment'] = [new String('Проведите мероприятие. Сформируйте отчет')];
     }
   }
+    //--------------------------------------------------------ЗАЯВКА-НА-ПРОПУСК
+
+  if (doc['rdf:type'][0].id === "mnd-s:PassRequest") {
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+    routes['coordination1'][simple+'deadlineDays'] = [10];
+    routes['coordination1'][simple+'comment'] = [new String('Согласовать заявку на пропуск')];
+
+    routes['sign'][simple+'visible'] = [true];
+    routes['sign'][simple+'editable'] = [true];
+
+    routes['approval'][simple+'participant'] = [new veda.IndividualModel("d:7af25dfb-5319-466f-afca-0c0289f2557c")]; //Регистратор документов СЛПК
+    routes['approval'][simple+'visible'] = [true];
+    routes['approval'][simple+'editable'] = [true];
+    routes['approval'][simple+'comment'] = [new String('Зарегистрировать')];
+
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];
+  }
+
+
+
+//---------------------------------------------------------Распорядительный документ
+  if (doc['rdf:type'][0].id === "mnd-s:Decree") {
+
+    routes['informing'][simple+'participant'] = doc["v-s:initiator"] ;
+    routes['informing'][simple+'visible'] = [true];
+    routes['informing'][simple+'editable'] = [true];
+    routes['informing'][simple+'comment'] = [new String('Уведомление о начале процесса согласования документа')];
+
+  var informingDecree ;
+    if (doc.hasValue("mnd-s:hasDecreeKind", "d:2283f9f186794145bd6c8e3229f7a009") //(Распоряжение по основной деятельности)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:b7a958be3d14437f98ab414c8ce88977") //(Приказ по основной деятельности)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:391362e32a2b48199ef4bebe9b7a611a") //(Приказ по ГО)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:9664874293574b79af624f01e3c091cd") //(Распоряжение по ГО)
+    ){
+    informingDecree = [new veda.IndividualModel("d:61e1919e-2460-41ed-8692-042d2634542a")]; //Регистратор документов СЛПК
+    routes['informing'][simple+'participant']=routes['informing'][simple+'participant'].concat(informingDecree) ;
+
+  }
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+    routes['coordination2'][simple+'visible'] = [true];
+    routes['coordination2'][simple+'editable'] = [true];
+    routes['coordination3'][simple+'visible'] = [true];
+    routes['coordination3'][simple+'editable'] = [true];
+    routes['coordination4'][simple+'visible'] = [true];
+    routes['coordination4'][simple+'editable'] = [true];
+
+    routes['sign'][simple+'participant'] = doc["v-s:signedBy"] ;
+    routes['sign'][simple+'visible'] = [true];
+    routes['sign'][simple+'editable'] = [true];
+
+    var aprovalDecree ;
+//3.1
+    if (doc.hasValue("mnd-s:hasDecreeKind", "d:9664874293574b79af624f01e3c091cd") //(Распоряжение по ГО)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:391362e32a2b48199ef4bebe9b7a611a") //(Приказ по ГО)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:b7a958be3d14437f98ab414c8ce88977") //(Приказ по основной деятельности)
+       || doc.hasValue("mnd-s:hasDecreeKind", "d:2283f9f186794145bd6c8e3229f7a009") //(Распоряжение по основной деятельности)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:61e1919e-2460-41ed-8692-042d2634542a")]; //Регистратор документов СЛПК
+//3.2
+
+    } else if(doc.hasValue("mnd-s:hasDecreeKind", "d:586ab1e3ea554a92ab6ebb64d2df8c41") //(Распоряжение по кадровой работе)
+             || doc.hasValue("mnd-s:hasDecreeKind", "d:e5753b58168843e28ad73855c07b8cff")// (Приказ по кадровой работе)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:mondi_position_70000238")]; //(Начальник отдела кадров)
+//3.3
+
+    } else if(doc.hasValue("mnd-s:hasDecreeKind", "d:ce99f0a34bbb4813ac88d3dfe7699a1a") //(Приказ Распоряжение по кадрам. Верхне-Вычегодский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:650a386e-d0ed-4338-9a83-ca183d16617e")]; //(Регистратор распоряжений Верхне-Вычегодский участок)
+//3.4
+    } else if(doc.hasValue("mnd-s:hasDecreeKind", "d:e5061f4736d3401899fd172f67c18f84") //(Приказ Распоряжение по кадрам. Верхне-Вычегодский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:130e833c-1d6b-4e2f-b70f-6ca5b62ce7fd")]; //(Регистратор распоряжений Койгородский участок)
+    }
+//3.5
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:c9dc77d387ff43ac8e88766aa66c7cae") //(Приказ Распоряжение по кадрам. Корткеросский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:238916b4-5aac-42f8-9c6c-4fabb2507c29")]; //(Регистратор распоряжений Корткеросский участок)
+    }
+//3.6
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:ca1d0c4ca12e44ba8ad7e3471970e67c") //(Приказ Распоряжение по кадрам. Ношульский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:9a9db2fb-9546-4d44-9501-56dd5bb23653")]; //(Регистратор распоряжений Ношульский участок)
+    }
+//3.7
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:6f64ab3a995c4851865136e58e88f7ed") //(Приказ Распоряжение по кадрам. Сысольский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:33bec470-8d6d-4b07-b522-4a9c0fd6f6d2")]; //(Регистратор распоряжений Сысольский участок)
+    }
+//3.8
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:337906d27e484923aa8b4400e6fdc7a3") //(Приказ Распоряжение по кадрам. Удорский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:350a5e64-d4a5-4cb8-b875-ec4157ba55bf")]; //((Регистратор распоряжений Удорский участок)
+    }
+//3.9
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:c0d293bfced442d8864ba2aa450b8604") //(Приказ Распоряжение по кадрам. Усть-Куломский участок)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:4c26f5b2-63bf-4465-84c0-07d34ce7e8ab")]; //(Регистратор распоряжений Усть-Куломский участок)
+    }
+//3.10
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:6b0f6cc7c96b49e4b5566316e75ab81e") //(Распоряжение по ПБ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:beec6105-4511-4c63-861a-d6cde0dfc58b")]; //(Регистратор распоряжений ПБ)
+    }
+//3.11
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:4a293c55b37e492fad852401349b3072") //(Распоряжение по ПЦ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:e88d9685-d02f-46bc-8e23-7038f018e2bd")]; //(Регистратор распоряжений ПЦ)
+    }
+//3.12
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:43b31005c8754e77ab2d472c907a81cd") //(Распоряжение по СРТ УЛО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:c6b2f375-755f-477b-a5a0-63719c46a75f")]; //(Регистратор распоряжений СРТ УЛО)
+    }
+//3.13
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:cd74acdd370a4647851e588ab49e227f") //(Распоряжение по УЛ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:dece060b-d010-46e5-95e4-e69244f43e53")]; //(Регистратор распоряжений УЛ)
+    }
+//3.14
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:d67d40855c4c492e93f1f8e979b32915") //(Распоряжение по УЛО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:424e1e88-ed4e-424d-abc7-a829c0f4d11c")]; //(Регистратор распоряжений УЛО)
+    }
+//3.15
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:93a91c7be4f84289b3a618ab4aaf9c99") //(Распоряжение по УПБ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:8d5a2a33-d646-4006-89ab-bc97064fcc24")]; //(Регистратор распоряжений УПБ)
+    }
+//3.16
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:e5e9d7334e7142b98ce82b53aa9f1b4e") //(Распоряжение по УТТО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:869ca4e0-eb52-4612-a0b8-a66659720c24")]; //(Регистратор распоряжений УТТО)
+    }
+//3.17
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:506814f2866f4adc9f5effe3cbd75dab") //(Распоряжение по ЭП)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:1ca57ded-c051-4ca4-bc33-fb8994b04d8f")]; //(Регистратор распоряжений ЭП)
+    }
+//3.18
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:5f3338bf470448958167688853db0b4a") //(Распоряжение по ЛПО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:2474d195-0bc4-4bc6-83d4-b4a4eb2fb350")]; //(Регистратор распоряжений ЛПО)
+    }
+//3.19
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:40fec391a071473bbafda39e26839cd0") //(Распоряжение по СЛЗ УЛО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:aa4374af-380a-4f19-a415-4c32d8d1b3e4")]; //(Регистратор распоряжений по СЛЗ УЛО)
+    }
+//3.20
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:b79019ea82e24aaa94ec226ad10f7a46") //(Распоряжение по САТ УЛО)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:f63d88c8-42c7-4a7b-a1b4-57204bc86541")]; //(Регистратор распоряжений по CАТ УЛО)
+    }
+//3.21
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:897c15bc7cdf425c8106775ef31ecb17") //(Распоряжение по САТ СЭБ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:06e9adee-8349-4ec0-8095-7a7b142c9709")]; //(Регистратор распоряжений по СЭБ )
+    }
+//3.22
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:9c171b39761749dab3ca7891b67bf531") //(Распоряжение по ОООС)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:6f55fed4-5eff-4afe-b00e-e7df7c53be9e")]; //(Регистратор распоряжений ОООС)
+    }
+//3.23
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:61caa917c8584832ae8856ec9d982d41") //(Распоряжение по ТС)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:8c81cb04-be5c-442f-bfa2-49f9f47458c2")]; //(Регистратор распоряжений ТС)
+    }
+//3.24
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:106cf5f7d76b4640a2bd771e05845c4b") //(Распоряжение по УИП )
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:4f6f2f60-a0cd-49bc-9b0d-d0166909285a")]; //(Регистратор распоряжений УИП )
+    }
+//3.25
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:d55ba7ababf846eda58e0940b4172ac8") //(Распоряжение по УЗ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:1b69d188-8268-4c22-8deb-3bbc0abd249f")]; //(Регистратор распоряжений УЗ)
+    }
+//3.25
+    else if(doc.hasValue("mnd-s:hasDecreeKind", "d:ed97548ed45047bcaf5de9ce05de205c") //(Распоряжение по УФ)
+    ){
+      aprovalDecree = [new veda.IndividualModel("d:6990c8e9-f6f4-423d-ac46-b892f64ff3df")]; //(Регистратор распоряжений по УФ)
+    } else { aprovalDecree = []; }
+
+    routes['approval'][simple+'participant'] = aprovalDecree ;
+    routes['approval'][simple+'visible'] = [true];
+    routes['approval'][simple+'editable'] = [false];
+    routes['approval'][simple+'comment'] = [new String('На оформление распорядительного документа и регистрацию')];
+
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];
+    routes['examination'][simple+'deadlineDays'] = [10];
+    routes['examination'][simple+'comment'] = [new String('Ознакомиться с документом для дальнейшей работы')];
+    routes['examination'][simple+'participant'] = routes['examination'][simple+'participant'].concat(doc['v-s:copyTo']); // Список ознакомления
+
+  }
+
+//--------------------------------------------------------------------------------ЗаявкаОЗМ-------
+  if (doc['rdf:type'][0].id === "mnd-s:MaterialRequest") {
+    routes['introduction'][simple+'visible'] = [false];
+    routes['introduction'][simple+'editable'] = [false];
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+    routes['coordination2'][simple+'visible'] = [false];
+    routes['coordination2'][simple+'editable'] = [false];
+    routes['coordination3'][simple+'visible'] = [false];
+    routes['coordination3'][simple+'editable'] = [false];
+    routes['sign'][simple+'visible'] = [false];
+    routes['sign'][simple+'editable'] = [false];
+    routes['approval'][simple+'visible'] = [false];
+    routes['approval'][simple+'editable'] = [false];
+    routes['review'][simple+'visible'] = [false];
+    routes['review'][simple+'editable'] = [false];
+    routes['instruction'][simple+'visible'] = [true];
+    routes['instruction'][simple+'editable'] = [true];
+    routes['instruction'][simple+'deadlineDays'] =[2];
+    routes['instruction'][simple+'comment'] = [new String('создать ОЗМ')];
+//    if (
+//    doc.hasValue('mnd-s:hasMaterialGroup')
+//    && doc['mnd-s:hasMaterialGroup'][0].hasValue('v-s:controller')
+//    && doc['mnd-s:hasMaterialGroup'][0].hasValue('v-s:controller').length ===1
+//    )
+//  {
+    var mrp_contr = new veda.IndividualModel(doc['mnd-s:hasMaterialGroup'][0].id);
+        if (mrp_contr.hasValue('v-s:controller'))
+        {
+      routes['instruction'][simple+'participant'] = routes['instruction'][simple+'participant'].concat(mrp_contr["v-s:controller"]); // MRP контроллер группы материалов
+        }
+//    }
+    routes['examination'][simple+'visible'] = [true];
+    routes['examination'][simple+'editable'] = [true];
+  }
+
+
+//--------------------------------------------------------------------------------Доверенность-------
+  if (doc['rdf:type'][0].id === "mnd-s:PowerOfAttorney") {
+    routes['introduction'][simple+'visible'] = [false];
+    routes['introduction'][simple+'editable'] = [false];
+    routes['coordination1'][simple+'visible'] = [true];
+    routes['coordination1'][simple+'editable'] = [true];
+
+    var chief;
+    if ( doc.hasValue("v-s:grantee") && doc["v-s:grantee"][0].hasValue("v-s:correspondentPerson") && doc["v-s:grantee"][0]["v-s:correspondentPerson"][0].is("v-s:Appointment") ) {
+      chief = doc["v-s:grantee"][0]["v-s:correspondentPerson"][0].getChief();
+    } else {
+      chief = doc["v-s:creator"][0].getChief();
+    }
+    if ( chief ) {
+      routes['coordination1'][simple+'participant'] = [chief];
+    }
+
+    routes['coordination2'][simple+'visible'] = [true];
+    routes['coordination2'][simple+'editable'] = [false];
+    routes['coordination2'][simple+'participant'] = [new veda.IndividualModel("d:9d3479d9-992a-4ffa-af5a-cba04574489d")]; //Юрисконсульт. Доверенности
+
+    routes['coordination3'][simple+'visible'] = [false];
+    routes['coordination3'][simple+'editable'] = [false];
+    routes['coordination4'][simple+'visible'] = [false];
+    routes['coordination4'][simple+'editable'] = [false];
+    routes['coordination5'][simple+'visible'] = [false];
+    routes['coordination5'][simple+'editable'] = [false];
+    routes['coordination6'][simple+'visible'] = [false];
+    routes['coordination6'][simple+'editable'] = [false];
+
+    routes['sign'][simple+'visible'] = [true];
+    routes['sign'][simple+'editable'] = [false];
+    routes['sign'][simple+'participant'] = [new veda.IndividualModel("d:mondi_position_70013758")]; //Генеральный директор СЛПК
+
+    routes['approval'][simple+'visible'] = [false];
+    routes['approval'][simple+'editable'] = [false];
+    routes['review'][simple+'visible'] = [false];
+    routes['review'][simple+'editable'] = [false];
+
+    routes['instruction'][simple+'visible'] = [true];
+    routes['instruction'][simple+'editable'] = [false];
+    routes['instruction'][simple+'participant'] = [new veda.IndividualModel("d:61e1919e-2460-41ed-8692-042d2634542a")]; //Регистратор документов СЛПК
+    routes['instruction'][simple+'comment'] = [new String('Отсканировать и направить на ознакомление')];
+
+  }
+
 
   if (doc['rdf:type'][0].id === "s-wf:ComplexRouteTest") { //Тестовый маршрут
       routes['coordination1'][simple+'participant'] = [
@@ -3009,6 +3389,16 @@ s-wf:codelet_change_responsible_right
   rdfs:isDefinedBy s-wf: ;
 .
 
+s-wf:codelet_change_projectManager_right
+  rdf:type v-s:Codelet ;
+  rdfs:label "Выдать права руководителю проекта" ;
+  v-s:script """
+  process.getInputVariable ('rightset')?
+  change_rights_actor (process, task, process.getInputVariable ('rightset'), 'projectManager') :
+  change_rights_actor (process, task, newStr ('-ru-'), 'projectManager')
+""" ;
+  rdfs:isDefinedBy s-wf: ;
+.
 
 # ------------------------------ CODELET : "восстановить права" ----------------------------- #
 s-wf:codelet_restore_right
@@ -3062,7 +3452,7 @@ s-wf:UserTaskFormTemplate
     individual["v-wf:possibleDecisionClass"].map( function (value, index) {
       var tmpl = radioTmpl.clone().insertBefore(radioTmpl);
       var input = $("input", tmpl).val(index);
-      $("label", tmpl).append(value["rdfs:label"].join(", "));
+      $("label", tmpl).append("<span about='" + value.id + "' property='rdfs:label'></span>");
       input.change(function () {
         var type = individual["v-wf:possibleDecisionClass"][$(this).val()];
         var decision = createDecision(type);
@@ -3070,7 +3460,6 @@ s-wf:UserTaskFormTemplate
       });
       if (
         individual.hasValue("v-wf:takenDecision")
-        && individual.isSync()
         && individual["v-wf:takenDecision"][0]["rdf:type"][0].id === individual["v-wf:possibleDecisionClass"][index].id
       ) {
         input.prop("checked", true);
@@ -3159,9 +3548,11 @@ s-wf:UserTaskFormTemplate
             || (veda.appointment && veda.appointment.hasValue("v-s:occupation") && veda.appointment["v-s:occupation"][0].id === individual["v-wf:to"][0].id)
             || (veda.user && veda.user.id === individual["v-wf:to"][0].id)
             || individual.rights.hasValue("v-s:canUpdate", true);
-  var isOpen = !individual.hasValue("v-wf:takenDecision") || !individual.isSync();
+  var isOpen = ( !individual.hasValue("v-wf:takenDecision") || !individual.isSync() );
   if (isMine && isOpen) {
-    $(".radio.decision input", template).first().prop("checked", true).change();
+    if ( !individual.hasValue("v-wf:takenDecision") ) {
+      $(".radio.decision input", template).first().prop("checked", true).change();
+    }
     template.trigger("edit");
   } else {
     template.trigger("view");
@@ -3989,7 +4380,7 @@ s-wf:map_jrn_decision_b
 
 s-wf:net_coordination
   a v-wf:Net;
-  rdfs:label "Универсальный маршрут"@ru;
+  rdfs:label "Единичный процесс"@ru;
   rdfs:label "Universal route"@en;
   v-wf:consistsOf s-wf:nc_ic, s-wf:nc_t1, s-wf:nc_t2, s-wf:nc_t3, s-wf:nc_oc, s-wf:nc_f_ic_t1, s-wf:nc_f_t1_t2, s-wf:nc_f_t1_oc, s-wf:nc_f_t1_rti, s-wf:nc_f_t3_t1;
   v-wf:consistsOf s-wf:nc_return_to_initiator, s-wf:nc_r_to_aur, s-wf:nc_to_aur, s-wf:nc_finish, s-wf:nc_to_finish, s-wf:nc_f_t1_oc, s-wf:nc_f_t1_rti;
@@ -4191,9 +4582,9 @@ s-wf:nc_return_to_initiator
   v-wf:expectedResultType s-wf:UserTaskForm;
   v-wf:startingMapping s-wf:map_controller_4_PLV_controller, s-wf:map_doc_id, s-wf:map_from_2_result_decision_author, s-wf:map_coord_level, s-wf:map_t2_sm1, s-wf:map_actor_task_action_4LV_result_decision_nct2, s-wf:map_t2_sm3;
   v-wf:startingMapping s-wf:possible_decision_after_return, s-wf:map_decision_route_to_add_reaction, s-wf:map_decision_form_type_4_PIV_decision_form_type, s-wf:map_actor_task_description_from_LV_result_decision, s-wf:map_redirect_from_4_PLV_redirect_from;
-  v-wf:startingMessageMap s-wf:map_msg_template_4_SV_default_template, s-wf:map_from_4_TIV_initiator, s-wf:map_document_4_TIV_docId, s-wf:map_vf_to_4_O_executor;
+  v-wf:startingMessageMap s-wf:map_comment_4_TIV_actor_task_comment, s-wf:map_msg_template_4_SV_default_template, s-wf:map_document_4_TIV_docId, s-wf:map_vf_to_4_O_executor;
   v-wf:startingMessageMap s-wf:map_comment_4_TIV_actor_task_action, s-wf:map_inbox_url_4_vedaInfo_appInboxUrl, s-wf:map_doc_url_4_vedaInfo_appUrl;
-  v-wf:startingMessageMap s-wf:map_wf_from_4_TIV_initiator, s-wf:map_rdf_type_4_v_s_Email, s-wf:map_task_url_4_O_DecisionForms, s-wf:map_to_4_O_executor;
+  v-wf:startingMessageMap s-wf:map_from_4_TIV_from, s-wf:map_rdf_type_4_v_s_Email, s-wf:map_task_url_4_O_DecisionForms, s-wf:map_to_4_O_executor;
   v-wf:executor s-wf:def_exec_responsible;
   v-wf:completedMapping s-wf:map_set_decision_from_local, s-wf:map_set_result_decision_from_TR_result_data, s-wf:map_actor_task_action_return_result_decision;
   v-wf:completedMapping s-wf:map_set_actor_task_description_from_TR_result_data, s-wf:map_t2_sm5, s-wf:map_redirect_from_2_undefine;
@@ -4214,9 +4605,9 @@ s-wf:nc_oc
   v-wf:expectedResultType s-wf:UserTaskForm;
   v-wf:startingMapping s-wf:map_doc_id, s-wf:map_from_2_result_decision_author, s-wf:map_coord_level, s-wf:map_t2_sm1, s-wf:map_actor_task_action_4LV_result_decision_nct2, s-wf:map_t2_sm_control;
   v-wf:startingMapping s-wf:possible_decision_for_controller, s-wf:map_decision_route_to_add_reaction, s-wf:map_decision_form_type_4_PIV_decision_form_type, s-wf:map_actor_task_description_from_LV_result_decision, s-wf:map_redirect_from_4_PLV_redirect_from;
-  v-wf:startingMessageMap s-wf:map_msg_template_4_SV_default_template, s-wf:map_from_4_TIV_initiator, s-wf:map_document_4_TIV_docId, s-wf:map_vf_to_4_O_executor;
+  v-wf:startingMessageMap s-wf:map_comment_4_TIV_actor_task_comment, s-wf:map_msg_template_4_SV_default_template, s-wf:map_document_4_TIV_docId, s-wf:map_vf_to_4_O_executor;
   v-wf:startingMessageMap s-wf:map_comment_4_TIV_actor_task_action, s-wf:map_inbox_url_4_vedaInfo_appInboxUrl, s-wf:map_doc_url_4_vedaInfo_appUrl;
-  v-wf:startingMessageMap s-wf:map_wf_from_4_TIV_initiator, s-wf:map_rdf_type_4_v_s_Email, s-wf:map_task_url_4_O_DecisionForms, s-wf:map_to_4_O_executor;
+  v-wf:startingMessageMap s-wf:map_from_4_TIV_from, s-wf:map_rdf_type_4_v_s_Email, s-wf:map_task_url_4_O_DecisionForms, s-wf:map_to_4_O_executor, s-wf:map_wf_from_4_TIV_initiator;
   v-wf:executor s-wf:def_exec_controller;
   v-wf:completedMapping s-wf:map_set_decision_from_local, s-wf:map_set_result_decision_from_TR_result_data, s-wf:map_actor_task_action_return_result_decision;
   v-wf:completedMapping s-wf:map_set_actor_task_description_from_TR_result_data, s-wf:map_t2_sm5, s-wf:map_redirect_from_2_undefine;
@@ -4316,7 +4707,7 @@ s-wf:map_t2_sm3
 s-wf:map_t2_sm_control
   rdf:type v-wf:Mapping ;
   v-wf:mapToVariable s-wf:var_actor_task_comment ;
-  v-wf:mappingExpression  "newStr('Принять отчёт, ' + getFirstValue(process.getLocalVariable ('actor_task_comment')))";
+  v-wf:mappingExpression  "newStr(getFirstValue(process.getLocalVariable ('actor_task_comment')) || '')";
   rdfs:isDefinedBy s-wf: ;
 .
 

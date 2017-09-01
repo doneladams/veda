@@ -9,6 +9,8 @@ import (
 )
 
 func addToIndividual(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
+
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -25,12 +27,14 @@ func addToIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
-	rc, _ := getTicket(ticketKey)
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "add_to", jsonData, "", rc, timestamp)
 		return
 	}
 
-	modifyIndividual("add_to", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+	rc = modifyIndividual("add_to", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
+	trail(ticket.Id, ticket.UserURI, "add_to", jsonData, "", rc, timestamp)
 }

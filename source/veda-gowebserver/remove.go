@@ -9,6 +9,8 @@ import (
 )
 
 func removeFromIndividual(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
+
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -25,17 +27,21 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
-	rc, _ := getTicket(ticketKey)
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "remove_from", jsonData, "", rc, timestamp)
 		return
 	}
 
-	modifyIndividual("remove_from", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+	rc = modifyIndividual("remove_from", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
+	trail(ticket.Id, ticket.UserURI, "remove_from", jsonData, "", rc, timestamp)
 }
 
 func removeIndividual(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
+
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -52,12 +58,17 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
-	rc, _ := getTicket(ticketKey)
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "remove_individual", jsonData, "", rc, timestamp)
+
 		return
 	}
 
-	modifyIndividual("remove", ticketKey, "uri", jsonData["uri"].(string),
+	log.Println("@REMOVE ", jsonData["uri"])
+
+	rc = modifyIndividual("remove", &ticket, "uri", jsonData["uri"].(string),
 		prepareEvents, eventID, time.Now().Unix(), ctx)
+	trail(ticket.Id, ticket.UserURI, "remove_individual", jsonData, "", rc, timestamp)
 }

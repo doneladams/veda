@@ -1,18 +1,19 @@
-var webdriver = require('selenium-webdriver'),
-    basic = require('./basic.js'),
+var basic = require('./basic.js'),
     person = require('./person.js');
 
 /**
  * Проверка поиска
- *@param driver 
- *@param somethingUnique - поисковый запрос;
- *@param count - количество элементов, которое должно быть в результате;
+ * @param driver
+ * @param somethingUnique - поисковый запрос;
+ * @param count - количество элементов, которое должно быть в результате;
+ * @param phase - текущая фаза теста
 */
 
 function search(driver, somethingUnique, count, phase) {
     basic.menu(driver, 'Search', phase);
     basic.execute(driver, 'sendKeys', '#q', "****** PHASE#" + phase + " : ERROR = Cannot fill input field", somethingUnique);
-    driver.executeScript("document.querySelector('button[id=\"search-submit\"]').scrollIntoView(true);");
+    driver.executeScript("document.querySelector('button[id=\"search-submit\"]').scrollIntoView(true);")
+        .thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#" + phase + " : ERROR = Cannot scroll to search-submit button");});
     basic.isEnabled(driver, 'button[id="search-submit"]', basic.SLOW_OPERATION, phase);
     driver.wait
     (
@@ -36,7 +37,6 @@ function search(driver, somethingUnique, count, phase) {
  * 1.Создаем Персону1 -> Создаем Персону2 -> Создаем Персону3-> Создаем Персону4;
  * 2.Поисковые запросы и проверка результатов;
 */
-
 
 basic.getDrivers().forEach(function (drv) {
     var driver = basic.getDriver(drv);

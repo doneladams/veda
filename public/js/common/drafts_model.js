@@ -43,12 +43,7 @@ veda.Module(function (veda) { "use strict";
     Object.keys(self._).map(function (key) {
       var draft = self._[key];
       if ( draft ) {
-        var individual;
-        if (draft.individual) {
-          individual = new veda.IndividualModel( draft.individual );
-        } else {
-          individual = new veda.IndividualModel( draft );
-        }
+        var individual = new veda.IndividualModel( draft );
         self.set(individual.id, individual);
       }
     });
@@ -77,17 +72,31 @@ veda.Module(function (veda) { "use strict";
   proto.set = function (uri, individual) {
     this[uri] = individual;
     individual["v-s:isDraft"] = [ true ];
+    individual.isSync(false);
     this._[uri] = individual.toJson();
     storage.drafts = JSON.stringify(this._);
     veda.trigger("update:drafts", this);
     return this;
   };
 
-  proto.remove = function (uri) {
+  proto.reset = function (uri) {
     if ( typeof this[uri] === "object" ) {
       var individual = this.get(uri);
       individual["v-s:isDraft"] = [];
+      individual.reset();
+      delete this[uri];
+      delete this._[uri];
+      storage.drafts = JSON.stringify(this._);
+      veda.trigger("update:drafts", this);
+    }
+    return this;
+  };
+
+  proto.remove = function (uri) {
+    if ( typeof this[uri] === "object" ) {
+      var individual = this.get(uri);
       individual.isSync(true);
+      individual["v-s:isDraft"] = [];
       delete this[uri];
       delete this._[uri];
       storage.drafts = JSON.stringify(this._);
@@ -102,7 +111,7 @@ veda.Module(function (veda) { "use strict";
       if ( typeof self[uri] === "object" ) {
         var individual = self.get(uri);
         individual["v-s:isDraft"] = [];
-        individual.isSync(true);
+        individual.reset();
         delete self[uri];
         delete self._[uri];
       }

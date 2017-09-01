@@ -9,6 +9,8 @@ import (
 )
 
 func putIndividual(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
+
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -25,17 +27,22 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
-	rc, _ := getTicket(ticketKey)
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
 		return
 	}
 
-	modifyIndividual("put", ticketKey, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
+	rc = modifyIndividual("put", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
+	trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
+
 }
 
 func putIndividuals(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
+
 	var prepareEvents bool
 	var ticketKey, eventID string
 	// var ticket ticket
@@ -52,9 +59,11 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
-	rc, _ := getTicket(ticketKey)
+	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
+
 		return
 	}
 
@@ -64,6 +73,8 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 		individuals[i] = individualsI[i].(map[string]interface{})
 	}
 
-	modifyIndividual("put", ticketKey, "individuals", individuals,
+	rc = modifyIndividual("put", &ticket, "individuals", individuals,
 		prepareEvents, eventID, time.Now().Unix(), ctx)
+	trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
+
 }

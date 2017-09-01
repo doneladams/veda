@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"time"
 
 	"fmt"
 
@@ -10,6 +11,7 @@ import (
 )
 
 func query(ctx *fasthttp.RequestCtx) {
+	timestamp := time.Now().Unix()
 
 	socket, err := net.Dial("tcp", "127.0.0.1:11112")
 	if err != nil {
@@ -26,6 +28,24 @@ func query(ctx *fasthttp.RequestCtx) {
 	top, _ := ctx.QueryArgs().GetUint("top")
 	limit, _ := ctx.QueryArgs().GetUint("limit")
 	from, _ := ctx.QueryArgs().GetUint("from")
+
+	jsonArgs := map[string]interface{}{
+		"ticket":    ticketKey,
+		"query":     query,
+		"sort":      sort,
+		"databases": databases,
+		"reopen":    reopen,
+		"top":       top,
+		"limit":     limit,
+		"from":      from,
+	}
+
+	rc, ticket := getTicket(ticketKey)
+	if rc != Ok {
+		ctx.Response.SetStatusCode(int(rc))
+		trail(ticket.Id, ticket.UserURI, "query", jsonArgs, "", rc, timestamp)
+		return
+	}
 
 	request := fmt.Sprintf("%v�%v�%v�%v�%v�%v�%v�%v", ticketKey, query, sort, databases, reopen,
 		top, limit, from)
@@ -72,6 +92,7 @@ func query(ctx *fasthttp.RequestCtx) {
 
 	socket.Close()
 
+	trail(ticket.Id, ticket.UserURI, "query", jsonArgs, string(response), Ok, timestamp)
 	ctx.Response.SetStatusCode(int(Ok))
 	ctx.Write(response)
 }

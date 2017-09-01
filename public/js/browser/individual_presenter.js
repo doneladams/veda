@@ -6,14 +6,28 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
 
   veda.on("individual:loaded", function (individual, container, template, mode) {
 
-    //console.log(individual.id, "presenter count:", ++c);
+    try {
 
-    if (typeof container === "string") {
-      container = $(container).empty();
+      //console.log(individual.id, "presenter count:", ++c);
+
+      if (typeof container === "string") {
+        container = $(container).empty();
+      }
+      mode = mode || "view";
+
+      if (container.prop("id") === "main") { container.hide(); }
+
+      present(individual, container, template, mode);
+
+      if (container.prop("id") === "main") { container.show("fade", 250); }
+
+    } catch (err) {
+      console.log(err);
     }
-    mode = mode || "view";
 
-    if (container.prop("id") === "main") { container.hide(); }
+  });
+
+  function present(individual, container, template, mode) {
 
     var ontology = new veda.OntologyModel();
 
@@ -34,19 +48,22 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       }
       renderTemplate(individual, container, template, mode, specs);
     } else {
-      individual["rdf:type"].map(function (type) {
-        if ( type.hasValue("v-ui:hasTemplate") ) {
-          template = type["v-ui:hasTemplate"][0];
-        } else {
-          template = new veda.IndividualModel("v-ui:generic");
-        }
-        template = $( template["v-ui:template"][0].toString() );
+      if ( individual.hasValue("v-ui:hasCustomTemplate") ) {
+        template = individual["v-ui:hasCustomTemplate"][0];
         renderTemplate(individual, container, template, mode, specs);
-      });
+      } else {
+        individual["rdf:type"].map(function (type) {
+          if ( type.hasValue("v-ui:hasTemplate") ) {
+            template = type["v-ui:hasTemplate"][0];
+          } else {
+            template = new veda.IndividualModel("v-ui:generic");
+          }
+          template = $( template["v-ui:template"][0].toString() );
+          renderTemplate(individual, container, template, mode, specs);
+        });
+      }
     }
-
-    if (container.prop("id") === "main") { container.show("fade", 250); }
-  });
+  }
 
   function renderTemplate(individual, container, template, mode, specs) {
     var pre_render_src,
@@ -123,7 +140,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       });
       e.stopPropagation();
     }
-    template.on("view edit search save cancel delete recover draft", syncEmbedded);
+    template.on("view edit search save cancel delete recover draft destroy", syncEmbedded);
 
     // Define handlers
     function saveHandler (e, parent) {
@@ -153,10 +170,16 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     function cancelHandler (e, parent) {
       template.trigger("view");
       if (parent !== individual.id) {
-        individual.reset();
-        if (container.prop("id") === "main") {
-          window.history.back();
-        }
+        individual.reset()
+          .then( function () {
+            if (container.prop("id") === "main") {
+              window.history.back();
+            }
+          }, function () {
+            if (container.prop("id") === "main") {
+              window.history.back();
+            }
+          });
       }
       e.stopPropagation();
     }
@@ -206,22 +229,34 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     }
     template.on("recover", recoverHandler);
 
+    function destroyHandler (e, parent) {
+      if (parent !== individual.id) {
+        individual.remove();
+      }
+      if (container.prop("id") === "main") {
+        window.history.back();
+      }
+      e.stopPropagation();
+    }
+    template.on("destroy", destroyHandler);
+
     // Actions
     var $edit = $("#edit.action", wrapper),
         $save = $("#save.action", wrapper),
         $draft = $("#draft.action", wrapper),
         $showRights = $("#rightsOrigin.action", wrapper),
         $cancel = $("#cancel.action", wrapper),
-        $delete = $("#delete.action", wrapper);
+        $delete = $("#delete.action", wrapper),
+        $destroy = $("#destroy.action", wrapper);
 
     // Check rights to manage buttons
     // Update
-    if ($edit.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate") && individual.rights["v-s:canUpdate"][0] == true) ) $edit.remove();
-    if ($save.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate") && individual.rights["v-s:canUpdate"][0] == true) ) $save.remove();
-    if ($draft.length  && !(individual.rights && individual.rights.hasValue("v-s:canUpdate") && individual.rights["v-s:canUpdate"][0] == true) ) $draft.remove();
-    if ($cancel.length && !(individual.rights && individual.rights.hasValue("v-s:canUpdate") && individual.rights["v-s:canUpdate"][0] == true) ) $cancel.remove();
+    if ($edit.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $edit.remove();
+    if ($save.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $save.remove();
+    if ($draft.length  && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $draft.remove();
+    if ($cancel.length && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $cancel.remove();
     // Delete
-    if ($delete.length && ( !(individual.rights && individual.rights.hasValue("v-s:canDelete") && individual.rights["v-s:canDelete"][0] == true) || individual.isNew() ) ) $delete.remove();
+    if ($delete.length && ( !(individual.rights && individual.rights.hasValue("v-s:canDelete", true)) || individual.isNew() ) ) { $delete.remove(), $destroy.remove() };
 
     // Buttons handlers
     // Edit
@@ -248,19 +283,30 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       template.trigger("showRights");
     });
 
-    //  Cancel
+    // Cancel
     $cancel.on("click", function (e) {
       e.preventDefault();
       template.trigger("cancel");
     });
 
-    //  Delete
+    // Delete
     $delete.on("click", function (e) {
       e.preventDefault();
-      if ( confirm("Вы уверены? / Are you sure?") ) { template.trigger("delete"); }
+      var warn = new veda.IndividualModel("v-s:AreYouSure")["rdfs:label"].join(" ");
+      if ( confirm(warn) ) {
+        template.trigger("delete");
+      }
     });
     if ( individual.hasValue("v-s:deleted", true) ) { $delete.hide(); }
 
+    // Destroy
+    $destroy.on("click", function (e) {
+      e.preventDefault();
+      var warn = new veda.IndividualModel("v-s:AreYouSure")["rdfs:label"].join(" ");
+      if ( confirm(warn) ) {
+        template.trigger("destroy");
+      }
+    });
 
     // Standart buttons labels change for drafts
     var Edit = (new veda.IndividualModel("v-s:Edit"))["rdfs:label"].join(" ");
@@ -340,7 +386,8 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       var uri = individual.id.substring(2,100);
       var journalDMS_url = (new veda.IndividualModel("cfg:JournalDMSUrl"))["rdf:value"][0];
       if (journalDMS_url) {
-        window.location = journalDMS_url + uri;
+        //window.location = journalDMS_url + uri;
+        window.open(journalDMS_url + uri, "journal-dms");
       }
     });
 
@@ -400,8 +447,16 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       var propertyContainer = $(this),
           property_uri = propertyContainer.attr("property"),
           spec = specs[property_uri] ? new veda.IndividualModel( specs[property_uri] ) : undefined;
+
+      function idModifiedHandler() {
+        propertyContainer.text(individual.id);
+      }
       if (property_uri === "@") {
         propertyContainer.text(individual.id);
+        individual.on("idChanged", idModifiedHandler);
+        template.one("remove", function () {
+          individual.off(property_uri, idModifiedHandler);
+        });
         return;
       }
       renderPropertyValues(individual, property_uri, propertyContainer, props_ctrls, template, mode);
@@ -440,7 +495,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       }
     });
     if (abouts.length) {
-      get_individuals(veda.ticket, abouts).map(function (item) {
+      get_individuals(veda.ticket, veda.Util.unique(abouts) ).map(function (item) {
         var about = new veda.IndividualModel(item);
       });
     }
@@ -639,11 +694,25 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       template.one("remove", function () {
         about.off(property_uri, propertyModifiedHandler);
       });
+
+      // Watch server-side updates
       var updateService = new veda.UpdateService();
       updateService.subscribe(about.id);
       template.one("remove", function () {
         updateService.unsubscribe(about.id);
       });
+
+      // Watch language change
+      veda.on("language:changed", localize);
+      template.one("remove", function () {
+        veda.off("language:changed", localize);
+      });
+      function localize() {
+        if ( about.hasValue(property_uri) && about.properties[property_uri][0].type === "String" ) {
+          about.trigger("propertyModified", property_uri, about.get(property_uri));
+          about.trigger(property_uri, about.get(property_uri));
+        }
+      }
     });
 
     // Validation with support of embedded templates (arbitrary depth)
