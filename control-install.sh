@@ -268,6 +268,8 @@ go get -v github.com/gorilla/websocket
 go get -v github.com/divan/expvarmon
 go get -v gopkg.in/vmihailenco/msgpack.v2
 
+go get github.com/google/uuid
+
 echo $GOPATH
 ls $GOPATH
 
