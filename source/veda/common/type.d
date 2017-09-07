@@ -1,7 +1,7 @@
 /**
  * Общие определения
 
-   Copyright: © 2014-2016 Semantic Machines
+   Copyright: © 2014-2017 Semantic Machines
    License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
    Authors: Valeriy Bushenev
  */
@@ -14,20 +14,20 @@ alias string Uri;
 
 enum OptFreeze
 {
-        INGORE,
-        NONE
+    INGORE,
+    NONE
 }
 
 enum OptAuthorize
 {
-        NO,
-        YES
+    NO,
+    YES
 }
 
 enum OptTrace
 {
-        TRACE,
-        NONE
+    TRACE,
+    NONE
 }
 
 /// Битовые поля для прав
@@ -227,32 +227,24 @@ struct decimal
         if (num is null)
             return;
 
+        string[] ff;
+
         if (num.indexOf(',') > 0)
-        {
-            string[] ff = split(num, ",");
-            writeln("ff=", ff);
-            if (ff.length == 2)
-            {
-                mantissa = to!long (ff[ 0 ]);
-                exponent = to!byte (ff[ 1 ]);
-            }
-        }
+            ff = split(num, ",");
         else
+            ff = split(num, ".");
+
+        if (ff.length == 2)
         {
-            string[] ff = split(num, ".");
+            byte sfp = cast(byte)ff[ 1 ].length;
 
-            if (ff.length == 2)
-            {
-                byte sfp = cast(byte)ff[ 1 ].length;
-
-                mantissa = to!long (ff[ 0 ] ~ff[ 1 ]);
-                exponent = -sfp;
-            }
-            else if (ff.length == 1)
-            {
-                mantissa = to!long (num);
-                exponent = 0;
-            }
+            mantissa = to!long (ff[ 0 ] ~ff[ 1 ]);
+            exponent = -sfp;
+        }
+        else if (ff.length == 1)
+        {
+            mantissa = to!long (num);
+            exponent = 0;
         }
     }
 
