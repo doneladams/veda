@@ -1,23 +1,23 @@
 package main
 
 import (
-	"log"
-	"time"
+//	"log"
+//	"time"
 
-	"strconv"
+//	"strconv"
 
-	"encoding/json"
+//	"encoding/json"
 
-	"github.com/google/uuid"
-	"github.com/muller95/traildb-go"
+//	"github.com/google/uuid"
+//	"github.com/muller95/traildb-go"
 )
 
 func trail(ticketId, userId, action string, args map[string]interface{}, result string, resultCode ResultCode, startTime int64) {
-	timestamp := time.Now().Unix()
+//	timestamp := time.Now().Unix()
 	if !isTrail {
 		return
 	}
-
+/*
 	if cons == nil {
 		var err error
 		cons, err = tdb.NewTrailDBConstructor(tdbPath+"rest_trails_"+time.Now().Format("2006-01-02T15:04:05Z")+"_"+portStr,
@@ -49,4 +49,5 @@ func trail(ticketId, userId, action string, args map[string]interface{}, result 
 		cons = nil
 		countTrails = 0
 	}
+*/
 }

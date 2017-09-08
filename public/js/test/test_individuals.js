@@ -505,6 +505,7 @@ for (i = 0; i < 1; i++)
             var res = put_individual(ticket.id, new_test_doc3);
             wait_module(m_subject, res.op_id);
             wait_module(m_acl, res.op_id);
+            wait_module(m_scripts, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
 
@@ -743,12 +744,23 @@ for (i = 0; i < 1; i++)
 
             //#10
             test_fail_read(ticket_user1, new_test_doc1['@'], new_test_doc1);
-            
-            res = remove_individual(ticket_user1.id, new_test_doc2['@']);
-            //wait_module(m_scripts, res.op_id);
 
-            //#11
-            test_fail_read(ticket_user1, new_test_doc2['@'], new_test_doc2);
+	    try
+	    {            
+		// удаление не должно проходить, так как удаляющий не автор
+        	res = remove_individual(ticket_user1.id, new_test_doc2['@']);
+	    }
+	    catch (e)
+	    {
+		var admin = get_admin_ticket ();		
+	
+        	res = remove_individual(admin.id, new_test_doc2['@']);
+        	//wait_module(m_scripts, res.op_id);
+
+        	//#11
+        	test_fail_read(admin, new_test_doc2['@'], new_test_doc2);
+	    }
+    
 
             res = remove_individual(ticket_user1.id, new_test_doc3['@']);
             //wait_module(m_scripts, res.op_id);

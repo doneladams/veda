@@ -27,7 +27,7 @@ void main(char[][] args)
     Thread.sleep(dur!("seconds")(1));
     process_name = "fulltext_indexer";
 
-    auto p_module = new FTIndexerProcess(text(P_MODULE.fulltext_indexer), new Logger("veda-core-fulltext_indexer", "log", ""));
+    auto p_module = new FTIndexerProcess(SUBSYSTEM.FULL_TEXT_INDEXER, MODULE.fulltext_indexer, new Logger("veda-core-fulltext_indexer", "log", ""));
 
     p_module.run();
 }
@@ -38,9 +38,12 @@ class FTIndexerProcess : VedaModule
 
     long           last_update_time = 0;
 
-    this(string _module_name, Logger log)
+    this(SUBSYSTEM _subsystem_id, MODULE _module_id, Logger log)
     {
-        super(_module_name, log);
+        super(_subsystem_id, _module_id, log);
+
+        //priority       = &indexer_priority;
+        main_cs.length = 2;
     }
 
     override Context create_context()
@@ -86,7 +89,7 @@ class FTIndexerProcess : VedaModule
         }
         if (msg == "reindex_all")
         {
-            prepare_all();
+            //prepare_all();
         }
     }
 

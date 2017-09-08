@@ -48,7 +48,7 @@ void main(char[][] args)
 {
     core.thread.Thread.sleep(dur!("seconds")(2));
 
-    ScriptProcess p_script = new ScriptProcess(text(P_MODULE.ltr_scripts), new Logger("veda-core-ltr_scripts", "log", ""));
+    ScriptProcess p_script = new ScriptProcess(SUBSYSTEM.SCRIPTS, MODULE.ltr_scripts, new Logger("veda-core-ltr_scripts", "log", ""));
     //log = p_script.log();
 
     tid_ltr_scripts = spawn(&ltrs_thread, p_script.main_module_url);
@@ -71,23 +71,22 @@ private struct Tasks
     Task *[ string ] list;
 }
 
-Onto    onto;
-Context context;
+Onto             onto;
+Context          context;
 ScriptsWorkPlace _wpl;
 
+VQL              vql;
+string           empty_uid;
+string           vars_for_codelet_script;
 
-VQL      vql;
-string   empty_uid;
-string   vars_for_codelet_script;
-
-ScriptVM script_vm;
+ScriptVM         script_vm;
 
 Tasks *[ int ] tasks_2_priority;
 Task *task;
 
 private void ltrs_thread(string parent_url)
 {
-	_wpl = new ScriptsWorkPlace ();
+    _wpl         = new ScriptsWorkPlace();
     process_name = "ltr_scripts";
 
     g_vm_id = "main";
@@ -155,7 +154,7 @@ private void ltrs_thread(string parent_url)
                                        UUID new_id = randomUUID();
                                        string consumer_id = "consumer-uris-" ~ new_id.toString();
 
-                                       Consumer cs = new Consumer(queue, tmp_path, consumer_id, log);
+                                       Consumer cs = new Consumer(queue, tmp_path, consumer_id, Mode.RW, log);
 
                                        if (cs.open())
                                        {
@@ -289,8 +288,7 @@ ResultCode execute_script(string user_uri, string uri, string script_uri, string
     {
         try
         {
-            //if (trace_msg[ 300 ] == 1)
-            //log.trace("start exec ltr-script : %s %s", script.id, uri);
+            log.trace("start exec ltr-script : %s %s", script.id, uri);
 
             script.compiled_script.run();
             ResultCode res = commit(-1);
@@ -300,8 +298,7 @@ ResultCode execute_script(string user_uri, string uri, string script_uri, string
                 return res;
             }
 
-            //if (trace_msg[ 300 ] == 1)
-            //log.trace("end exec ltr-script : %s", script.id);
+            log.trace("end exec ltr-script : %s", script.id);
         }
         catch (Exception ex)
         {
@@ -316,9 +313,9 @@ class ScriptProcess : VedaModule
 {
     long count_sckip = 0;
 
-    this(string _module_name, Logger _log)
+    this(SUBSYSTEM _subsystem_id, MODULE _module_id, Logger _log)
     {
-        super(_module_name, _log);
+        super(_subsystem_id, _module_id, _log);
     }
 
     override void thread_id()

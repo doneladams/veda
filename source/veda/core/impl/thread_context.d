@@ -1607,8 +1607,8 @@ class PThreadContext : Context
 
     //////////////////////////////////////////////// MODULES INTERACTION
 
-    private ModuleInfoFile[ P_MODULE ] info_r__2__pmodule;
-    public MInfo get_info(P_MODULE module_id)
+    private ModuleInfoFile[ MODULE ] info_r__2__pmodule;
+    public MInfo get_info(MODULE module_id)
     {
         ModuleInfoFile mdif = info_r__2__pmodule.get(module_id, null);
 
@@ -1622,7 +1622,7 @@ class PThreadContext : Context
     }
 
 
-    public long get_operation_state(P_MODULE module_id, long wait_op_id)
+    public long get_operation_state(MODULE module_id, long wait_op_id)
     {
         long res = -1;
 
@@ -1633,7 +1633,7 @@ class PThreadContext : Context
             //    return get_acl_manager_op_id;
             //}
             //else
-            if (module_id == P_MODULE.subject_manager)
+            if (module_id == MODULE.subject_manager)
             {
                 return get_subject_manager_op_id;
             }
@@ -1643,7 +1643,7 @@ class PThreadContext : Context
 
         if (info.is_Ok)
         {
-            if (module_id == P_MODULE.fulltext_indexer || module_id == P_MODULE.scripts_main)
+            if (module_id == P_MODULE.fulltext_indexer || module_id == MODULE.scripts_main)
                 res = info.committed_op_id;
             else
                 res = info.op_id;
@@ -1651,13 +1651,13 @@ class PThreadContext : Context
 
         version (isModule)
         {
-            if (module_id == P_MODULE.subject_manager)
+            if (module_id == MODULE.subject_manager)
                 this.reopen_ro_subject_storage_db();
 
             //if (module_id == P_MODULE.acl_preparer)
             //    this.reopen_ro_acl_storage_db();
 
-            if (module_id == P_MODULE.fulltext_indexer)
+            if (module_id == MODULE.fulltext_indexer)
                 this.reopen_ro_fulltext_indexer_db();
         }
 
@@ -1666,36 +1666,13 @@ class PThreadContext : Context
         return res;
     }
 
-    public long restart_module(P_MODULE module_id)
+    public long restart_module(MODULE module_id)
     {
         return 0;
     }
 
 
-    public bool wait_operation_complete(P_MODULE module_id, long op_id, long timeout = 10_000)
-    {
-        version (isServer)
-        {
-            if (module_id == P_MODULE.scripts_main || module_id == P_MODULE.fulltext_indexer || module_id == P_MODULE.fanout_email ||
-                module_id == P_MODULE.ltr_scripts || module_id == P_MODULE.fanout_sql)
-            {
-                return wait_module(module_id, op_id, timeout);
-            }
-            else
-            {
-                Tid tid = getTid(module_id);
-                if (tid != Tid.init)
-                {
-                    send(tid, CMD_NOP, thisTid);
-                    //                receiveTimeout(1000.msecs, (bool res) {});
-                    receive((bool res) {});
-                }
-            }
-        }
-        return true;
-    }
-
-    private bool wait_module(P_MODULE pm, long wait_op_id, long timeout)
+    private bool wait_module(MODULE pm, long wait_op_id, long timeout)
     {
         long wait_time         = 0;
         long op_id_from_module = 0;

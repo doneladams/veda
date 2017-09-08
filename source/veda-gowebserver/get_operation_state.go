@@ -21,7 +21,7 @@ func getOperationState(ctx *fasthttp.RequestCtx) {
 	info := mif.GetInfo()
 	res := int64(-1)
 	if info.IsOk {
-		if Module(moduleID) == fulltextIndexer || Module(moduleID) == scriptsMain {
+		if Module(moduleID) == fulltext_indexer || Module(moduleID) == scripts_main {
 			res = info.CommittedOpID
 		} else {
 			res = info.OpID

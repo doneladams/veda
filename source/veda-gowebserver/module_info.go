@@ -19,7 +19,7 @@ type MInfo struct {
 }
 
 type OpenMode uint8
-type Module uint8
+type Module int32
 
 const (
 	Reader       OpenMode = 1
@@ -28,24 +28,50 @@ const (
 )
 
 const (
-	ticketManager            Module = 0
-	subjectManager           Module = 1
-	aclPreparer              Module = 2
-	xapianThreadContext      Module = 3
-	fulltextIndexer          Module = 4
-	statisticDataAccumulator Module = 5
-	scriptsMain              Module = 6
-	commiter                 Module = 7
-	printStatistic           Module = 8
-	fileReader               Module = 10
-	zmqListener              Module = 11
-	fanoutEmail              Module = 12
-	fanoutSQL                Module = 13
-	ltrScripts               Module = 14
-	webserver                Module = 15
-	nChannel                 Module = 16
-	ccusChannel              Module = 17
-	nop                      Module = 99
+    subject_manager            Module = 1
+
+    /// Индексирование прав
+    acl_preparer               Module = 2
+
+    /// Полнотекстовое индексирование
+    fulltext_indexer           Module = 4
+
+    /// Отправка email
+    fanout_email               Module = 8
+
+    /// исполнение скриптов, normal priority
+    scripts_main               Module = 16
+
+    /// Выдача и проверка тикетов
+    ticket_manager             Module = 32
+
+    /// Загрузка из файлов
+    file_reader                Module = 64
+
+    /// Выгрузка в sql, высокоприоритетное исполнение
+    fanout_sql_np              Module = 128
+
+    /// исполнение скриптов, low priority
+    scripts_lp                 Module = 256
+
+    //// long time run scripts
+    ltr_scripts                Module = 512
+
+    /// Выгрузка в sql, низкоприоритетное исполнение
+    fanout_sql_lp              Module = 1024
+
+    /// Сбор статистики
+    statistic_data_accumulator Module = 2048
+
+    /// Сохранение накопленных в памяти данных
+    commiter                   Module = 4096
+
+    /// Вывод статистики
+    print_statistic            Module = 8192
+
+    n_channel                  Module = 16384
+
+    webserver                  Module = 32768
 )
 
 const (
@@ -54,42 +80,39 @@ const (
 
 func ModuleToString(module Module) string {
 	switch module {
-	case ticketManager:
-		return "ticket_manager"
-	case subjectManager:
+
+    case	subject_manager:
 		return "subject_manager"
-	case aclPreparer:
+          
+    case     acl_preparer:             
 		return "acl_preparer"
-	case xapianThreadContext:
-		return "xapian_thread_context"
-	case fulltextIndexer:
+
+    case     fulltext_indexer:         
 		return "fulltext_indexer"
-	case statisticDataAccumulator:
-		return "statistic_data_accumulator"
-	case scriptsMain:
-		return "scripts_main"
-	case commiter:
-		return "commiter"
-	case printStatistic:
-		return "print_statistic"
-	case fileReader:
-		return "file_reader"
-	case zmqListener:
-		return "zmq_listener"
-	case fanoutEmail:
+
+    case     fanout_email:             
 		return "fanout_email"
-	case fanoutSQL:
-		return "fanout_sql"
-	case ltrScripts:
+
+    case     scripts_main:             
+		return "scripts_main"
+
+    case     ticket_manager:           
+		return "ticket_manager"
+
+    case     file_reader:              
+		return "file_reader"
+
+    case     fanout_sql_np:            
+		return "fanout_sql_np"
+
+    case     scripts_lp:               
+		return "scripts_lp"
+
+    case     ltr_scripts:              
 		return "ltr_scripts"
-	case webserver:
-		return "webserver"
-	case nChannel:
-		return "n_channel"
-	case ccusChannel:
-		return "ccus_channel"
-	case nop:
-		return "nop"
+
+    case     fanout_sql_lp:            
+		return "fanout_sql_lp"
 	}
 
 	return fmt.Sprintf("unknown %v", module)

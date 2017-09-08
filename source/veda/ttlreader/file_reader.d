@@ -7,7 +7,7 @@ module veda.file_reader;
 import libasync, libasync.watcher, libasync.threads;
 import core.stdc.stdio, core.stdc.errno, core.stdc.string, core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd;
 import std.conv, std.digest.ripemd, std.bigint, std.datetime, std.concurrency, std.json, std.file, std.outbuffer, std.string, std.path,
-       std.digest.md, std.utf, std.path, core.thread, core.memory, std.stdio : writeln, writefln, File, stderr;
+       std.digest.md, std.utf, std.path, core.thread, core.memory, std.stdio : writeln, writefln, File;
 import veda.util.container, veda.core.util.utils, veda.common.logger, veda.util.raptor2individual;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.impl.thread_context, veda.core.common.define,
        veda.core.common.know_predicates,
@@ -46,6 +46,38 @@ shared static this()
 
 Ticket sticket;
 
+private void wait_complete_operations(Context context, long last_op_id)
+{
+    bool complete_ft      = false;
+    bool complete_script  = false;
+    bool complete_subject = false;
+
+    while (true)
+    {
+        core.thread.Thread.sleep(dur!("seconds")(1));
+
+        long cur_opid;
+
+        cur_opid = context.get_operation_state(MODULE.fulltext_indexer, false);
+        log.tracec("INFO: last_op_id=%d, ft_opid=%d", last_op_id, cur_opid);
+        if (cur_opid >= last_op_id)
+            complete_ft = true;
+
+        cur_opid = context.get_operation_state(MODULE.scripts_main, false);
+        log.tracec("INFO: last_op_id=%d, script_opid=%d", last_op_id, cur_opid);
+        if (cur_opid >= last_op_id)
+            complete_script = true;
+
+        cur_opid = context.get_operation_state(MODULE.subject_manager, false);
+        log.tracec("INFO: last_op_id=%d, subject_opid=%d", last_op_id, cur_opid);
+        if (cur_opid >= last_op_id)
+            complete_subject = true;
+
+        if (complete_subject && complete_script && complete_ft)
+            break;
+    }
+}
+
 /// процесс отслеживающий появление новых файлов и добавление их содержимого в базу данных
 void main(char[][] args)
 {
@@ -62,6 +94,7 @@ void main(char[][] args)
 
     string parent_url = "tcp://127.0.0.1:9112\0";
 
+    Thread.sleep(dur!("seconds")(2));
 //	int checktime = 30;
 
     try { mkdir("ontology"); } catch (Exception ex) {}
@@ -103,36 +136,8 @@ void main(char[][] args)
             res = context.remove_individual(&sticket, uri, true, "ttl-reader", -1, true, OptAuthorize.NO);
         }
 
-        bool complete_ft      = false;
-        bool complete_script  = false;
-        bool complete_subject = false;
-
-        while (true)
-        {
-            core.thread.Thread.sleep(dur!("seconds")(1));
-
-            long cur_opid;
-
-            cur_opid = context.get_operation_state(P_MODULE.fulltext_indexer, false);
-            log.tracec("INFO: res.op_id=%d, ft_opid=%d", res.op_id, cur_opid);
-            if (cur_opid >= res.op_id)
-                complete_ft = true;
-
-            cur_opid = context.get_operation_state(P_MODULE.scripts_main, false);
-            log.tracec("INFO: res.op_id=%d, script_opid=%d", res.op_id, cur_opid);
-            if (cur_opid >= res.op_id)
-                complete_script = true;
-
-            cur_opid = context.get_operation_state(P_MODULE.subject_manager, false);
-            log.tracec("INFO: res.op_id=%d, subject_opid=%d", res.op_id, cur_opid);
-            if (cur_opid >= res.op_id)
-                complete_subject = true;
-
-            if (complete_subject && complete_script && complete_ft)
-                break;
-        }
-
-        log.tracec("WARN: !!!! VEDA SYSTEM NEED RESTART");
+        wait_complete_operations(context, res.op_id);
+        log.tracec("WARN: REMOVE ONTOLOGY FINISH !!!! VEDA SYSTEM NEED RESTART");
 
 
         //kill(pid, SIGKILL);
@@ -220,6 +225,22 @@ void main(char[][] args)
     {
         if (o.isDir)
             watcher.watchDir(o.name);
+    }
+
+    if (need_reload_ontology)
+    {
+        Individual new_indv;
+
+        new_indv.uri = "cfg:file_reader_info";
+        new_indv.addResource("rdf:type", Resource(DataType.Uri, "rdf:Resource"));
+        new_indv.addResource("v-s:created", Resource(DataType.Datetime, Clock.currTime().toUnixTime()));
+        new_indv.addResource("rdfs:label", Resource("RELOAD ONTOLOGY"));
+
+        //OpResult res = context.put_individual(&sticket, new_indv.uri, new_indv, null, -1, ALL_MODULES, OptFreeze.NONE, OptAuthorize.NO);
+
+        //wait_complete_operations(context, res.op_id);
+        log.tracec("WARN: RELOAD ONTO FINISH !!!! VEDA SYSTEM NEED RESTART");
+        return;
     }
 
     while (ev_loop.loop())
@@ -408,16 +429,15 @@ void processed(string[] changes, Context context, bool is_check_changes)
                         indv.removeResource("v-s:updateCounter");
                         indv.removeResource("v-s:previousVersion");
                         indv.removeResource("v-s:actualVersion");
-                        //log.trace("look in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
+//                        log.trace("in storage, uri=%s \n%s", indv_in_storage.uri, text(indv_in_storage));
 
                         if (indv_in_storage == Individual.init || is_check_changes == false || indv.compare(indv_in_storage) == false)
                         {
                             if (indv.getResources("rdf:type").length > 0)
                             {
-                               // if (trace_msg[ 33 ] == 1)
-                                //log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv), text(indv_in_storage));
-
-								string bin = indv.serialize ();
+                                if (trace_msg[ 33 ] == 1)
+                                    log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv),
+                                              text(indv_in_storage));
 
 								op_res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, OptAuthorize.NO);
                                 ResultCode res = op_res.result;
@@ -427,8 +447,7 @@ void processed(string[] changes, Context context, bool is_check_changes)
                                 if (res != ResultCode.OK)
                                     log.trace("individual [%s], not store, errcode =%s", indv.uri, text(res));
 
-						        //while (context.get_info(P_MODULE.fulltext_indexer).op_id < op_res.op_id)
-								//	core.thread.Thread.sleep(dur!("msecs")(1));							    
+                                is_loaded = true;
                             }
                             else
                             {
@@ -438,11 +457,6 @@ void processed(string[] changes, Context context, bool is_check_changes)
                     }
                 }
             }
-            
-//            if (op_res.op_id > 0)
-//				while (context.get_operation_state(P_MODULE.scripts_main, op_res.op_id) < op_res.op_id)
-//					core.thread.Thread.sleep(dur!("msecs")(1));							    
-            
         }
     }
 
@@ -458,7 +472,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 {
     try
     {
-        //if (trace_msg[ 30 ] == 1)
+        if (trace_msg[ 30 ] == 1)
             log.trace("[%s]ss_list.count=%d", filename, ss_list.length);
 
         Ticket     sticket = context.sys_ticket();
@@ -493,7 +507,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
 
         foreach (ss; ss_list)
         {
-            log.trace ("prepare [%s] from file [%s], onto [%s]", ss.uri, filename, onto_name);
+            //log.trace ("prepare [%s] from file [%s], onto [%s]", ss.uri, filename, onto_name);
 
             if (ss.isExists(rdf__type, owl__Ontology) && context !is null)
             {
@@ -544,7 +558,6 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
                 log.trace("apply, uri=%s %s", ss.uri, ss1);
  */
         }
-        	writeln ("%4");
 
 //        if (context !is null)
 //            try
@@ -556,14 +569,12 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
         OpResult orc = context.put_individual(&sticket, indv_ttl_file.uri, indv_ttl_file, true, null, -1, false, OptAuthorize.NO);
 
         //context.reopen_ro_subject_storage_db ();
-        //if (trace_msg[ 33 ] == 1)
+        if (trace_msg[ 33 ] == 1)
             log.trace("[%s] prepare_list end", filename);
-        	writeln ("%5");
     }
     catch (Exception ex)
     {
     	log.trace("file_reader:Exception! %s", ex);
         writeln("file_reader:Exception!", ex);
     }
-        	writeln ("%6");
 }

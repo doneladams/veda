@@ -8,7 +8,7 @@ import (
 
 	"strings"
 
-	"github.com/muller95/traildb-go"
+//	"github.com/muller95/traildb-go"
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
@@ -51,7 +51,7 @@ var vedaServerURL = "tcp://127.0.0.1:9112"
 var attachmentsPath = "./data/files/"
 var areExternalUsers = false
 var externalUsersTicketId map[string]bool
-var cons *tdb.TrailDBConstructor
+//var cons *tdb.TrailDBConstructor
 var isTrail = true
 var countTrails = 0
 var portStr = "8080"

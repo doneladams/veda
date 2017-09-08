@@ -40,8 +40,12 @@ if [ -z $1 ] || [ $1 == "fanout-email" ] || [ $1 == "veda-fanout-email" ] ; then
     ./build-component.sh veda-fanout-email fanout-email
 fi
 
-if [ -z $1 ] || [ $1 == "fanout-sql" ] || [ $1 == "veda-fanout-sql" ] ; then
-    ./build-component.sh veda-fanout-sql fanout-sql
+if [ -z $1 ] || [ $1 == "fanout-sql-np" ] || [ $1 == "veda-fanout-sql-np" ] ; then
+    ./build-component.sh veda-fanout-sql-np fanout-sql-np
+fi
+
+if [ -z $1 ] || [ $1 == "fanout-sql-lp" ] || [ $1 == "veda-fanout-sql-lp" ] ; then
+    ./build-component.sh veda-fanout-sql-lp fanout-sql-lp
 fi
 
 if [ -z $1 ] || [ $1 == "scripts-main" ] || [ $1 == "veda-scripts-main" ] ; then

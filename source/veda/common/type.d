@@ -9,6 +9,97 @@ module veda.common.type;
 
 import std.math, std.stdio, std.conv, std.string;
 
+/// id подсистем
+public enum SUBSYSTEM : long
+{
+    STORAGE           = 1,
+    ACL               = 2,
+    FULL_TEXT_INDEXER = 4,
+    SCRIPTS           = 16,
+    FANOUT_EMAIL      = 8,
+    FANOUT_SQL        = 128
+}
+
+/// id компонентов
+public enum COMPONENT : long
+{
+    /// сохранение индивидуалов
+    subject_manager            = 1,
+
+    /// Индексирование прав
+    acl_preparer               = 2,
+
+    /// Полнотекстовое индексирование
+    fulltext_indexer           = 4,
+
+    /// Отправка email
+    fanout_email               = 8,
+
+    /// исполнение скриптов, normal priority
+    scripts_main               = 16,
+
+    /// Выдача и проверка тикетов
+    ticket_manager             = 32,
+
+    /// Загрузка из файлов
+    file_reader                = 64,
+
+    /// Выгрузка в sql, высокоприоритетное исполнение
+    fanout_sql_np              = 128,
+
+    /// исполнение скриптов, low priority
+    scripts_lp                 = 256,
+
+    //// long time run scripts
+    ltr_scripts                = 512,
+
+    /// Выгрузка в sql, низкоприоритетное исполнение
+    fanout_sql_lp              = 1024,
+
+    /// Сбор статистики
+    statistic_data_accumulator = 2048,
+
+    /// Сохранение накопленных в памяти данных
+    commiter                   = 4096,
+
+    /// Вывод статистики
+    print_statistic            = 8192,
+
+    n_channel                  = 16384,
+
+    webserver                  = 32768
+}
+
+
+/// id процессов
+public enum P_MODULE : COMPONENT
+{
+    ticket_manager             = COMPONENT.ticket_manager,
+    subject_manager            = COMPONENT.subject_manager,
+    acl_preparer               = COMPONENT.acl_preparer,
+    statistic_data_accumulator = COMPONENT.statistic_data_accumulator,
+    commiter                   = COMPONENT.commiter,
+    print_statistic            = COMPONENT.print_statistic,
+    file_reader                = COMPONENT.file_reader,
+    n_channel                  = COMPONENT.n_channel,
+    webserver                  = COMPONENT.webserver
+}
+
+/// id модулей обрабатывающих очередь
+public enum MODULE : COMPONENT
+{
+    ticket_manager   = COMPONENT.ticket_manager,
+    subject_manager  = COMPONENT.subject_manager,
+    acl_preparer     = COMPONENT.acl_preparer,
+    fulltext_indexer = COMPONENT.fulltext_indexer,
+    scripts_main     = COMPONENT.scripts_main,
+    scripts_lp       = COMPONENT.scripts_lp,
+    fanout_email     = COMPONENT.fanout_email,
+    ltr_scripts      = COMPONENT.ltr_scripts,
+    fanout_sql_np    = COMPONENT.fanout_sql_np,
+    fanout_sql_lp    = COMPONENT.fanout_sql_lp
+}
+
 /// Uri
 alias string Uri;
 
