@@ -1,35 +1,27 @@
 /**
- * fanout module
+ * veda to sql, basic
  */
-module veda.fanout_sql;
+module veda.fanout.to_sql;
 
 private import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime, std.array, std.socket, core.thread;
-private import backtrace.backtrace, Backtrace = backtrace.backtrace;
+//private import backtrace.backtrace, Backtrace = backtrace.backtrace;
 private import mysql.d;
 private import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
-private import veda.common.logger, veda.core.impl.thread_context;
+private import veda.common.logger, veda.core.storage.lmdb_storage, veda.core.impl.thread_context;
 private import veda.core.common.context, veda.util.tools;
 private import veda.vmodule.vmodule;
 
-void main(char[][] args)
-{
-    process_name = "fanout-sql";
-
-    Thread.sleep(dur!("seconds")(1));
-
-    FanoutProcess p_fanout = new FanoutProcess(text(P_MODULE.fanout_sql), new Logger("veda-core-fanout-sql", "log", ""));
-
-    p_fanout.run();
-}
-
-class FanoutProcess : VedaModule
+public class FanoutProcess : VedaModule
 {
     Mysql  mysql_conn;
     string database_name;
+    string low_priority_user;
+    string priority;
 
-    this(string _module_name, Logger log)
+    this(SUBSYSTEM _subsystem_id, MODULE _module_id, Logger log, string _priority)
     {
-        super(_module_name, log);
+        priority = _priority;
+        super(_subsystem_id, _module_id, log);
     }
 
     override ResultCode prepare(INDV_OP cmd, string user_uri, string prev_bin, ref Individual prev_indv, string new_bin, ref Individual new_indv,
@@ -37,13 +29,16 @@ class FanoutProcess : VedaModule
     {
         ResultCode rc;
 
-        try
+        if (priority == "low" && user_uri == low_priority_user || priority == "normal" && user_uri != low_priority_user)
         {
-            rc = push_to_mysql(prev_indv, new_indv);
-        }
-        catch (Throwable ex)
-        {
-            log.trace("ERR! LINE:[%s], FILE:[%s], MSG:[%s]", __LINE__, __FILE__, ex.msg);
+            try
+            {
+                rc = push_to_mysql(prev_indv, new_indv);
+            }
+            catch (Throwable ex)
+            {
+                log.trace("ERR! LINE:[%s], FILE:[%s], MSG:[%s]", __LINE__, __FILE__, ex.msg);
+            }
         }
 
         committed_op_id = op_id;
@@ -57,9 +52,9 @@ class FanoutProcess : VedaModule
     override void receive_msg(string msg)
     {
         //log.trace("receive_msg [%s]", msg);
-        if (msg == "unload_all")
+        if (msg == "unload_batch")
         {
-            prepare_all();
+            prepare_batch();
         }
     }
 
@@ -92,7 +87,7 @@ class FanoutProcess : VedaModule
         configure();
     }
 
-    bool[ string ] isExistsTable;
+    bool[ string ] existsTable;
 
     private ResultCode push_to_mysql(ref Individual prev_indv, ref Individual new_indv)
     {
@@ -101,10 +96,10 @@ class FanoutProcess : VedaModule
 
         try
         {
-            isExistsTable = isExistsTable.init;
+            existsTable = existsTable.init;
             //log.trace("push_to_mysql: prev_indv=%s", prev_indv);
             //log.trace("push_to_mysql: new_indv=%s", new_indv);
-            bool   is_deleted = new_indv.isExists("v-s:deleted", true);
+            bool   is_deleted = new_indv.exists("v-s:deleted", true);
 
             string isDraftOf            = new_indv.getFirstLiteral("v-s:isDraftOf");
             string actualVersion        = new_indv.getFirstLiteral("v-s:actualVersion");
@@ -186,51 +181,51 @@ class FanoutProcess : VedaModule
                                 {
                                     foreach (rtype; types)
                                     {
-                                        string      type = rtype.data;
+                                        string type = rtype.data;
                                         mysql_conn.query("SET NAMES 'utf8'");
 
                                         if (rs.type == DataType.Boolean)
                                         {
                                             if (rs.get!bool == true)
                                             {
-                                                    mysql_conn.query("INSERT INTO `?` (doc_id, doc_type, created, value) VALUES (?, ?, ?, ?)",
-                                                                     predicate,
-                                                                     new_indv.uri,
-                                                                     type,
-                                                                     created.asString(), 1);
+                                                mysql_conn.query("INSERT INTO `?` (doc_id, doc_type, created, value) VALUES (?, ?, ?, ?)",
+                                                                 predicate,
+                                                                 new_indv.uri,
+                                                                 type,
+                                                                 created.asString(), 1);
 
                                                 log.trace(
                                                           "push_to_mysql: INSERT INTO `%s` (doc_id, doc_type, created, value) VALUES (%s, %s, %s, %s), res=%s",
                                                           predicate,
                                                           new_indv.uri, type,
-                                                          created.asString(), 1, mysql_conn.error ());
+                                                          created.asString(), 1, mysql_conn.error());
                                             }
                                             else
                                             {
-                                                    mysql_conn.query("INSERT INTO `?` (doc_id, doc_type, created, value) VALUES (?, ?, ?, ?)",
-                                                                     predicate,
-                                                                     new_indv.uri,
-                                                                     type,
-                                                                     created.asString(), 0);
+                                                mysql_conn.query("INSERT INTO `?` (doc_id, doc_type, created, value) VALUES (?, ?, ?, ?)",
+                                                                 predicate,
+                                                                 new_indv.uri,
+                                                                 type,
+                                                                 created.asString(), 0);
                                                 log.trace(
                                                           "push_to_mysql: INSERT INTO `%s` (doc_id, doc_type, created, value) VALUES (%s, %s, %s, %s), res=%s",
                                                           predicate,
                                                           new_indv.uri, type,
-                                                          created.asString(), 0, mysql_conn.error ());
+                                                          created.asString(), 0, mysql_conn.error());
                                             }
                                         }
                                         else
                                         {
                                             mysql_conn.query("INSERT INTO `?` (doc_id, doc_type, created, value, lang) VALUES (?, ?, ?, ?, ?)",
-                                                                   predicate,
-                                                                   new_indv.uri, type,
-                                                                   created.asString(), rs.asString().toUTF8(), text(rs.lang));
+                                                             predicate,
+                                                             new_indv.uri, type,
+                                                             created.asString(), rs.asString().toUTF8(), text(rs.lang));
 
                                             log.trace(
                                                       "push_to_mysql: INSERT INTO `%s` (doc_id, doc_type, created, value, lang) VALUES (%s, %s, %s, %s, %s), res=%s",
                                                       predicate,
                                                       new_indv.uri, type,
-                                                      created.asString(), rs.asString().toUTF8(), text(rs.lang), mysql_conn.error ());
+                                                      created.asString(), rs.asString().toUTF8(), text(rs.lang), mysql_conn.error());
                                         }
                                     }
                                 }
@@ -260,7 +255,7 @@ class FanoutProcess : VedaModule
         if (mysql_conn is null)
             return false;
 
-        if (isExistsTable.get(predicate, false) == true)
+        if (existsTable.get(predicate, false) == true)
             return true;
 
         auto rows = mysql_conn.query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?;", database_name,
@@ -311,7 +306,7 @@ class FanoutProcess : VedaModule
                                  " PRIMARY KEY (`ID`), " ~
                                  " INDEX c1(`doc_id`), INDEX c2(`doc_type`), INDEX c3 (`created`), INDEX c4(`lang`) " ~ sql_value_index ~
                                  ") ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;");
-                isExistsTable[ predicate ] = true;
+                existsTable[ predicate ] = true;
                 log.trace("create table [%s]", predicate);
             }
             catch (Exception ex)
@@ -323,7 +318,7 @@ class FanoutProcess : VedaModule
         }
         else
         {
-            isExistsTable[ predicate ] = true;
+            existsTable[ predicate ] = true;
             return true;
         }
     }
@@ -349,16 +344,18 @@ class FanoutProcess : VedaModule
                     {
                         try
                         {
-                            database_name = connection.getFirstLiteral("v-s:sql_database");
-                            mysql_conn    = new Mysql(connection.getFirstLiteral("v-s:host"),
-                                                      cast(uint)connection.getFirstInteger("v-s:port"),
-                                                      connection.getFirstLiteral("v-s:login"),
-                                                      connection.getFirstLiteral("v-s:password"),
-                                                      database_name);
+                            low_priority_user = connection.getFirstLiteral("cfg:low_priority_user");
+                            database_name     = connection.getFirstLiteral("v-s:sql_database");
+                            mysql_conn        = new Mysql(connection.getFirstLiteral("v-s:host"),
+                                                          cast(uint)connection.getFirstInteger("v-s:port"),
+                                                          connection.getFirstLiteral("v-s:login"),
+                                                          connection.getFirstLiteral("v-s:password"),
+                                                          database_name);
 
                             mysql_conn.query("SET NAMES 'utf8'");
 
                             log.trace("CONNECT TO MYSQL IS OK, %s", text(mysql_conn));
+                            log.trace("low_priority_user = %s", low_priority_user);
                         }
                         catch (Throwable ex)
                         {
