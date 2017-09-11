@@ -483,8 +483,9 @@ for (i = 0; i < 1; i++)
             new_test_doc2['@'] = new_test_doc2_uri;
             new_test_doc2['v-s:canRead'] = newBool(false);
             var res = put_individual(ticket.id, new_test_doc2);
-            wait_module(m_subject, res.op_id);
-            wait_module(m_acl, res.op_id);
+            //wait_module(m_subject, res.op_id);
+            //wait_module(m_acl, res.op_id);
+            wait_module(m_scripts, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
 
@@ -503,8 +504,8 @@ for (i = 0; i < 1; i++)
             new_test_doc3['@'] = new_test_doc3_uri;
             new_test_doc3['v-s:canRead'] = newBool(true);
             var res = put_individual(ticket.id, new_test_doc3);
-            wait_module(m_subject, res.op_id);
-            wait_module(m_acl, res.op_id);
+            //wait_module(m_subject, res.op_id);
+            //wait_module(m_acl, res.op_id);
             wait_module(m_scripts, res.op_id);
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);

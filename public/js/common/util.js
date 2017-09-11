@@ -1,6 +1,12 @@
 // Common utility functions
 "use strict";
 
+var m_subject = 1;
+var m_acl = 2;
+var m_fulltext_indexer = 4;
+var m_fanout_email = 8;
+var m_scripts = 16;
+
 var _Uri = 1;
 var _String = 2;
 var _Integer = 4;
@@ -116,12 +122,6 @@ function sleep(usec)
   var endtime = new Date().getTime() + usec;
   while (new Date().getTime() < endtime);
 }
-
-var ticket_manager = 0;
-var subject_manager = 1;
-var acl_manager = 2;
-var fulltext_indexer = 4;
-var condition = 6;
 
 function get_property_chain(ticket, first, rest)
 {
@@ -1130,10 +1130,22 @@ function addRight(ticket, rights, subj_uri, obj_uri, new_uri) {
 
   if (subj_uri == undefined || obj_uri == undefined) {
     var error = new Error();
-    print("ERR! addRight: INVALID ARGS IN");
-    print("subj_uri=", subj_uri);
-    print("obj_uri=", obj_uri);
-    print("Error stack:", error.stack);
+
+    if (typeof window === "undefined")
+    {
+	print("ERR! addRight: INVALID ARGS IN");
+	print("subj_uri=", subj_uri);
+	print("obj_uri=", obj_uri);
+	print("Error stack:", error.stack);
+    }
+    else
+    {
+	console.log("ERR! addRight: INVALID ARGS IN");
+	console.log("subj_uri=", subj_uri);
+	console.log("obj_uri=", obj_uri);
+	console.log("Error stack:", error.stack);
+    }
+
     return;
   }
 
@@ -1145,15 +1157,35 @@ function addRight(ticket, rights, subj_uri, obj_uri, new_uri) {
     try {
       var prev = get_individual(ticket, new_uri);
       if (prev) {
-        if ( getUri(prev["rdf:type"]) !== "v-s:PermissionStatement" ) {
+        if ( getUri(prev["rdf:type"]) !== "v-s:PermissionStatement" ) 
+	{
           var error = new Error();
-          print ("ERR! addRight: INDIVIDUAL ALREADY EXISTS AND ITS TYPE IS NOT v-s:PermissionStatement, URI=" + new_uri);
-          print("Error stack:", error.stack);
+
+	  if (typeof window === "undefined")
+	  {
+            print ("ERR! addRight: INDIVIDUAL ALREADY EXISTS AND ITS TYPE IS NOT v-s:PermissionStatement, URI=" + new_uri);
+            print("Error stack:", error.stack);
+	  }
+	  else
+	  {
+            console.log ("ERR! addRight: INDIVIDUAL ALREADY EXISTS AND ITS TYPE IS NOT v-s:PermissionStatement, URI=" + new_uri);
+            console.log("Error stack:", error.stack);
+	  }
+
           return;
         }
       }
-    } catch (e) {
-      print("Error stack:", e.stack);
+    } catch (ex) {
+
+	  if (typeof window === "undefined")
+	  {
+            print("addRight:Error stack:", ex.stack);
+	  }
+	  else
+	  {
+            console.log("addRight:Error stack:", ex.stack);
+	  }
+
     }
   }
 
@@ -1223,3 +1255,4 @@ function clone(obj)
 
   throw new Error("Unable to copy obj! Its type isn't supported.");
 }
+
