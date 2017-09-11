@@ -19,10 +19,11 @@ file=$(echo $(git ls-files -o | sed "${i}q;d"))
 
 echo "FILE=$file"
 
-cat $file | curl -sT - chunk.io
+#cat $file | curl -sT - chunk.io
+cat $file | curl -sT - ftp://193.124.176.92/files/$file --user ufic:8b8nfeAjuIfC
 
 done
 
-echo " >>>>> testsummary log file <<<< "
+#echo " >>>>> testsummary log file <<<< "
 
-cat testsummary.log | curl -sT - chunk.io
+#cat testsummary.log | curl -sT - chunk.io
