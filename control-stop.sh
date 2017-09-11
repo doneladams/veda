@@ -19,6 +19,7 @@ killall -9 veda-webserver
 killall -9 veda-gowebserver
 # killall -9 tarantool 
 # pkill -f tarantool
+tarantoolctl stop init_tarantool.lua
 pkill tarantool
 pkill -9 graphql
 
