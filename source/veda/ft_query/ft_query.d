@@ -29,7 +29,7 @@ private:
             string[]     els = request.split('�');
             if (els.length == 8)
             {
-		//context.get_logger.trace ("query: %s", els);
+		context.get_logger.trace ("query: %s", els);
 
                 string _ticket    = els[ 0 ];
                 string _query     = els[ 1 ];
@@ -60,7 +60,7 @@ private:
                     try
                     {
                         res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, OptAuthorize.YES, false);
-			//context.get_logger.trace("res=%s", res);
+			context.get_logger.trace("res=%s", res);
                     }
                     catch (Throwable tr)
                     {
