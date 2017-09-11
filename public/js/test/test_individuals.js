@@ -166,10 +166,6 @@ function check_rights(ticket, uri, expected_rights)
     return result;
 }
 
-var i = 0;
-
-for (i = 0; i < 1; i++)
-{
     test(
         "#001 Login",
         function()
@@ -2065,4 +2061,3 @@ for (i = 0; i < 1; i++)
             test_fail_read(ticket_user1, new_test_doc6['@'], new_test_doc6);
         }
     );  
-}
