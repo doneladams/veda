@@ -50,7 +50,7 @@ script:
 #  - node ./qa/testAPI.js
 #  - node ./qa/testSendGet.js
   - node ./qa/testLogin.js
-#  - node ./qa/testDrafts.js
+  - node ./qa/testDrafts.js
 #  - node ./qa/testLanguage.js
 #  - node ./qa/testDeleteAndRecovery.js
 #  - node ./qa/testRights.js
