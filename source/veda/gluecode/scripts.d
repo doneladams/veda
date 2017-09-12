@@ -165,13 +165,18 @@ class ScriptProcess : VedaModule
                     //count++;
                     script.compiled_script.run();
 
+		            foreach (item; transaction_queue)
+		            {
+		                log.trace ("tnx item: cmd=%s, uri=%s ", item.cmd, item.indv.uri);
+		            }
+
                     ResultCode res = commit(transaction_id);
                     if (res != ResultCode.OK)
                     {
                         log.trace("fail exec event script : %s", script_id);
                         return res;
                     }
-
+                    
                     //if (trace_msg[ 300 ] == 1)
                     log.trace("end: %s", script_id);
 
