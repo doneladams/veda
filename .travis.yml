@@ -39,7 +39,7 @@ before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
   - ./control-start.sh
-  - sleep 120  # give Web server some time to bind to sockets, load startup data, etc
+  - sleep 100  # give Web server some time to bind to sockets, load startup data, etc
   - ps aux | grep veda
 
 # Run API & integration test
