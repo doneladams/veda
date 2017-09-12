@@ -183,13 +183,13 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		uris[i] = jsonData["uris"].([]interface{})[i].(string)
 	}
 
-	if len(uris) == 0 {
-		log.Println("@ERR GET_INDIVIDUALS: ZERO LENGTH TICKET OR URI")
-		log.Println("\t@REQUEST BODY ", string(ctx.Request.Body()))
-		ctx.Response.SetStatusCode(int(BadRequest))
-		trail(ticket.Id, ticket.UserURI, "get_individuals", jsonArgs, "{}", BadRequest, timestamp)
-		return
-	}
+	//if len(uris) == 0 {
+	//	log.Println("@ERR GET_INDIVIDUALS: ZERO LENGTH TICKET OR URI")
+	//	log.Println("\t@REQUEST BODY ", string(ctx.Request.Body()))
+	//	ctx.Response.SetStatusCode(int(BadRequest))
+	//	trail(ticket.Id, ticket.UserURI, "get_individuals", jsonArgs, "{}", BadRequest, timestamp)
+	//	return
+	//}
 
 	individuals := make([]map[string]interface{}, 0, len(uris))
 	urisToGet := make([]string, 0, len(uris))
