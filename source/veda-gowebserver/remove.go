@@ -66,7 +66,7 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	log.Println("@REMOVE ", jsonData["uri"])
+	//log.Println("@REMOVE ", jsonData["uri"])
 
 	rc = modifyIndividual("remove", &ticket, "uri", jsonData["uri"].(string),
 		prepareEvents, eventID, time.Now().Unix(), ctx)
