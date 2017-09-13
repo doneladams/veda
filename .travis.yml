@@ -39,14 +39,14 @@ before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
   - ./control-start.sh
-  - sleep 100  # give Web server some time to bind to sockets, load startup data, etc
+  - sleep 90  # give Web server some time to bind to sockets, load startup data, etc
   - ps aux | grep veda
 
 # Run API & integration test
 script:
   - grunt test --stack --verbose
 #  - grunt coveralls
-  - node ./qa/testAPI.js
+#  - node ./qa/testAPI.js
 #  - node ./qa/testSendGet.js
   - node ./qa/testLogin.js
   - node ./qa/testDrafts.js
