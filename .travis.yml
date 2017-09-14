@@ -40,7 +40,7 @@ before_script:
   - sleep 3 # give xvfb some time to start
   - ./control-start.sh
   - sleep 110  # give Web server some time to bind to sockets, load startup data, etc
-  - ps aux | grep veda
+  - date    
 
 # Run API & integration test
 script:
@@ -73,12 +73,10 @@ script:
 
 # Stop deamon and show log
 after_script:
-  - ps aux | grep veda
+  - date    
   - ./control-stop.sh
   - grunt coveralls
   - date    
-  - ls  $PWD   
-  - ls  $PWD/logs   
    
 after_failure: 
   - ./send-to-chunk-io.sh
