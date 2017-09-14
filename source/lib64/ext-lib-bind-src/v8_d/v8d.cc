@@ -73,6 +73,7 @@ std::string json_str(v8::Isolate* isolate, v8::Handle<v8::Value> value)
     return std::string(*str, str.length());
  }
 
+string nullz = "00000000000000000000000000000000";
 
 Handle<Value>
 individual2jsobject(Individual *individual, Isolate *isolate)
@@ -109,14 +110,49 @@ individual2jsobject(Individual *individual, Isolate *isolate)
             }
             else if (value.type == _Decimal)
             {
-				//std::cout << "@c individual2jsobject #Q value.decimal_mantissa_data=" << value.decimal_mantissa_data << ", value.decimal_expanent_data=" << value.decimal_expanent_data << std::endl;
+                //std::cout << "@c individual2jsobject #Q value.decimal_mantissa_data=" << value.decimal_mantissa_data << ", value.decimal_exponent_data=" << value.decimal_exponent_data << std::endl;
 
-				//string ss = to_string(value.decimal_mantissa_data * pow(10.0, value.decimal_expanent_data));
-                //in_obj->Set(f_data, String::NewFromUtf8(isolate, ss.c_str()));
+                string str_res;
+                string sign = "";
+                string str_mantissa;
 
-                in_obj->Set(f_data,
-                            v8::Number::New(isolate, value.decimal_mantissa_data * pow(10.0, value.decimal_expanent_data)));
-				//std::cout << "@c individual2jsobject #Q ss=" << ss << std::endl;
+                if (value.decimal_mantissa_data < 0)
+                {
+                    sign         = "-";
+                    str_mantissa = to_string(-value.decimal_mantissa_data);
+                }
+                else
+                    str_mantissa = to_string(value.decimal_mantissa_data);
+
+                long lh = value.decimal_exponent_data * -1;
+
+                lh = str_mantissa.length() - lh;
+                string slh;
+
+                if (lh >= 0)
+                {
+                    if (lh <= str_mantissa.length())
+                        slh = str_mantissa.substr(0, lh);
+                }
+                else
+                    slh = "";
+
+                string slr;
+
+                if (lh >= 0)
+                {
+                    slr = str_mantissa.substr(lh, str_mantissa.length());
+                }
+                else
+                {
+                    slr = nullz.substr(0, (-lh)) + str_mantissa;
+                }
+
+                string ss = sign + slh + "." + slr;
+
+                in_obj->Set(f_data, String::NewFromUtf8(isolate, ss.c_str()));
+
+                //std::cout << "@c individual2jsobject #Q ss=" << ss << std::endl;
             }
             else if (value.type == _Integer)
             {
@@ -248,7 +284,7 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
         double dd = value->ToNumber()->Value();
 
         resource->type = _Decimal;
-        double_to_mantissa_exponent(dd, &resource->decimal_mantissa_data, &resource->decimal_expanent_data);
+        double_to_mantissa_exponent(dd, &resource->decimal_mantissa_data, &resource->decimal_exponent_data);
 
         return true;
     }
@@ -344,13 +380,21 @@ jsobject2individual(Local<Value> value, Individual *indv, Resource *resource, st
             }
             else if (type == _Decimal)
             {
-                vector<Resource> values = indv->resources[ predicate ];
+               vector<Resource> values = indv->resources[ predicate ];
                 Resource         rc;
                 rc.type = type;
 
-                double dd = v_data->ToNumber()->Value();
-
-                double_to_mantissa_exponent(dd, &rc.decimal_mantissa_data, &rc.decimal_expanent_data);
+                if (v_data->IsString())
+                {
+                    v8::String::Utf8Value s1_1(v_data);
+                    std::string           std_s1_1 = std::string(*s1_1);
+                    rc.str_data = std_s1_1;
+                }
+                else
+                {
+                    double dd = v_data->ToNumber()->Value();
+                    double_to_mantissa_exponent(dd, &rc.decimal_mantissa_data, &rc.decimal_exponent_data);
+                }
 
                 values.push_back(rc);
                 indv->resources[ predicate ] = values;

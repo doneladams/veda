@@ -57,7 +57,7 @@ void write_resources(string uri, vector <Resource> vv, msgpack::packer<msgpack::
             pk.pack_array(3);
             pk.pack((uint)_Decimal);
             pk.pack(value.decimal_mantissa_data);
-            pk.pack(value.decimal_expanent_data);
+            pk.pack(value.decimal_exponent_data);
         }
         else
             if (value.lang != LANG_NONE)
@@ -201,7 +201,7 @@ int32_t msgpack2individual(Individual *individual, string in_str)
                             Resource rr;
                             rr.type                  = _Decimal;
                             rr.decimal_mantissa_data = mantissa;
-                            rr.decimal_expanent_data = exponent;
+                            rr.decimal_exponent_data = exponent;
                             resources.push_back(rr);
                         }
                         else if (type == _String)

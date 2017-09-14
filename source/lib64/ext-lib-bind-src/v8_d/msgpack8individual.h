@@ -44,9 +44,9 @@ struct Resource
     bool    bool_data;
     int64_t long_data;
     int64_t decimal_mantissa_data;
-    int64_t decimal_expanent_data;
+    int64_t decimal_exponent_data;
 
-    Resource () : type(0), origin(0), lang(0), long_data(0), decimal_mantissa_data(0), decimal_expanent_data(0), str_data (""), bool_data(false){};
+    Resource () : type(0), origin(0), lang(0), long_data(0), decimal_mantissa_data(0), decimal_exponent_data(0), str_data (""), bool_data(false){};
 };
 
 struct Individual
@@ -70,7 +70,7 @@ public:
                 std::cerr << "\t\tbool_data " << vec[i].bool_data << endl;
                 std::cerr << "\t\tlong_data " << vec[i].long_data << endl;
                 std::cerr << "\t\tdecimal_mantissa " << vec[i].decimal_mantissa_data << endl;
-                std::cerr << "\t\tdecimal_exponent " << vec[i].decimal_expanent_data << endl;
+                std::cerr << "\t\tdecimal_exponent " << vec[i].decimal_exponent_data << endl;
             }
             // std::cerr << "\t" << it->first << " : " << it->second << endl; 
         }
