@@ -79,7 +79,6 @@ after_script:
   - date    
   - ls  $PWD   
   - ls  $PWD/logs   
-  - ./send-to-chunk-io.sh
    
-after_success: 
-  - ./update-gh-pages.sh
+after_failure: 
+  - ./send-to-chunk-io.sh
