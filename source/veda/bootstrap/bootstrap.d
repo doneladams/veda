@@ -424,6 +424,9 @@ void main(string[] args)
         executeShell("rm data/module-info/*.lock");
         executeShell("rm data/queue/*.lock");
         executeShell("rm data/uris/*.lock");
+        
+        if (need_watchdog == false)
+	        is_main_loop = false;
     }
 
     writefln("EXIT!");
