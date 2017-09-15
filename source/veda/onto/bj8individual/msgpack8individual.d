@@ -104,18 +104,8 @@ public int msgpack2individual(ref Individual individual, string in_str)
     {
         try
         {
-        	//bool is_pupkin = false;
-        	//if (in_str.indexOf ("Пупкин") >= 0)
-        	//{
-        	//	is_pupkin = true;
-        	//}
-        	
-        	
             StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
 
-             //if (is_pupkin)
-	         //    stderr.writefln("TRY TO UNPACK len=%d, val=%s", in_str.length, in_str);
-             
             if (unpacker.execute()) 
             {      
                 size_t root_el_size = unpacker.unpacked.length;
@@ -262,7 +252,7 @@ public int msgpack2individual(ref Individual individual, string in_str)
             } 
             else 
             {
-                 stderr.writeln("Serialized object is too large!");
+                 stderr.writeln("Serialized object is invalid! src=[%s]", in_str);
                  return -1;
             }
 
