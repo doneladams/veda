@@ -24,8 +24,8 @@ before_install:
   - npm install -g grunt-cli
   - npm install grunt-contrib-qunit --save-dev
   - npm install grunt --save-dev
-  - npm install coveralls --save-dev
-  - npm install grunt-coveralls --save-dev
+#  - npm install coveralls --save-dev
+#  - npm install grunt-coveralls --save-dev
   - go version    
 
 # Build
@@ -39,7 +39,7 @@ before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
   - ./control-start.sh
-  - sleep 110  # give Web server some time to bind to sockets, load startup data, etc
+  - sleep 100  # give Web server some time to bind to sockets, load startup data, etc
   - date    
 
 # Run API & integration test
@@ -48,7 +48,7 @@ script:
 #  - grunt coveralls
 #  - node ./qa/testAPI.js
 #  - node ./qa/testSendGet.js
-  - travis_wait 20 node ./qa/testLogin.js
+  - node ./qa/testLogin.js
   - travis_wait 20 node ./qa/testDrafts.js
   - travis_wait 20 node ./qa/testLanguage.js
   - travis_wait 20 node ./qa/testDeleteAndRecovery.js
@@ -75,7 +75,7 @@ script:
 after_script:
   - date    
   - ./control-stop.sh
-  - grunt coveralls
+#  - grunt coveralls
   - date    
    
 after_failure: 
