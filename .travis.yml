@@ -49,11 +49,11 @@ script:
 #  - node ./qa/testAPI.js
 #  - node ./qa/testSendGet.js
   - node ./qa/testLogin.js
-  - travis_wait 20 node ./qa/testDrafts.js
-  - travis_wait 20 node ./qa/testLanguage.js
-  - travis_wait 20 node ./qa/testDeleteAndRecovery.js
-  - travis_wait 20 node ./qa/testRights.js
-  - travis_wait 20 node ./qa/testComment.js
+  - node ./qa/testDrafts.js
+  - node ./qa/testLanguage.js
+  - node ./qa/testDeleteAndRecovery.js
+  - node ./qa/testRights.js
+  - node ./qa/testComment.js
   - travis_wait 20 node ./qa/testVersionedDocument.js
   - travis_wait 20 node ./qa/testJournal.js
   - travis_wait 20 node ./qa/testAttachment.js
