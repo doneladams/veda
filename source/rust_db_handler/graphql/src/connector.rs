@@ -1,3 +1,7 @@
+///Connector struct gives all methods to work with tarantool
+///Sending response is done by do_request
+///All request params described in rest-tarantool-exchange doc
+
 extern crate rmp_bind;
 
 use self::rmp_bind::{ decode, encode };
@@ -12,6 +16,7 @@ use std::time;
 static MAX_PACKET_SIZE: u32 = 1024 * 1024 * 10;
 
 #[derive(PartialEq, Eq)]
+/// REST return codes
 pub enum ResultCode {
     Ok = 200,
     NoContent = 204,
@@ -24,6 +29,7 @@ pub enum ResultCode {
 }
 
 #[allow(dead_code)]
+///REST operation codes
 pub enum Operation {
 	Put             = 1,
 	Get             = 2,
@@ -34,10 +40,15 @@ pub enum Operation {
 	Remove          = 51
 }
 
+///RequestResponse struct for tarantool responses
 pub struct RequestResponse {
+	///Common result code or request
     pub common_rc: ResultCode,
+	///Operation code for each uri
 	pub op_rc: Vec<ResultCode>,
+	///Response data
     pub data: Vec<Vec<u8>>,
+	///Returned rights from authorization requests
     pub rights: Vec<u8>
 }
 
@@ -79,8 +90,11 @@ impl RequestResponse {
     }
 }
 
+///Connector for requests to tarantool
 pub struct Connector {
+	///Address of tarantool server
     pub address: String,
+	///TcpStream for sending and reading data
     pub stream: Option<TcpStream>
 }
 
@@ -90,6 +104,7 @@ impl Connector {
     }
     pub fn connect(&mut self) {
         loop {
+			///Loop for connection to tarantool, retries to connect while not success
             match TcpStream::connect(&self.address) {
                 Ok(s) => {
                     self.stream = Some(s);
@@ -103,24 +118,30 @@ impl Connector {
         }
     }
 
+	///Send request to tarantool
     fn do_request(&mut self, need_auth: bool, user_uri: &String, data: &Vec<String>, 
 		trace: bool, trace_auth: bool, op: u64) -> (ResultCode, Vec<u8>) {
 		let mut request = Vec::with_capacity(4096);
 		let mut response;
 		if op == Operation::GetRightsOrigin as u64 || op == Operation::Authorize as u64 || 
 			op == Operation::GetMembership as u64 {
+			///If operation is GetRightsOrigin, GetMemberShip of Authorize than request has more args
 			encode::encode_array(&mut request, data.len() as u32 + 4)
 		} else {
 			encode::encode_array(&mut request, data.len() as u32 + 3);
 		}
 
+
+		///Encode operation code and need_auth
 		encode::encode_uint(&mut request, op);
 		encode::encode_bool(&mut request, need_auth);
 		if op == Operation::GetRightsOrigin as u64 || op == Operation::Authorize as u64 || 
 			op == Operation::GetMembership as u64 {
+			///If operation is GetRightsOrigin, GetMemberShip of Authorize than encodes tracing
 			encode::encode_bool(&mut request, trace_auth);
 		}
 
+		///Encode user uri and request data
 		encode::encode_string(&mut request, &user_uri);
 		for i in 0 .. data.len() {
 			encode::encode_string(&mut request, &data[i]);
@@ -132,16 +153,20 @@ impl Connector {
 
 		let request_size = request.len() as u32;
 		let mut buf: Vec<u8> = Vec::with_capacity(4 + request_size as usize);
+		///Encode request size
 		buf.push(((request_size >> 24) & 0xFF) as u8);
 		buf.push(((request_size >> 16) & 0xFF) as u8);
 		buf.push(((request_size >> 8) & 0xFF) as u8);
 		buf.push((request_size & 0xFF) as u8);
 		buf.append(&mut request);
 
+		///If on some stage of loop error occured, than reconnect and retry happens
 		loop {
 			let mut errored = false;
 
 			let mut written = 0;
+
+			///While buf is not sent fully, repeat sending from unsent part
 			while written < buf.len() {
 				match self.stream {
 					Some(ref mut s) => {
@@ -173,6 +198,8 @@ impl Connector {
 
 			let mut read = 0;
 			buf = vec![0; 4];
+
+			///Reading four bytes of response size
 			while read < 4 {
 				match self.stream {
 					Some(ref mut s) => {
@@ -217,6 +244,8 @@ impl Connector {
 
 			response = vec![0; response_size as usize];
 			read = 0;
+
+			///Reading response while not fully read
 			while (read as u32) < response_size {
 				match self.stream {
 					Some(ref mut s) => {
@@ -250,6 +279,7 @@ impl Connector {
 				writeln!(stderr(), "@CONNECTOR OP {0}: RECEIVED RESPONSE", op).unwrap();
 			}
 
+			///If successfully got response than break and return
 			break;
 		}
 
