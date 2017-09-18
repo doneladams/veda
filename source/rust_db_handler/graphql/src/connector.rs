@@ -290,6 +290,7 @@ impl Connector {
         let mut rr = RequestResponse::new();
         if user_uri.len() < 3 {
             rr.common_rc = ResultCode::NotAuthorized;
+			///If user uri len is less than 3 than log about error and return NotAuthorized to client
             writeln!(stderr(), "@ERR CONNECTOR GET: SHORT USER URI {0}", user_uri).unwrap();
             return rr;
         }
@@ -310,6 +311,7 @@ impl Connector {
 			writeln!(stderr(), "}}").unwrap();
         }
 
+		///Do Get request using given data
 		let rr_tuple = self.do_request(need_auth, &user_uri, &uris, trace, false, Operation::Get as u64);
 		if rr_tuple.0 != ResultCode::Ok {
 			rr.common_rc = rr_tuple.0;
@@ -330,6 +332,8 @@ impl Connector {
 		rr.op_rc = Vec::with_capacity(uris.len());
 
 		let mut i = 1;
+		
+		///Decode response according to docs
 		while i < arr_len {
 			let op_rc = decode::decode_uint(cursor).unwrap();
 			rr.op_rc.push(ResultCode::from_uint(op_rc));
@@ -369,6 +373,7 @@ impl Connector {
 			writeln!(stderr(), "}}").unwrap();
         }
 
+		///Do GetTicket request
 		let rr_tuple = self.do_request(false, &"cfg:VedaSystem".to_string(), &ticket_ids, trace, false, 
 			Operation::GetTicket as u64);
 		if rr_tuple.0 != ResultCode::Ok {
@@ -390,6 +395,7 @@ impl Connector {
 		rr.op_rc = Vec::with_capacity(ticket_ids.len());
 
 		let mut i = 1;
+		///Decoding response according to docs
 		while i < arr_len {
 			let op_rc = decode::decode_uint(cursor).unwrap();
 			rr.op_rc.push(ResultCode::from_uint(op_rc));
