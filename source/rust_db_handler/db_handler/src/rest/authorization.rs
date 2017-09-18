@@ -15,6 +15,7 @@ include!("../../module.rs");
 
 const MAX_VECTOR_SIZE: usize = 150;
 
+///Access rights and restriction codes
 pub static ACCESS_CAN_CREATE: u8 = 1 << 0;
 pub static ACCESS_CAN_READ: u8 = 1 << 1;
 pub static ACCESS_CAN_UPDATE: u8 = 1 << 2;
@@ -25,17 +26,26 @@ pub static ACCESS_CAN_NOT_UPDATE: u8 = 1 << 6;
 pub static ACCESS_CAN_NOT_DELETE: u8 = 1 << 7;
 pub static DEFAULT_ACCESS: u8 = 15;
 
+///Struct to represent and membership and permission groups
 struct Group {
+    ///group id string
     id: String,
+    ///parent number in current tree
     parent: i32,
+    ///msgpack buf from tarantool
     buf: Vec<u8>,
+    ///current position in msgpack
     position: u64,
+    ///current element in the msgpack array
     i: u64,
+    ///number of elements in msgpack array
     nelems: u64,
+    ///access of group in the current tree
     access: u8
 }
 
 impl Group {
+    ///Empty group constructor
     fn new() -> Group {
         return Group { id: "".to_string(), parent: -1, buf: Vec::new(), position: 0, i: 0,  
             nelems: 0, access: DEFAULT_ACCESS };
@@ -67,6 +77,8 @@ fn get_tuple(key: &str, buf: &mut Vec<u8>, space_id: u32, index_id: u32) {
     }
 }
 
+
+///Formates byte acces to CRUD string
 fn access_to_string(access: u8) -> String {
     format!("{0} {1} {2} {3}",
         if access & ACCESS_CAN_CREATE > 0 {"C"} else {""},
@@ -75,12 +87,13 @@ fn access_to_string(access: u8) -> String {
         if access & ACCESS_CAN_DELETE > 0 {"D"} else {""})
 }
 
-/// Finds tree of groups for uri (object or subject)
+/// Finds tree of membership groups for uri (object or subject)
 fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnection, 
     str_number: &mut  u32, trace: bool, trace_vec: &mut Vec<u8>) {
     let mut curr: i32 = 0;
     let mut gone_previous = false;
 
+    ///Sets indent to one tab and tree level into zero
     let mut indent = "\t".to_string();
     let mut level = 0;
     
@@ -97,17 +110,21 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
     while curr != -1 {
         let mut got_next = false;
         /// Restores position of reader in msgpack buffer
-        /// and check if found a new root
+        /// and check if found a new node
+        ///Start position is 1 because 0 is group id
         let mut postion: u64 = groups[curr as usize].position;
         if !gone_previous {
             groups[curr as usize].i = 1;
             groups[curr as usize].nelems = {
+                ///Decodes msgpack array size
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 let arr_size = decode::decode_array(&mut cursor).unwrap();
                 postion = cursor.position();
                 arr_size
             };
+
             groups[curr as usize].id = {
+                ///Decodes group id
                 let mut tmp: Vec<u8> = Vec::default();
                 let mut cursor: Cursor<&[u8]> = Cursor::new(&groups[curr as usize].buf[..]);
                 cursor.set_position(postion);
@@ -146,12 +163,13 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
             for i in 0 .. groups.len() {
                 if next_group.access ==  groups[i].access && id == groups[i].id {
                     found = true;
-                    if (trace) {
+                    if trace {
                         writeln!(trace_vec, "{0} {1}({2})GROUP [{3}].access={4} SKIP, ALREADY ADDED",
                             str_number, indent, level, id, 
                             access_to_string(next_group.access)).unwrap();
                         *str_number += 1;
                     }
+                    ///if cycle was found and rights are not updated go to the next element                     
                     break;
                 }
             }
@@ -169,6 +187,8 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
                     access_to_string(next_group.access)).unwrap();
                 *str_number += 1;
             }
+
+            ///Save next group to the groups tree
             groups.push(next_group);
             groups[curr as usize].position = postion;
             if groups[next as usize].buf.len() == 0 {
@@ -197,19 +217,25 @@ fn get_groups(uri: &str, groups: &mut Vec<Group>, conn: &super::TarantoolConnect
     }
 }
 
+
+///prepare_group joins rights of repeted groups if cycles with different rights occured
 fn prepare_group(groups: &mut Vec<Group>, prepared_groups: &mut Vec<Group>) {
      let mut data: HashMap<String, u8> = HashMap::new();
 
      for i in 0 .. groups.len() {
          let mut prev_access = 0;
+
+         ///Check if group is already exist and get it rights
          match data.get(&groups[i].id) {
              Some(a) => prev_access = *a,
              _ => {}
          }
 
+         ///Update previous access with current access
          data.insert(groups[i].id.clone(), prev_access | groups[i].access);
      }
 
+     ///Write groups to vector
      for (id, access) in &data {
         let mut group = Group::new();
         group.id = id.to_string();
@@ -218,7 +244,7 @@ fn prepare_group(groups: &mut Vec<Group>, prepared_groups: &mut Vec<Group>) {
     }
 }
 
-/// Function to compute access
+/// Function to compute access, if trace is set, than rights authorization process info to vector
 pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConnection, 
     aggregate_rights: bool, aggregate_groups: bool, trace: bool) -> (u8, String) {
     let mut aggregated_value = "".to_string();
@@ -339,6 +365,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
             let mut idx = 0;
             while idx < subject_groups.len() {
                 if perm_uri == subject_groups[idx].id {
+                    ///If subject was found than breaks
                     break;
                 }
                 idx += 1;
@@ -358,13 +385,12 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
                             }
                         }
                         if (access_arr[k] & perm_access) > 0 && aggregate_rights {
+                            ///If tracing of rights is enabled, save rights triplet to vector
                             triplets.push((subject_groups[idx].id.clone(), object_groups[i].id.clone(), 
                                 access_arr[k]));
                         }
                     }
                 }
-
-                
             }
         }
     }
@@ -378,7 +404,9 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
     }
 
     if aggregate_rights {
-        let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);     
+        let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);   
+
+        ///If aggregeation of rights is requested, than create a json of individual with rights info  
         for i in 0 .. triplets.len() {
             let right_resource: serde_json::Value;
 
@@ -436,6 +464,7 @@ pub fn compute_access(user_id: &str, res_uri: &str, conn: &super::TarantoolConne
         aggregated_value = json!(jsons.as_slice()).to_string();
     } else if aggregate_groups {
         let mut jsons: Vec<serde_json::Value> = Vec::with_capacity(MAX_VECTOR_SIZE);
+        ///If aggregeation of groups is requested, than create a json of individual with rights info  
         for i in 0 .. object_groups.len() {
             jsons.push(json!({"type":"Uri","data":object_groups[i].id}));
         }

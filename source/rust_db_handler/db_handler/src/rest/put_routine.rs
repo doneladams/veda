@@ -17,6 +17,7 @@ include!("../../module.rs");
 const MAX_VECTOR_SIZE: usize = 150;
 
 #[derive(PartialEq, Eq, Copy)]
+///Supported resource types for veda individual
 enum ResourceType {
     Uri = 1,
     Str = 2,
@@ -27,6 +28,7 @@ enum ResourceType {
 }
 
 #[derive(PartialEq, Eq, Copy)]
+///Supported resource languages in veda
 enum Lang {
     LangNone = 0,
     LangRu  = 1,
@@ -34,20 +36,31 @@ enum Lang {
 }
 
 #[derive(PartialEq, Eq)]
+///Struct for resource representation
 pub struct Resource {
+    ///This resource type
     res_type: ResourceType,
+    ///Langiage for string data
     lang: Lang,
+    ///String data or uri
     pub str_data: Vec<u8>,
+    ///Boolean data
     bool_data: bool,
+    ///Integer or datetime
     pub long_data: i64,
+    ///Decimal exponent and mantissa for double representatiob
     decimal_mantissa_data: i64,
     decimal_exponent_data: i64,
 }
 
 #[derive(Hash, Eq, PartialEq)]
+///Right struct representation
 struct Right {
+    ///Membership or permission id
     id: Vec<u8>,
+    ///Access for current group
     access: u8,
+    ///Set true if right is deleted
     is_deleted: bool
 }
 
@@ -63,8 +76,11 @@ impl Clone for Lang {
     }
 }
 
+///Individual struct representation
 pub struct Individual {
+    ///Individual uri in veda
     pub uri: Vec<u8>,
+    ///Individual resources
     pub resources: HashMap<String, Vec<Resource>>    
 }
 
@@ -493,6 +509,8 @@ fn update_right_set(resource: &Vec<Resource>, in_set: &Vec<Resource>, is_deleted
                 new_right_set.insert(in_set_key.to_string(), right);
             }
         }
+
+        ///Save right set in tarantool
         push_into_tarantool(&key, &new_right_set, space_id, index_id);       
     }
 }
@@ -503,11 +521,14 @@ pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_reso
     let mut is_deleted = false;
     let mut access: u8 = 0;
 
+    ///Check if rights is deleted
     match new_state.resources.get(&"v-s:deleted".to_string()) {
         Some(res) => is_deleted = res[0].bool_data,
         _ => {}
     }
 
+
+    ///Check access or restriction flags for CRUD
     match new_state.resources.get(&"v-s:canCreate".to_string()) {
         Some(res) => {
             if res[0].bool_data {
@@ -554,6 +575,8 @@ pub fn prepare_right_set(prev_state: &Individual, new_state: &Individual, p_reso
 
     access = if access > 0 { access } else { authorization::DEFAULT_ACCESS };
     let new_resource;
+
+    ///Getting new state res
     match new_state.resources.get(p_resource) {
         Some(nr) => new_resource = nr,
         None => return Err(format!("@ERR GETTING NEW_RESOURCE {0}", p_resource))

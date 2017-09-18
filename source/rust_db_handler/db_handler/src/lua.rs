@@ -1,5 +1,6 @@
 /// This module gives bingings to C lua library
 /// Each function name copies macros or function in lua lib
+/// Functions are made as safe wrappers around unsafe exports from C
 
 extern crate libc;
 

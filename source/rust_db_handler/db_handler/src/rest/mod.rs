@@ -15,6 +15,7 @@ use std::ptr::null_mut;
 use rmp_bind::{ encode, decode };
 use self::chrono::prelude::*;
 
+///includes defeinitions for tarantool functions
 include!("../../module.rs");
 
 const MAX_VECTOR_SIZE: usize = 150;
@@ -133,6 +134,7 @@ fn connect_to_tarantool() -> Result<TarantoolConnection, String> {
 pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     let conn: TarantoolConnection;
 
+    ///Connects to tarantool
     match connect_to_tarantool() {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
         Ok(c) => conn = c
@@ -179,6 +181,8 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         match individual.resources.get(&"new_state".to_string()) {
             Some(res) => new_state_res = res,
             _ => {
+                ///New state must be in all individs, 
+                ///if new state wasn't found BadRequest is returned to client
                 writeln!(stderr(), "@NO NEW_STATE FOUND").unwrap();
                 encode::encode_uint(resp_msg, Codes::BadRequest as u64);
                 return;
@@ -186,10 +190,12 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
 
         let mut new_state = put_routine::Individual::new();
+        ///Decoding individuals fron new state
         match put_routine::msgpack_to_individual(&mut Cursor::new(&new_state_res[0].str_data[..]), 
             &mut new_state) {
             Ok(_) => {}
             Err(err) => {
+                ///If new state individual can not be decoded InternalServerError code is returned to cleint
                 writeln!(stderr(), "@ERR DECODING NEW STATE {0}", err).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 return;
@@ -203,9 +209,11 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
         
         let rdf_types: &Vec<put_routine::Resource>;
+        ///Getting rdf:type resource
         match new_state.resources.get(&"rdf:type".to_string()) {
             Some(res) => rdf_types = res,
             _ => {
+                ///Each individual must have rdf:type, if rdf:type not found BadRequest code is returned to client
                 writeln!(stderr(), "@ERR NO RDF_TYPE_FOUND FOUND {0}", 
                     std::str::from_utf8(&new_state.uri[..]).unwrap()).unwrap();
                 encode::encode_uint(resp_msg, Codes::BadRequest as u64);
@@ -216,34 +224,43 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         
 
         let mut tnt_rdf_types: Vec<Vec<u8>> = Vec::with_capacity(MAX_VECTOR_SIZE);
+        ///Get saved rdf:types from tarantool if they already exist
         put_routine::get_rdf_types(&new_state.uri, &mut tnt_rdf_types, &conn);
 
         ///Compare rdf:type stored in Tarantool and in new_state
         ///If new_state contatins new rdf:type authorization computes on this rdf:type
         let mut is_update: bool = true;
+       
         if tnt_rdf_types.len() > 0 && need_auth {
+             ///Check if put operation is update or create
+            ///Create: there are no rdf:types in tarantool, 
+            ///or they are the different in tarantool and newstate.
+            ///Update: rdf:types already exist in tarantool and same to new state
             for i in 0 .. rdf_types.len() {
                 match tnt_rdf_types.iter().find(|&rdf_type| rdf_type.as_slice() == 
                     rdf_types[i].str_data.as_slice()) {
-                        None => {
-                            is_update = false;
-                            let auth_result = authorization::compute_access(user_id, 
-                                std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn, 
-                                    false, false, false).0;
-
-                            if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
-                                encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
-                                return;
-                            } 
-                        }
-                        Some(_) => {}
+                    None => {
+                        is_update = false;
+                        let auth_result = authorization::compute_access(user_id, 
+                            std::str::from_utf8(&rdf_types[i].str_data[..]).unwrap(), &conn, 
+                                false, false, false).0;
+                        
+                        if (auth_result & authorization::ACCESS_CAN_CREATE) == 0 {
+                            ///Is operation is create, user must be authorized for each new class,
+                            // if authorization needed
+                            encode::encode_uint(resp_msg, Codes::NotAuthorized as u64);
+                            return;
+                        } 
                     }
+                    Some(_) => {}
+                }
             }
         } else {
             is_update = false;
         }
 
         if is_update && need_auth {
+            ///Is operation is update, user must be authorized for individual uri, if authorization needed
             let auth_result = authorization::compute_access(user_id, 
                 &std::str::from_utf8(&new_state.uri[..]).unwrap(), &conn, false, false, false).0;
 
@@ -253,29 +270,34 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
         }
 
         if !is_update {
-            ///Saves rdf:type if it changed            
+            ///If operation is create rdf:types stored to tarantool, or update if changed            
             put_routine::put_rdf_types(&new_state.uri, rdf_types, &conn);
         }
 
-        /// Stores some information in other space if individual is v-s:Account
+        ///Checks if one of rdf:types os account and stores account data into accounts space        
         for j in 0 .. rdf_types.len() {
             if std::str::from_utf8(&rdf_types[j].str_data[..]).unwrap() == "v-s:Account" {
                 if std::str::from_utf8(&new_state.uri[..]).unwrap() == "cfg:GuestAccount" {
+                    ///Do not need to save guest account
                     break;
                 }
                 let mut request = Vec::new();
 
                 encode::encode_array(&mut request,2);
                 let account_str;
+                ///Get user login
                 match new_state.resources.get("v-s:login") {
                     Some(vsl) => account_str = &vsl[0].str_data,
                     None => {
+                        ///if login was not found BadRequest code returned to client
                         writeln!(stderr(), "@NO v-s:login FOUND IN INDIVIDUAL, ID=[{0}] ", 
                             std::str::from_utf8(&new_state.uri[..]).unwrap());
                         encode::encode_uint(resp_msg, Codes::BadRequest as u64);
                         return;
                     }
                 }
+
+                ///Encoding account into msgpack and store into tarantool
                 encode::encode_string_bytes(&mut request, account_str);
                 encode::encode_string_bytes(&mut request, &new_state.uri);
                 unsafe {
@@ -296,7 +318,10 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             let key_ptr_start = new_state_res[0].str_data[..].as_ptr() as *const i8;
             let key_ptr_end = key_ptr_start.offset(request_len);
 
+
             if std::str::from_utf8(&rdf_types[0].str_data[..]).unwrap() == "ticket:Ticket" {
+                ///if individuals is ticket, if is ticket than store it into tickets space,
+                ///else stroe in into individuals space
                 box_replace(conn.tickets_space_id, key_ptr_start, key_ptr_end, 
                     &mut null_mut() as *mut *mut BoxTuple);
                 /*writeln!(stderr(), "@STORE TICKET {0}", 
@@ -360,7 +385,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     }
 }
 
-
+///Parses and handles get request according to docs
 pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>) {
     let conn: TarantoolConnection;
 
@@ -427,12 +452,16 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
                 let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
                 box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
                 
+
+                ///If everything is ok, Ok code and individual's msgpack are returned to user
                 encode::encode_uint(resp_msg, Codes::Ok as u64);
                 encode::encode_string_bytes(resp_msg, &tuple_buf);
             } else if count == 0 {
+                ///If not fount, then UnpocessableEntity code and nil are returned to user and 
                 encode::encode_uint(resp_msg, Codes::UnprocessableEntity as u64);
                 encode::encode_nil(resp_msg);
             } else if count < 0 {
+                ///If error occured than InternalServerError code returned to user
                 writeln!(stderr(), "@ERR ON COUNT {0}", res_uri).unwrap();
                 encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
                 encode::encode_nil(resp_msg);
@@ -443,7 +472,7 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
     }
 }
 
-///Parses and handles msgpack put request according to docs
+///Parses and handles msgpack auth request according to docs
 pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, aggregate_rights: bool, 
     aggregate_groups: bool) {
     let conn: TarantoolConnection;
@@ -454,6 +483,7 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
 
     let trace: bool;
     ///Decodes trace_auth prametr
+    ///Trace param forces computing function to gather authorization process information to string
     match decode::decode_bool(cursor) {
         Err(err) => return super::fail(resp_msg, Codes::InternalServerError, err),
         Ok(t) => trace = t
@@ -493,8 +523,10 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
             let count = box_index_count(conn.individuals_space_id, conn.individuals_index_id,
                 IteratorType::EQ as i32, key_ptr_start, key_ptr_end);
             if count == 0 {
+                ///If resource wasn't found than NotFound code returned to user
                 encode::encode_uint(resp_msg, Codes::NotFound as u64);
                 encode::encode_uint(resp_msg, 0);
+                encode::encode_nil(resp_msg);
                 continue;
             }
         }
@@ -502,11 +534,15 @@ pub fn auth(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, a
         /// Computes access
         let auth_result = authorization::compute_access(user_id, res_uri, &conn, aggregate_rights, 
             aggregate_groups, trace);
+        /// Encode access into msgpack response
         encode::encode_uint(resp_msg, Codes::Ok as u64);
         encode::encode_uint(resp_msg, auth_result.0 as u64);
+        
         if !(aggregate_rights || aggregate_groups) {
+            ///If no aggregation needed, then encode nil
             encode::encode_nil(resp_msg);
         } else {
+            /// If some aggregating function is needed, then encode aggregation response        
             encode::encode_string(resp_msg, &auth_result.1);
         }
     }
@@ -601,6 +637,7 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
                 key_ptr_start, key_ptr_end, &mut get_result as *mut *mut BoxTuple);
         if get_result == null_mut() {
             // writeln!(stderr(), "@SYSTICKET NOT FOUND");
+            ///If systicket not found return empty string
             return "".to_string();
         }
         
@@ -614,6 +651,7 @@ fn get_systicket_id(conn: &TarantoolConnection) -> String{
         
         /*writeln!(stderr(), "@SYSTICKET {0} FOUND", 
             std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap());*/            
+        /// Return string with ticket id
         return std::str::from_utf8(&systicket_indiv.resources["ticket:id"][0].str_data[..]).unwrap().to_string()
     }
 }
@@ -629,6 +667,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         Ok(c) => conn = c
     }
 
+    /// Encode response array
     encode::encode_array(resp_msg, ((arr_size - 3) * 2 + 1) as u32);
     encode::encode_uint(resp_msg, Codes::Ok as u64);
 
@@ -639,6 +678,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
         let mut ticket_id = "".to_string();
         let mut request = Vec::new();
 
+        ///Decodes requested ticket id
         let ticket_id_type = decode::decode_type(cursor).unwrap();
         // writeln!(stderr(), "@ID TYPE {0}", decode::decode_type(cursor).unwrap() as u64);
         match ticket_id_type {
@@ -676,15 +716,19 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
                 continue;
             }
             
+            ///If ticket was found in tarantool decodes it
             let tuple_size = box_tuple_bsize(get_result);
             let mut tuple_buf: Vec<u8> = vec![0; tuple_size];
             box_tuple_to_buf(get_result, tuple_buf.as_mut_ptr() as *mut c_char, tuple_size);
 
+            ///Decodes ticket msgpack
             let mut ticket_indiv = put_routine::Individual::new();
             put_routine::msgpack_to_individual(&mut Cursor::new(&tuple_buf[..]), 
                 &mut ticket_indiv).unwrap();
             
             // let now = time::get_time().sec;
+            ///Check if ticket expired
+            ///Parses string with date time
             let now = UTC::now().timestamp();
             let when_str = std::str::from_utf8(
                 &ticket_indiv.resources.get("ticket:when").unwrap()[0].str_data[..]).unwrap();
@@ -694,6 +738,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
 
             /*let ticket_end_time = when + std::str::from_utf8(&ticket_indiv.resources.
                 get("ticket:duration").unwrap()[0].str_data[..]).unwrap().parse::<i64>().unwrap();*/
+            ///Get ticket duration integer from string
             let duration_str = std::str::from_utf8(&ticket_indiv.resources.
                 get("ticket:duration").unwrap()[0].str_data[..]).unwrap();
             // writeln!(stderr(), "@DURATION STR {0}", duration_str);
@@ -702,8 +747,10 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
             let ticket_end_time = when + duration;
 
             // writeln!(stderr(), "@NOW {0} : END {1}", now, ticket_end_time);                            
+            
             if now > ticket_end_time {
-                encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
+                ///If ticket is expired delete it from tarantool 
+                ///and return TicketExpired code and nil to client    encode::encode_uint(resp_msg, Codes::TicketExpired as u64);
                 encode::encode_nil(resp_msg);
                 box_delete(conn.tickets_space_id, conn.tickets_index_id, 
                     key_ptr_start, key_ptr_end, &mut null_mut() as *mut *mut BoxTuple);
@@ -711,6 +758,7 @@ pub fn get_ticket(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<
                 return;
             }
             
+            ///If ticket is valid reutrn Ok code and ticket msgpack
             encode::encode_uint(resp_msg, Codes::Ok as u64);
             encode::encode_string_bytes(resp_msg, &tuple_buf);
             // writeln!(stderr(), "@TICKET STR {0}", std::str::from_utf8_unchecked(&tuple_buf[..]));
