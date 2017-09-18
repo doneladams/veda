@@ -20,6 +20,7 @@ mod connector;
 const MAX_VECTOR_SIZE: usize = 150;
 
 #[derive(PartialEq, Eq, Copy)]
+///Supported resource types for veda individual
 enum ResourceType {
     Uri = 1,
     Str = 2,
@@ -43,6 +44,7 @@ impl ResourceType {
 }
 
 #[derive(PartialEq, Eq, Copy)]
+///Supported resource languages in veda
 enum Lang {
     LangNone = 0,
     LangRu  = 1,
@@ -50,12 +52,19 @@ enum Lang {
 }
 
 #[derive(PartialEq, Eq)]
+///Struct for resource representation
 pub struct Resource {
+    ///This resource type
     res_type: ResourceType,
+    ///Langiage for string data
     lang: Lang,
+    ///String data or uri
     pub str_data: Vec<u8>,
+    ///Boolean data
     bool_data: bool,
+    ///Integer or datetime
     pub long_data: i64,
+    ///Decimal exponent and mantissa for double representatiob
     decimal_mantissa_data: i64,
     decimal_exponent_data: i64,
 }
@@ -116,9 +125,10 @@ impl Lang {
     } 
 }
 
+///Struct for graphql requests
 pub struct IndividualDatabase;
 
-/// Converts msgpach to individual structure
+//// Converts msgpach to individual structure
 pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Individual) -> Result<(), String> {
     let arr_size: u64;
     /// Decodes main array
@@ -335,6 +345,7 @@ pub fn msgpack_to_individual(cursor: &mut Cursor<&[u8]>, individual: &mut Indivi
     return Ok(());
 }
 
+///Implementation of request to tarantool for individuals
 impl IndividualDatabase {
     fn get_individuals(&self, uris: &Vec<String>, conn: &mut connector::Connector, user_uri: &String) -> 
         connector::RequestResponse {
@@ -342,6 +353,7 @@ impl IndividualDatabase {
     }
 }
 
+///Convert veda decimal to string representation of real number with floating point
 fn decimal_to_string(mantissa: i64, exponent: i64) -> String {
     let mut m = mantissa;
     let mut e = exponent;
@@ -377,6 +389,9 @@ fn decimal_to_string(mantissa: i64, exponent: i64) -> String {
     res
 }
 
+
+///Converts individual struct to json for client
+///Each field is array of data, type and lang for strings
 fn individual_to_json(individual: &Individual) -> serde_json::Value {
     let mut individual_json = json!({
         "@": std::str::from_utf8(&individual.uri[..]).unwrap()
@@ -441,6 +456,7 @@ fn individual_to_json(individual: &Individual) -> serde_json::Value {
     individual_json
 }
 
+///Implementation of graohql Query traits for IndividualDatabase
 graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
     field individual(uris: Vec<String>, ticket: String, child_restrictions: Vec<String>) -> String {
         let mut individuals: Vec<serde_json::Value> = Vec::new();
@@ -453,16 +469,19 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
         if rr_ticket.common_rc == connector::ResultCode::Ok {
             if rr_ticket.op_rc[0] == connector::ResultCode::Ok {
                 let mut ticket = Individual::new();
+                ///If ticket is valid decode ticket from msgpack and get user_uri
                 msgpack_to_individual(&mut Cursor::new(&rr_ticket.data[0][..]), &mut ticket).unwrap();
                 user_uri = std::str::from_utf8(&ticket.resources["ticket:accessor"][0].str_data[..]).
                     unwrap().to_string();
             } else {
+                ///If ticket is invalid return code and empty result
                 return json!({
                     "result": individuals,
                     "code": connector::ResultCode::as_uint(&rr_ticket.op_rc[0])
                 }).to_string()
             }
         } else {
+            ///If error occured return code and empty result
             return json!({
                     "result": individuals,
                     "code": connector::ResultCode::as_uint(&rr_ticket.common_rc)
@@ -471,17 +490,22 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
         
         loop {
             if uris_copy.len() == 0 || individuals.len() >= 10000 {
+                ///If limit of inidividuals is reached or have nothing to get than break
                 break;
             }
 
+            ///Get individuals from databease
             let rr = self.get_individuals(&uris_copy, &mut conn, &user_uri);
             for i in 0 .. uris_copy.len() {
                 checked.insert(uris_copy[i].clone(), false);
             }
-    
+            
+            ///Clear uris vector
             uris_copy.clear();
             for i in 0 .. rr.data.len() {
                 let mut individual = Individual::new();
+
+                ///Decode msgpack of individual from response
                 msgpack_to_individual(&mut Cursor::new(&rr.data[i][..]), &mut individual).unwrap();                
                 // writeln!(stderr(), "@URI {0}", std::str::from_utf8(&individual.uri[..]).unwrap().to_string());                
                 if child_restrictions.len() == 0 {
@@ -493,6 +517,8 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
                                 let val = std::str::from_utf8(&r[j].str_data[..]).unwrap();
                                 // writeln!(stderr(), "\t\t\tval {0}", val);
                                 if !checked.contains_key(val) {
+                                    ///If have no child restrictions than get all uris 
+                                    ///that did not get earlier  
                                     uris_copy.push(val.to_string());
                                     // writeln!(stderr(), "\t\t\tpush {0}", uris_copy.len());                                   
                                 }
@@ -509,6 +535,8 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
                                         let val = std::str::from_utf8(&r[j].str_data[..]).unwrap();
                                         // writeln!(stderr(), "\t\t\tval {0}", val);
                                         if !checked.contains_key(val) {
+                                            ///If have some child restrictions than get uris only 
+                                            /// to requested rdf:types that did not get earlier                                                                          
                                             uris_copy.push(val.to_string());
                                             // writeln!(stderr(), "\t\t\tpush {0}", uris_copy.len());                                   
                                         }
@@ -525,6 +553,7 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
                 if checked.contains_key(&uri) {
                     let c = *checked.get(&uri).unwrap();
                     if !c {
+                        ///Save new individuals and mark uris as checked
                         individuals.push(individual_to_json(&individual));
                         checked.insert(uri, true);
                     }
@@ -534,6 +563,8 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
             }
         }
 
+
+        ///Retorm success code and result individuals
         json!({
             "result": individuals,
             "code": connector::ResultCode::as_uint(&connector::ResultCode::Ok)
@@ -543,6 +574,8 @@ graphql_object!(IndividualDatabase: IndividualDatabase as "Query" |&self| {
 
 impl juniper::Context for IndividualDatabase {}
 
+
+///Handles http-requests from client and makes graphql requests to tarantool
 fn request_handler(req: &mut Request) -> IronResult<Response> {
      let mut body = "".to_string();
      req.body.read_to_string(&mut body).unwrap();
@@ -550,9 +583,9 @@ fn request_handler(req: &mut Request) -> IronResult<Response> {
     // writeln!(stderr(), "@BODY {0}", body);
     let v: Value = serde_json::from_str(&body).unwrap();
     let query: String = serde_json::from_value(v["query"].clone()).unwrap();
-    writeln!(stderr(), "{0}", query).unwrap();
+    // writeln!(stderr(), "{0}", query).unwrap();
 
-    writeln!(stderr(), "@REQUEST {0}", query);   
+    // writeln!(stderr(), "@REQUEST {0}", query);   
     let db = IndividualDatabase{};    
     let schema = juniper::RootNode::new(&db, juniper::EmptyMutation::<IndividualDatabase>::new());
     let result  = juniper::execute(&query, None, &schema, &juniper::Variables::new(), &db).unwrap();
