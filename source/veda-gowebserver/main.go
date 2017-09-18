@@ -8,24 +8,35 @@ import (
 
 	"strings"
 
-//	"github.com/muller95/traildb-go"
+	//	"github.com/muller95/traildb-go"
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
 
+//ResultCode is type for representation of http codes
 type ResultCode uint32
 
 const (
-	Ok                  ResultCode = 200
-	BadRequest          ResultCode = 400
-	NotAuthorized       ResultCode = 472
-	NotFound            ResultCode = 404
+	//Ok is success code
+	Ok ResultCode = 200
+	//BadRequest is returned for requests with invalid data
+	BadRequest ResultCode = 400
+	//NotAuthorized is returned than user doesn't have enough rights for do request
+	NotAuthorized ResultCode = 472
+	//NotFound is returned if individual not found
+	NotFound ResultCode = 404
+	//InternalServerError is returned if error occured during request handling
 	InternalServerError ResultCode = 500
-	TicketExpired       ResultCode = 471
-	NoContent           ResultCode = 204
-	SizeTooLarge        ResultCode = 1118
+	//TicketExpired return if given ticket is expired
+	TicketExpired ResultCode = 471
+	//NoContent is returned if http-request has empty data
+	NoContent ResultCode = 204
+	//SizeTooLarge is returned if size of request or response is too large
+	SizeTooLarge ResultCode = 1118
+	//UnprocessableEntity is returned if individual not found
 	UnprocessableEntity ResultCode = 422
-	InvalidIdentifier   ResultCode = 904
+	//Invalid identifier is returned if invalid queue identifier was passed
+	InvalidIdentifier ResultCode = 904
 )
 
 type ticket struct {
@@ -41,23 +52,49 @@ const (
 	tdbPath           = "./data/trails/	"
 )
 
+//ticketCache is map to cache requested earlier tickets
 var ticketCache map[string]ticket
+
+//ontologyCache is map to cache requested earlier individuals from ontology
 var ontologyCache map[string]map[string]interface{}
+
+//mifCache is map to cache opened ModuleInfoFile structs
 var mifCache map[int]*ModuleInfoFile
+
+//conn is Connector to trarantool database
 var conn Connector
+
+//socket is nanomsg socket connected to server
 var socket *nanomsg.Socket
+
+//endpoint is nanomsg endpoint connected to server
 var endpoint *nanomsg.Endpoint
+
+//vedaServerURL is tcp address of veda server
 var vedaServerURL = "tcp://127.0.0.1:9112"
+
+//attachmentsPath is path where files from request are stored
 var attachmentsPath = "./data/files/"
+
+//areExternalUsers is variable to activate ExternalUsers features
 var areExternalUsers = false
+
+//externalUsersTicketId is map to stoer external users tickets
 var externalUsersTicketId map[string]bool
+
+//cons is connection to traildb
 //var cons *tdb.TrailDBConstructor
 var isTrail = true
+
+//countTrails is variable to count trail requests, after limit they are flushed
 var countTrails = 0
+
+//portStr is string with port number vor fasthttp
 var portStr = "8080"
 
 // string BASE64_START_POS = "base64";
 
+//codeToJsonException converts ResultCode value to its string representation
 func codeToJsonException(code ResultCode) []byte {
 	exception := make(map[string]interface{})
 
@@ -88,6 +125,7 @@ func codeToJsonException(code ResultCode) []byte {
 	return exceptionJSON
 }
 
+//requestHandler passes request context pointer to handler according to request pass
 func requestHandler(ctx *fasthttp.RequestCtx) {
 	routeParts := strings.Split(string(ctx.Path()[:]), "/")
 	if len(routeParts) >= 2 && routeParts[1] == "files" {
@@ -144,6 +182,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	case "/flush":
 		break
 
+	//for tests request only sending file is needed
 	case "/tests":
 		ctx.SendFile("public/tests.html")
 	default:

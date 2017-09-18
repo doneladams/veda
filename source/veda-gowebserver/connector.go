@@ -11,18 +11,28 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
+//Connector represents struct for connection to tarantool
 type Connector struct {
+	//Tcp connection to tarantool
 	conn net.Conn
+	//Address of tarantool database
 	addr string
 }
 
+//RequestResponse represents structure for tarantool request response
 type RequestResponse struct {
+	//ResultCode for request
 	CommonRC ResultCode
-	OpRC     []ResultCode
-	Data     []string
-	Rights   []uint8
+	//ResultCode for each uri in request
+	OpRC []ResultCode
+	//Response data
+	Data []string
+	//Returned rights for auth requests
+	Rights []uint8
 }
 
+//MaxPacketSize is critical value for request/response packets,
+//if size is bigger than error is returned
 const MaxPacketSize = 1024 * 1024 * 10
 
 const (

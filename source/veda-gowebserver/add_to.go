@@ -8,6 +8,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//addToIndividual handler routes request to veda-server and returns veda-server response
 func addToIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
@@ -15,6 +16,7 @@ func addToIndividual(ctx *fasthttp.RequestCtx) {
 	var ticketKey, eventID string
 	// var ticket ticket
 
+	//jsonData is decoded from http request from client
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
@@ -27,13 +29,16 @@ func addToIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
+	//request ticket with the given key and check its validity
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
+		//if ticket is invalid return fail code
 		ctx.Response.SetStatusCode(int(rc))
 		trail(ticket.Id, ticket.UserURI, "add_to", jsonData, "", rc, timestamp)
 		return
 	}
 
+	//send modify request to veda-server
 	rc = modifyIndividual("add_to", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "add_to", jsonData, "", rc, timestamp)
