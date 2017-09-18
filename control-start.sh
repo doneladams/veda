@@ -12,4 +12,4 @@ tarantool ./source/rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.
 #RUST_BACKTRACE=1 tarantool ./source/rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
 #veda-gowebserver/veda-gowebserver >./logs/veda-gowebserver-stdout.log 2>./logs/veda-gowebserver-stderr.log &
 /sbin/start-stop-daemon --start --verbose --chdir $PWD --make-pidfile --pidfile $PWD/.veda-pid --background --startas /bin/bash -- -c "exec ./veda no-watchdog>> $PWD/logs/veda-console.log 2>&1"
-source/rust_db_handler/graphql/target/debug/graphql >logs/veda-graphql-stdout.log 2>logs/veda-graphql-stderr.log &
+#source/rust_db_handler/graphql/target/debug/graphql >logs/veda-graphql-stdout.log 2>logs/veda-graphql-stderr.log &
