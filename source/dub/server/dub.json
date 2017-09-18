@@ -24,7 +24,6 @@
 	"../../veda/connector/requestresponse.d"
  	],
 	"sourcePaths":[
-            "../../veda/bind/tarantool",
 	    "../../veda/server", 
 	    "../../veda/common", 
 	    "../../veda/core",  
