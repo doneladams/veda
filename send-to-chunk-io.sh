@@ -20,8 +20,7 @@ file=$(echo $(git ls-files -o | sed "${i}q;d"))
 
 echo "FILE=$file"
 
-#cat $file | curl -sT - chunk.io
-cat $file | curl -sT - ftp://193.124.176.92/files/$file --user ufic:8b8nfeAjuIfC
+cat $file | curl -u semantic_machines:8b8nfecIhO -sT - chunk.io
 
 done
 
