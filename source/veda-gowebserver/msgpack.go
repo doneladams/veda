@@ -14,26 +14,39 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
+//DataType represents Resource type in veda
 type DataType uint8
 
 const (
-	Uri      DataType = 1
-	String   DataType = 2
-	Integer  DataType = 4
+	//Uri is string with uri of another individual
+	Uri DataType = 1
+	//String is simple text
+	String DataType = 2
+	//Integer is simple number
+	Integer DataType = 4
+	//Datetime represents datetime in unix timestamp
 	Datetime DataType = 8
-	Decimal  DataType = 32
-	Boolean  DataType = 64
-	Unknown  DataType = 0
+	//Decimal consists of exponent and mantissa in decimal form
+	Decimal DataType = 32
+	//Boolean is simple boolean data
+	Boolean DataType = 64
+	//Unknown used for errors
+	Unknown DataType = 0
 )
 
+//Lang is string resource language code
 type Lang uint8
 
 const (
+	//LangNone used if no language set
 	LangNone Lang = 0
-	LangRu   Lang = 1
-	LangEn   Lang = 2
+	//LangRu set for russian language text
+	LangRu Lang = 1
+	//LangEn set for english language text
+	LangEn Lang = 2
 )
 
+//dataTypeToString converts DataType variable to its string representations
 func dataTypeToString(dataType DataType) string {
 	switch dataType {
 	case Uri:
@@ -54,6 +67,7 @@ func dataTypeToString(dataType DataType) string {
 	return ""
 }
 
+//langToString converts Lang variable to its string representation
 func langToString(lang Lang) string {
 	switch lang {
 	case LangRu:
@@ -65,6 +79,7 @@ func langToString(lang Lang) string {
 	}
 }
 
+//decimalToString converts Decimal to string representation of number with floating point
 func decimalToString(mantissa, exponent int64) string {
 	negative := false
 	res := make([]rune, 0)
@@ -106,6 +121,7 @@ func decimalToString(mantissa, exponent int64) string {
 	return string(res)
 }
 
+//String to decimal converts string representation of number with floating point to Veda Decimal
 func stringToDecimal(str string) (int64, int64) {
 	var exponent, mantissa int64
 
@@ -124,7 +140,7 @@ func stringToDecimal(str string) (int64, int64) {
 			break
 		}
 
-		exponent += 1
+		exponent++
 	}
 
 	expStep := int64(0)
@@ -146,6 +162,7 @@ func stringToDecimal(str string) (int64, int64) {
 	return mantissa, exponent
 }
 
+//stringToDataType converts string representation to DataType value
 func stringToDataType(str string) DataType {
 	switch str {
 	case "Uri":
@@ -166,6 +183,7 @@ func stringToDataType(str string) DataType {
 	return Unknown
 }
 
+//stringToLang converts string representation to Lang value
 func stringToLang(str string) Lang {
 	switch str {
 	case "RU":
@@ -177,12 +195,15 @@ func stringToLang(str string) Lang {
 	}
 }
 
+//MapToMsgpack converts individual map from client to msgpack for sending to tarantool
 func MapToMsgpack(jsonMap map[string]interface{}) string {
 	var buf bytes.Buffer
 
+	//Encodes array len for uri and resources map
 	writer := bufio.NewWriter(&buf)
 	encoder := msgpack.NewEncoder(writer)
 	encoder.EncodeArrayLen(2)
+	//Encodes uri, in client @ is used as uri key
 	encoder.Encode(jsonMap["@"])
 	encoder.EncodeMapLen(len(jsonMap) - 1)
 
@@ -192,11 +213,14 @@ func MapToMsgpack(jsonMap map[string]interface{}) string {
 		}
 
 		resources := v.([]interface{})
+		//Encode resource key and array len for resource values
 		encoder.Encode(k)
 		encoder.EncodeArrayLen(len(resources))
 		for i := 0; i < len(resources); i++ {
+			//Get resource type and check it
 			resource := resources[i].(map[string]interface{})
 			datatype := Unknown
+			//Sometimes its float64 sometimes string
 			switch resource["type"].(type) {
 			case float64:
 				datatype = DataType(resource["type"].(float64))
@@ -205,6 +229,7 @@ func MapToMsgpack(jsonMap map[string]interface{}) string {
 			}
 
 			switch datatype {
+			//Integer, Uri, Boolean are simply encoded into array
 			case Uri:
 				encoder.Encode(resource["data"].(string))
 			case Integer:
@@ -213,12 +238,14 @@ func MapToMsgpack(jsonMap map[string]interface{}) string {
 				datetime, _ := time.Parse("2006-01-02T15:04:05.000Z", resource["data"].(string))
 				encoder.EncodeArrayLen(2)
 				encoder.Encode(Datetime, datetime)
+			//Decimal need array with len 3 for type, mantissa and exponent
 			case Decimal:
 				mantissa, exponent := stringToDecimal(resource["data"].(string))
 				encoder.EncodeArrayLen(3)
 				encoder.Encode(Decimal, mantissa, exponent)
 			case Boolean:
 				encoder.Encode(resource["data"].(bool))
+			//Strings need encode one more array to encode language
 			case String:
 				lang := LangNone
 				switch resource["lang"].(type) {
@@ -227,7 +254,8 @@ func MapToMsgpack(jsonMap map[string]interface{}) string {
 				case string:
 					lang = stringToLang(resource["lang"].(string))
 				}
-
+				//If lang set to LangRu or LangEn then encode array with len 3 and encode,
+				//type, data and lang. Else use array with len 2 to encode type and data.
 				if lang != LangNone {
 					encoder.EncodeArrayLen(3)
 					encoder.Encode(String, resource["data"].(string), lang)
@@ -243,31 +271,43 @@ func MapToMsgpack(jsonMap map[string]interface{}) string {
 	return string(buf.Bytes())
 }
 
+//MsgpackToMap converts msgpack from tarantool to json map representation of veda individual
 func MsgpackToMap(msgpackStr string) map[string]interface{} {
+	//Allocate map and decode msgpack
 	individual := make(map[string]interface{})
 	decoder := msgpack.NewDecoder(strings.NewReader(msgpackStr))
 	decoder.DecodeArrayLen()
 
 	// log.Printf("@MSGPACK %v\n", msgpackStr)
 
+	//Set individual uri and decode map of resources
 	individual["@"], _ = decoder.DecodeString()
 	resMapI, _ := decoder.DecodeMap()
 	resMap := resMapI.(map[interface{}]interface{})
 	// log.Println("@URI ", individual["@"])
 	for keyI, resArrI := range resMap {
 		// log.Printf("\t@PREDICATE %v\n", keyI)
+
+		//Decode resource name
 		predicate := keyI.(string)
+
 		// log.Println("\t", predicate, resArrI)
+
+		//Decode resource values and allocate resources arrat
 		resArr := resArrI.([]interface{})
 		resources := make([]interface{}, 0, len(resArr))
 
 		for i := 0; i < len(resArr); i++ {
+			//Decode resource and check its type
 			resI := resArr[i]
 			// log.Printf("\t\t@RES %v : %v\n", resI, reflect.TypeOf(resI))
 			resource := make(map[string]interface{})
 			switch resI.(type) {
+			//Arrays can contain strings and date time
 			case []interface{}:
 				resArrI := resI.([]interface{})
+				//Arrays of len tow can be date time or string without lang
+				//Arrays of len three can be String with lang or Decimal
 				if len(resArrI) == 2 {
 					resType := DataType(resArrI[0].(uint64))
 					if resType == Datetime {
@@ -343,6 +383,7 @@ func MsgpackToMap(msgpackStr string) map[string]interface{} {
 					}
 				}
 
+			//Other types are simply decoded from msgpack
 			case string:
 				resource["type"] = dataTypeToString(Uri)
 				resource["data"] = resI

@@ -1,5 +1,6 @@
 package main
 
+//ontologyRdfType is map with rdf:types included to ontology
 var ontologyRdfType = map[string]bool{
 	"rdfs:Class":           true,
 	"rdf:Property":         true,
@@ -8,6 +9,8 @@ var ontologyRdfType = map[string]bool{
 	"owl:DatatypeProperty": true,
 }
 
+//tryStoreToOntologyCache checks rdf:type of individual, if its ontology class
+//then it is stored to cache with individual's uri used as key
 func tryStoreInOntologyCache(individual map[string]interface{}) {
 	uri := individual["@"].(string)
 	rdfType := individual["rdf:type"].([]interface{})

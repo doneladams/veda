@@ -7,18 +7,25 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//sendToModule handles send_to_module request
 func sendToModule(ctx *fasthttp.RequestCtx) {
 	log.Println("@SEND TO MODULE")
 	log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()))
 
+	//Reading request data from context
 	moduleId, _ := ctx.QueryArgs().GetUint("module_id")
 	msg := string(ctx.QueryArgs().Peek("msg")[:])
 
+	//Encoding request and send
 	request := make(map[string]interface{})
+	//function to execute on veda-server
 	request["function"] = "send_to_module"
+	//module recepient of message
 	request["module_id"] = moduleId
+	//message data
 	request["msg"] = msg
 
+	//Encode json request
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		log.Printf("@ERR SEND_TO_MODULE: ENCODE JSON REQUEST: %v\n", err)

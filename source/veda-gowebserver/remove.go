@@ -8,6 +8,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//removeFromIndividual function handler remove_from_individual request
 func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
@@ -15,6 +16,7 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	var ticketKey, eventID string
 	// var ticket ticket
 
+	//Reading request data from context
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
@@ -27,6 +29,7 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
+	//Check if ticket is valid, if not then return fail code to client
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
@@ -34,11 +37,13 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	//Send modify request to veda server
 	rc = modifyIndividual("remove_from", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "remove_from", jsonData, "", rc, timestamp)
 }
 
+//removeIndividual handles remove_individual request
 func removeIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
@@ -46,6 +51,7 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 	var ticketKey, eventID string
 	// var ticket ticket
 
+	//Reading request data from context
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
@@ -58,6 +64,7 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 	prepareEvents = jsonData["prepare_events"].(bool)
 	eventID = jsonData["event_id"].(string)
 
+	//Check if ticket is valid, if not then return fail code to client
 	rc, ticket := getTicket(ticketKey)
 	if rc != Ok {
 		ctx.Response.SetStatusCode(int(rc))
@@ -68,6 +75,7 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 
 	//log.Println("@REMOVE ", jsonData["uri"])
 
+	//Send modify request to veda-server
 	rc = modifyIndividual("remove", &ticket, "uri", jsonData["uri"].(string),
 		prepareEvents, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "remove_individual", jsonData, "", rc, timestamp)
