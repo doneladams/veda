@@ -131,7 +131,7 @@ private TransactionItem *new_TransactionItem(INDV_OP _cmd, string _binobj, strin
         if (code < 0)
         {
             ti.rc = ResultCode.Unprocessable_Entity;
-            log.trace("ERR! v8d:transaction:deserialize [%s]", ti.binobj);
+            log.trace("ERR! v8d:transaction:deserialize cmd:[%s] ticket:[%s] event:[%s] binobj[%s]", text (_cmd), _ticket_id, _event_id, _binobj);
             return ti;
         }
         else
