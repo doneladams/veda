@@ -31,16 +31,16 @@ before_install:
 # Build
 install:
   - ./build.sh
-
-# Run service as daemon and GUI
-before_script:
   - tarantool --version    
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
+#  - "export DISPLAY=:99.0"
+#  - "sh -e /etc/init.d/xvfb start"
+#  - sleep 3 # give xvfb some time to start
   - ./control-start.sh
   - sleep 100  # give Web server some time to bind to sockets, load startup data, etc
   - date    
+
+# Run service as daemon and GUI
+before_script:
 
 # Run API & integration test
 script:
