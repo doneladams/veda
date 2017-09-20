@@ -11,6 +11,7 @@ import (
 )
 
 //query function handle query request with fulltext search
+//query request redirects to fr-query module via socket
 func query(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 

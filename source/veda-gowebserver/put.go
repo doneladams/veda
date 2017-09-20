@@ -9,6 +9,8 @@ import (
 )
 
 //putIndividual handles put_individual request
+//request is redirected to veda-server via socket
+//veda-server stores individual into storage
 func putIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 

@@ -8,6 +8,9 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//setInIndividual handles set_in_individual request
+//request is redirected to veda server via socket
+//veda-server set the given field to the given value
 func setInIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 

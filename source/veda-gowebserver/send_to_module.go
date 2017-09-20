@@ -8,6 +8,8 @@ import (
 )
 
 //sendToModule handles send_to_module request
+//request redirected to veda-server
+//veda-server sends the given message to the given module
 func sendToModule(ctx *fasthttp.RequestCtx) {
 	log.Println("@SEND TO MODULE")
 	log.Println("@QUERY ", string(ctx.QueryArgs().QueryString()))

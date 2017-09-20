@@ -9,6 +9,8 @@ import (
 )
 
 //removeFromIndividual function handler remove_from_individual request
+//request is redirected to veda-server via socket
+//veda-server removes the given field from the individual
 func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
@@ -44,6 +46,8 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 }
 
 //removeIndividual handles remove_individual request
+//request redirected to veda-server via socket
+//veda-server removes given individual from the storage
 func removeIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
