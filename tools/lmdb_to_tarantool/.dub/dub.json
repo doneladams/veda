@@ -1,0 +1,8 @@
+{
+	"dub": {
+		"lastUpgrade": "2017-09-20T09:42:03.9266517",
+		"cachedUpgrades": {
+			"msgpack-d": "1.0.0-beta.6"
+		}
+	}
+}

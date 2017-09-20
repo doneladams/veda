@@ -1,21 +1,12 @@
-Сборка переливщика из lmdb в tarantool:
+1. Сборка переливщика из lmdb в tarantool:
     dub build
 
-Сборка модуля на rust:
-    cd ..
-    ./build.sh db_handler
+2. Создание пустой базы и запуск tarantool:
+    ./create-empty-tarantool-db.sh
 
-Запуск tarantool:
-    mkdir logs
-    mkdir data
-    mkdir data/tarantool
+3. Копирование lmdb базы данных и очереди uris в папку ./src-data
 
-    cp source/rust_db_handler/db_handler/target/release/libdb_handler.so data/tarantool/db_handler.so
-    tarantool ./source/rust_db_handler/init_tarantool.lua 2>./logs/tarantool-stderr.log  >./logs/tarantool-stdout.log &
+4. Запуск переливщика:
+    ./translate.sh
 
-***
-
-cd tools/lmdb_to_tarantool
-
-Запуск переливщика:
-    ./lmdb_to_tarantool /path/to/file
+5.  Готовая база данных располагается в папке data 

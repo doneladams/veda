@@ -24,7 +24,7 @@ void main(string[] args)
 
 
     Queue uris_queue;
-	const string   uris_db_path        = "./data/uris";
+	const string   uris_db_path        = "./src-data/uris";
 
     uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW);
     stderr.writefln("open queue [%s]", uris_queue);
