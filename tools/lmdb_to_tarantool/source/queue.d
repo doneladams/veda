@@ -1,9 +1,8 @@
-module queue;
+module veda.util.queue;
 
 import std.conv, std.stdio, std.file, std.array, std.digest.crc, std.format;
-import type, tools;
-
-string queue_db_path = "./data/queue";
+import type, define, tools;
+import logger;
 
 enum QMessageType
 {
@@ -15,7 +14,7 @@ enum Mode
 {
     R       = 0,
     RW      = 1,
-    CURRENT = 2
+    DEFAULT = 2
 }
 
 struct Header
@@ -94,13 +93,15 @@ class Consumer
     ubyte[ 8 ] buff8;
     ubyte[ 4 ] crc;
 
+    Logger  log;
     bool    isReady;
     Queue   queue;
     string  name;
-    string path;
+    string  path;
     ulong   first_element;
     uint    count_popped;
     ubyte[] last_read_msg;
+    Mode    mode;
 
     File    *ff_info_pop_w = null;
     File    *ff_info_pop_r = null;
@@ -111,17 +112,23 @@ class Consumer
     Header header;
     CRC32  hash;
 
-    this(Queue _queue, string _path, string _name)
+    this(Queue _queue, string _path, string _name, Mode _mode, Logger _log)
     {
-        queue       = _queue;
-        path        = _path;
-        name        = _name;
+        queue = _queue;
+        path  = _path;
+        name  = _name;
+        mode  = _mode;
+
+        log         = _log;
         buff        = new ubyte[ 4096 * 100 ];
         header_buff = new ubyte[ header.length() ];
     }
 
-    public bool open(bool open_only_if_exists = false)
+    public bool open(bool open_only_if_exists = false, Mode _mode = Mode.DEFAULT)
     {
+        if (_mode != Mode.DEFAULT)
+            mode = _mode;
+
         if (!queue.isReady)
         {
             isReady = false;
@@ -130,15 +137,18 @@ class Consumer
 
         file_name_info_pop = path ~ "/" ~ queue.name ~ "_info_pop_" ~ name;
 
-		if (open_only_if_exists && !exists (file_name_info_pop))
-		{
-			return false;
-		}
+        if (open_only_if_exists && !exists(file_name_info_pop))
+        {
+            return false;
+        }
 
-        if (exists(file_name_info_pop) == false)
-            ff_info_pop_w = new File(file_name_info_pop, "w");
-        else
-            ff_info_pop_w = new File(file_name_info_pop, "r+");
+        if (mode == Mode.RW)
+        {
+            if (exists(file_name_info_pop) == false)
+                ff_info_pop_w = new File(file_name_info_pop, "w");
+            else
+                ff_info_pop_w = new File(file_name_info_pop, "r+");
+        }
 
         ff_info_pop_r = new File(file_name_info_pop, "r");
 
@@ -162,7 +172,7 @@ class Consumer
 
     private bool put_info(bool is_sync_data)
     {
-        if (!queue.isReady || !isReady)
+        if (!queue.isReady || !isReady || mode == Mode.R)
             return false;
 
         try
@@ -175,13 +185,13 @@ class Consumer
         }
         catch (Throwable tr)
         {
-            stderr.writefln("consumer:put_info [%s;%d;%s;%d;%d] %s", queue.name, queue.chunk, name, first_element, count_popped, tr.msg);
+            log.trace("consumer:put_info [%s;%d;%s;%d;%d] %s", queue.name, queue.chunk, name, first_element, count_popped, tr.msg);
             return false;
         }
         return true;
     }
 
-    private bool get_info()
+    public bool get_info()
     {
         if (!queue.isReady)
             return false;
@@ -204,7 +214,7 @@ class Consumer
             string _name = ch[ 0 ];
             if (_name != queue.name)
             {
-                stderr.writefln("consumer:get_info:queue name from info [%s] != consumer.queue.name[%s]", _name, queue.name);
+                log.trace("consumer:get_info:queue name from info [%s] != consumer.queue.name[%s]", _name, queue.name);
                 isReady = false;
                 return false;
             }
@@ -212,7 +222,7 @@ class Consumer
             int _chunk = to!int (ch[ 1 ]);
             if (_chunk != queue.chunk)
             {
-                stderr.writefln("consumer:get_info:queue chunk from info [%d] != consumer.queue.chunk[%d]", _chunk, queue.chunk);
+                log.trace("consumer:get_info:queue chunk from info [%d] != consumer.queue.chunk[%d]", _chunk, queue.chunk);
                 isReady = false;
                 return false;
             }
@@ -220,7 +230,7 @@ class Consumer
             _name = ch[ 2 ];
             if (_name != name)
             {
-                stderr.writefln("consumer:get_info:consumer name from info[%s] != consumer.name[%s]", _name, name);
+                log.trace("consumer:get_info:consumer name from info[%s] != consumer.name[%s]", _name, name);
                 isReady = false;
                 return false;
             }
@@ -229,14 +239,14 @@ class Consumer
             count_popped  = to!uint (ch[ 4 ]);
         }
 
-        stderr.writefln("get_info:%s", text(this));
+        log.trace("get_info:%s", text(this));
 
         return true;
     }
 
     public string pop()
     {
-        if (!queue.isReady || !isReady)
+        if (!queue.isReady || !isReady || mode == Mode.R)
             return null;
 
         if (count_popped >= queue.count_pushed)
@@ -249,13 +259,13 @@ class Consumer
 
         if (header.start_pos != first_element)
         {
-            stderr.writefln("pop:invalid msg: header.start_pos[%d] != first_element[%d] : %s", header.start_pos, first_element, text(header));
+            log.trace("pop:invalid msg: header.start_pos[%d] != first_element[%d] : %s", header.start_pos, first_element, text(header));
             return null;
         }
 
         if (header.msg_length >= buff.length)
         {
-            stderr.writefln("pop:inc buff size %d -> %d", buff.length, header.msg_length);
+            log.trace("pop:inc buff size %d -> %d", buff.length, header.msg_length);
             buff = new ubyte[ header.msg_length + 1 ];
         }
 
@@ -264,13 +274,13 @@ class Consumer
             last_read_msg = queue.ff_queue_r.rawRead(buff[ 0..header.msg_length ]).dup;
             if (last_read_msg.length < header.msg_length)
             {
-                stderr.writefln("pop:invalid msg: msg.length < header.msg_length : %s", text(header));
+                log.trace("pop:invalid msg: msg.length < header.msg_length : %s", text(header));
                 return null;
             }
         }
         else
         {
-            stderr.writefln("pop:invalid msg: header.msg_length[%d] < buff.length[%d] : %s", header.msg_length, buff.length, text(header));
+            log.trace("pop:invalid msg: header.msg_length[%d] < buff.length[%d] : %s", header.msg_length, buff.length, text(header));
             return null;
         }
 
@@ -284,15 +294,15 @@ class Consumer
 
     public bool commit_and_next(bool is_sync_data)
     {
-        if (!queue.isReady || !isReady)
+        if (!queue.isReady || !isReady || mode == Mode.R)
         {
-            stderr.writefln("ERR! queue:commit_and_next:!queue.isReady || !isReady");
+            log.trace("ERR! queue:commit_and_next:!queue.isReady || !isReady");
             return false;
         }
 
         if (count_popped >= queue.count_pushed)
         {
-            stderr.writefln("ERR! queue[%s][%s]:commit_and_next:count_popped(%d) >= queue.count_pushed(%d)", queue.name, name, count_popped,
+            log.trace("ERR! queue[%s][%s]:commit_and_next:count_popped(%d) >= queue.count_pushed(%d)", queue.name, name, count_popped,
                       queue.count_pushed);
             return false;
         }
@@ -309,11 +319,11 @@ class Consumer
 
         if (header.crc[ 0 ] != crc[ 0 ] || header.crc[ 1 ] != crc[ 1 ] || header.crc[ 2 ] != crc[ 2 ] || header.crc[ 3 ] != crc[ 3 ])
         {
-            stderr.writefln("ERR! queue[%s][%s]:commit_and_next:invalid last_read_msg[%s]: fail crc[%s] : %s", queue.name, name, last_read_msg, text(
+            log.trace("ERR! queue[%s][%s]:commit_and_next:invalid last_read_msg[%s]: fail crc[%s] : %s", queue.name, name, last_read_msg, text(
                                                                                                                                                crc),
                       text(header));
-            stderr.writefln(text(last_read_msg.length));
-            stderr.writefln(cast(string)last_read_msg);
+            log.trace(text(last_read_msg.length));
+            log.trace(cast(string)last_read_msg);
             return false;
         }
 
@@ -341,6 +351,7 @@ class Queue
     ubyte[ 8 ] buff8;
     ubyte[ 4 ] crc;
 
+    Logger log;
     bool   isReady;
     string name;
     string path;
@@ -363,10 +374,11 @@ class Queue
     Header header;
     CRC32  hash;
 
-    this(string _path, string _name, Mode _mode)
+    this(string _path, string _name, Mode _mode, Logger _log)
     {
+        log         = _log;
         mode        = _mode;
-        path 		= _path; 
+        path        = _path;
         name        = _name;
         isReady     = false;
         buff        = new ubyte[ 4096 * 100 ];
@@ -403,13 +415,13 @@ class Queue
         std.file.remove(file_name_queue);
     }
 
-    public bool open(Mode _mode = Mode.CURRENT)
+    public bool open(Mode _mode = Mode.DEFAULT)
     {
         try
         {
             if (isReady == false)
             {
-                if (_mode != Mode.CURRENT)
+                if (_mode != Mode.DEFAULT)
                     mode = _mode;
 
                 //writeln("open ", text (mode));
@@ -418,7 +430,7 @@ class Queue
                 {
                     if (exists(file_name_lock))
                     {
-                        stderr.writefln("Queue [%s] already open, or not deleted lock file", name);
+                        log.trace("Queue [%s] already open, or not deleted lock file", name);
                         return false;
                     }
                     std.file.write(file_name_lock, "0");
@@ -447,7 +459,7 @@ class Queue
                     if (mode == Mode.R && ff_queue_r.size() < right_edge || mode == Mode.RW && ff_queue_r.size() != right_edge)
                     {
                         isReady = false;
-                        stderr.writefln("ERR! queue:open(%s): [%s].size (%d) != right_edge=", text(mode), file_name_queue, ff_queue_r.size(), right_edge);
+                        log.trace("ERR! queue:open(%s): [%s].size (%d) != right_edge=", text(mode), file_name_queue, ff_queue_r.size(), right_edge);
                     }
                     else
                     {
@@ -459,7 +471,7 @@ class Queue
         }
         catch (Throwable ex)
         {
-            stderr.writefln("ERR! queue, not open: ex: %s", ex.msg);
+            log.trace("ERR! queue, not open: ex: %s", ex.msg);
         }
         return isReady;
     }
@@ -472,11 +484,11 @@ class Queue
         try
         {
             std.file.remove(file_name_lock);
-            stderr.writefln("queue:remove lock file %s", file_name_lock);
+            log.trace("queue:remove lock file %s", file_name_lock);
         }
         catch (Throwable tr)
         {
-            stderr.writefln("queue:fail remove %s", tr.msg);
+            log.trace("queue:fail remove %s", tr.msg);
         }
     }
 
@@ -517,7 +529,7 @@ class Queue
         ff_info_push_w.writeln(hash_hex);
     }
 
-    private bool get_info()
+    public bool get_info()
     {
         if (!isReady)
             return false;
@@ -601,7 +613,7 @@ class Queue
     {
         if (!isReady || mode == Mode.R)
         {
-            stderr.writefln("ERR! queue, no push into [%s], ready=%s, mode=%s", name, text(isReady), text(mode));
+            log.trace("ERR! queue, no push into [%s], ready=%s, mode=%s", name, text(isReady), text(mode));
             return;
         }
 
@@ -609,10 +621,9 @@ class Queue
         put_msg(msg, type);
         put_info();
 
-		if (is_flush)
-	        flush();
+        if (is_flush)
+            flush();
     }
-
 }
 
 unittest

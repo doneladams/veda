@@ -1,138 +1,126 @@
 import std.stdio, std.socket, std.datetime, std.conv;
 import individual;
-import connector, type, resource, requestresponse, queue, lmdb_header;
+import connector, type, resource, requestresponse, veda.util.queue, veda.core.storage.lmdb_storage, logger;
 
 void main(string[] args)
 {
     Connector connector = new Connector();
+
     connector.connect("127.0.0.1", 9999);
 
-    MDB_env *env;
-    MDB_txn *txn;
-    MDB_dbi dbi;
-    MDB_cursor *cursor;
+    Logger       log = new Logger("lmdb_to_tarantool", "log", "");
 
-    mdb_env_create(&env);
+    const string uris_db_path = "./src-data/data/uris";
+    const string lmdb_db_path = "./src-data/data/lmdb-individuals";
 
-    mdb_env_set_maxdbs(env, 1);
-    stdout.writeln();
-    stdout.writefln("open result %d", mdb_env_open(env, cast(const(char*))args[1], 0, 777));
-    
-    stdout.writefln("txn begin %d", mdb_txn_begin(env, null, MDB_RDONLY, &txn));
-    stdout.writefln("dbi open %d", mdb_dbi_open(txn, null, 0, &dbi));
-    stdout.writefln("cursor open %d", mdb_cursor_open(txn, dbi, &cursor));
+    Queue        uris_queue;
+    Consumer     uris_queue_cs;
 
-
-    Queue uris_queue;
-	const string   uris_db_path        = "./src-data/uris";
-
-    uris_queue = new Queue(uris_db_path, "uris-db", Mode.RW);
+    uris_queue = new Queue(uris_db_path, "uris-db", Mode.R, log);
     stderr.writefln("open queue [%s]", uris_queue);
     uris_queue.open();
 
-    long count;
-
-    StopWatch sw_total;
-    StopWatch sw;
-
-    sw.start;
-    sw_total.start;
-
-    try
+    if (uris_queue.isReady)
     {
-        int rc = 0;
-        while (rc == 0)
+        uris_queue_cs = new Consumer(uris_queue, uris_db_path, "to_tarantool", Mode.RW, log);
+        if (!uris_queue_cs.open())
         {
-            /+Socket socket = listener.accept();
-			string cborv = recv(socket);
-			Individual individual;
-			individual.deserialize(cborv);
-			
-			uris_queue.push(individual.uri);
-			
-            string new_state = individual.serialize_msgpack();
-            Individual big_individual;
-            big_individual.addResource("uri", Resource(DataType.Uri, "1"));
-            big_individual.uri = "1";
-            big_individual.addResource("new_state", Resource(DataType.String, new_state));
-            string bin = big_individual.serialize_msgpack();
-            RequestResponse rr = connector.put(false, "cfg:VedaSystem", [bin]);
-            if (rr.common_rc != ResultCode.OK) {
-                stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
-                stderr.writeln(new_state);
-                break;
-            } else if (rr.op_rc[0] != ResultCode.OK) {
-                stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
-                stderr.writeln(new_state);
-                break;
-            }
-            
-			socket.close();+/
-
-            MDB_val key, data;
-
-            rc = mdb_cursor_get(cursor, &key, &data, MDB_cursor_op.MDB_NEXT);
-            if (rc != 0)
-                break;
-            string key_str = cast(string)key.mv_data[0 .. key.mv_size];
-            string data_str = cast(string)data.mv_data[0 .. data.mv_size];
-
-            if (key_str == "summ_hash_this_db")
-                continue;
-
-            Individual individual;
-            string new_state; 
-
-            if (key_str != "systicket") {
-                individual.deserialize(data_str);
-                new_state = individual.serialize_msgpack();
-                uris_queue.push(individual.uri);                
-            } else {
-                Individual systicket;
-                systicket.uri = "systicket";
-                systicket.addResource("rdf:type", Resource(DataType.Uri,"ticket:Ticket"));
-                systicket.addResource("ticket:id", Resource(DataType.Uri, data_str));
-                new_state = systicket.serialize_msgpack();
-            }
-            
-            Individual big_individual;
-            big_individual.addResource("uri", Resource(DataType.Uri, "1"));
-            big_individual.uri = "1";
-            big_individual.addResource("new_state", Resource(DataType.String, new_state));
-
-	    count++;	    
-
-	    if (count % 1000 == 0)
-	    {
-		sw.stop;
-    		long t = cast(long)sw.peek().seconds;
-		sw.reset;
-		sw.start;
-        	stderr.writefln("send to tarantool %d, batch %d seconds, total %d seconds", count, t, cast(long)sw_total.peek().seconds);
-	    }
-
-            string bin = big_individual.serialize_msgpack();
-            RequestResponse rr = connector.put(false, "cfg:VedaSystem", [bin]);
-            if (rr.common_rc != ResultCode.OK) {
-                stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
-                stderr.writeln(new_state);
-                continue;
-            } else if (rr.op_rc[0] != ResultCode.OK) {
-                stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
-                stderr.writeln(new_state);
-                continue;
-            }  
+            log.trace("not found uncompleted batch, start new read queue");
         }
-    }
-    catch (Exception ex)
-    {
-        //printPrettyTrace(stderr);
-        stderr.writefln("@ERR %s", ex.msg);
+        else
+            log.trace("found uncompleted batch");
 
-        if (uris_queue !is null)
+        LmdbStorage inividuals_storage_r;
+
+        inividuals_storage_r = new LmdbStorage(lmdb_db_path, DBMode.R, "inividuals", log);
+
+        inividuals_storage_r.open_db();
+
+
+        long      count;
+
+        StopWatch sw_total;
+        StopWatch sw;
+
+        sw.start;
+        sw_total.start;
+
+        try
         {
-            uris_queue.close();
-            uris_queue = null;
-        }   
+            string data;
+
+            if (uris_queue_cs !is null)
+            {
+                data = uris_queue_cs.pop();
+                while (data !is null)
+                {
+                    string data_str = inividuals_storage_r.find(false, null, data, true);
+                    string key_str  = data;
+
+                    if (key_str == "summ_hash_this_db")
+                        continue;
+
+                    Individual individual;
+                    string     new_state;
+
+                    if (key_str != "systicket")
+                    {
+                        individual.deserialize(data_str);
+                        new_state = individual.serialize_msgpack();
+                        uris_queue.push(individual.uri);
+                    }
+                    else
+                    {
+                        Individual systicket;
+                        systicket.uri = "systicket";
+                        systicket.addResource("rdf:type", Resource(DataType.Uri, "ticket:Ticket"));
+                        systicket.addResource("ticket:id", Resource(DataType.Uri, data_str));
+                        new_state = systicket.serialize_msgpack();
+                    }
+
+                    Individual big_individual;
+                    big_individual.addResource("uri", Resource(DataType.Uri, "1"));
+                    big_individual.uri = "1";
+                    big_individual.addResource("new_state", Resource(DataType.String, new_state));
+
+                    count++;
+
+                    if (count % 1000 == 0)
+                    {
+                        sw.stop;
+                        long t = cast(long)sw.peek().seconds;
+                        sw.reset;
+                        sw.start;
+                        stderr.writefln("send to tarantool %d, batch %d seconds, total %d seconds", count, t, cast(long)sw_total.peek().seconds);
+                    }
+
+                    string          bin = big_individual.serialize_msgpack();
+                    RequestResponse rr  = connector.put(false, "cfg:VedaSystem", [ bin ]);
+                    if (rr.common_rc != ResultCode.OK)
+                    {
+                        stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
+                        stderr.writeln(new_state);
+                        continue;
+                    }
+                    else if (rr.op_rc[ 0 ] != ResultCode.OK)
+                    {
+                        stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
+                        stderr.writeln(new_state);
+                        continue;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            //printPrettyTrace(stderr);
+            stderr.writefln("@ERR %s", ex.msg);
+
+            if (uris_queue !is null)
+            {
+                uris_queue.close();
+                uris_queue = null;
+            }
+        }
     }
 }
