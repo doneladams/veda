@@ -25,13 +25,12 @@ void main(string[] args)
         uris_queue_cs = new Consumer(uris_queue, uris_db_path, "to_tarantool", Mode.RW, log);
         if (!uris_queue_cs.open())
         {
-            log.trace("not found uncompleted batch, start new read queue");
+            log.trace("not found uncompleted job, start new read queue");
         }
         else
-            log.trace("found uncompleted batch");
+            log.trace("found uncompleted job");
 
         LmdbStorage inividuals_storage_r;
-
         inividuals_storage_r = new LmdbStorage(lmdb_db_path, DBMode.R, "inividuals", log);
 
         inividuals_storage_r.open_db();
@@ -51,14 +50,25 @@ void main(string[] args)
 
             if (uris_queue_cs !is null)
             {
-                data = uris_queue_cs.pop();
-                while (data !is null)
+                while (true)
                 {
+                    data = uris_queue_cs.pop();
+                    if (data is null)
+                    {
+                        stderr.writefln("queue is empty");
+                        break;
+                    }
+
+                    //stderr.writefln("uri=%s", data);
+
                     string data_str = inividuals_storage_r.find(false, null, data, true);
                     string key_str  = data;
 
                     if (key_str == "summ_hash_this_db")
+                    {
+                        uris_queue_cs.commit_and_next(true);
                         continue;
+                    }
 
                     Individual individual;
                     string     new_state;
@@ -67,7 +77,6 @@ void main(string[] args)
                     {
                         individual.deserialize(data_str);
                         new_state = individual.serialize_msgpack();
-                        uris_queue.push(individual.uri);
                     }
                     else
                     {
@@ -78,10 +87,10 @@ void main(string[] args)
                         new_state = systicket.serialize_msgpack();
                     }
 
-                    Individual big_individual;
-                    big_individual.addResource("uri", Resource(DataType.Uri, "1"));
-                    big_individual.uri = "1";
-                    big_individual.addResource("new_state", Resource(DataType.String, new_state));
+                    Individual tt_put_packet;
+                    tt_put_packet.addResource("uri", Resource(DataType.Uri, "1"));
+                    tt_put_packet.uri = "1";
+                    tt_put_packet.addResource("new_state", Resource(DataType.String, new_state));
 
                     count++;
 
@@ -94,20 +103,24 @@ void main(string[] args)
                         stderr.writefln("send to tarantool %d, batch %d seconds, total %d seconds", count, t, cast(long)sw_total.peek().seconds);
                     }
 
-                    string          bin = big_individual.serialize_msgpack();
+                    string          bin = tt_put_packet.serialize_msgpack();
                     RequestResponse rr  = connector.put(false, "cfg:VedaSystem", [ bin ]);
                     if (rr.common_rc != ResultCode.OK)
                     {
                         stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
                         stderr.writeln(new_state);
+                        uris_queue_cs.commit_and_next(true);
                         continue;
                     }
                     else if (rr.op_rc[ 0 ] != ResultCode.OK)
                     {
                         stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
                         stderr.writeln(new_state);
+                        uris_queue_cs.commit_and_next(true);
                         continue;
                     }
+
+                    uris_queue_cs.commit_and_next(true);
                 }
             }
         }
