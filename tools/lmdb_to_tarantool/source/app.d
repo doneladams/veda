@@ -10,25 +10,26 @@ void main(string[] args)
 
     Logger       log = new Logger("lmdb_to_tarantool", "log", "");
 
-    const string uris_db_path = "./src-data/data/uris";
-    const string lmdb_db_path = "./src-data/data/lmdb-individuals";
+    const string uris_db_path          = "./src-data/data/uris";
+    const string lmdb_db_path          = "./src-data/data/lmdb-individuals";
+    const string uris_consumer_db_path = "./data";
 
     Queue        uris_queue;
     Consumer     uris_queue_cs;
 
     uris_queue = new Queue(uris_db_path, "uris-db", Mode.R, log);
-    stderr.writefln("open queue [%s]", uris_queue);
+    log.tracec("open queue [%s]", uris_queue);
     uris_queue.open();
 
     if (uris_queue.isReady)
     {
-        uris_queue_cs = new Consumer(uris_queue, uris_db_path, "to_tarantool", Mode.RW, log);
+        uris_queue_cs = new Consumer(uris_queue, uris_consumer_db_path, "to_tarantool", Mode.RW, log);
         if (!uris_queue_cs.open())
         {
-            log.trace("not found uncompleted job, start new read queue");
+            log.tracec("not found uncompleted job, start new read queue");
         }
         else
-            log.trace("found uncompleted job");
+            log.tracec("found uncompleted job, start with %d pos", uris_queue_cs.count_popped);
 
         LmdbStorage inividuals_storage_r;
         inividuals_storage_r = new LmdbStorage(lmdb_db_path, DBMode.R, "inividuals", log);
@@ -36,7 +37,7 @@ void main(string[] args)
         inividuals_storage_r.open_db();
 
 
-        long      count;
+        long      count = uris_queue_cs.count_popped;
 
         StopWatch sw_total;
         StopWatch sw;
@@ -46,25 +47,24 @@ void main(string[] args)
 
         try
         {
-            string data;
+            string prepared_uri;
 
             if (uris_queue_cs !is null)
             {
                 while (true)
                 {
-                    data = uris_queue_cs.pop();
-                    if (data is null)
+                    prepared_uri = uris_queue_cs.pop();
+                    if (prepared_uri is null)
                     {
-                        stderr.writefln("queue is empty");
+                        log.tracec("queue is empty");
                         break;
                     }
 
-                    //stderr.writefln("uri=%s", data);
+                    log.trace("uri=%s, OK", prepared_uri);
 
-                    string data_str = inividuals_storage_r.find(false, null, data, true);
-                    string key_str  = data;
+                    string binobj_str = inividuals_storage_r.find(false, null, prepared_uri, true);
 
-                    if (key_str == "summ_hash_this_db")
+                    if (prepared_uri == "summ_hash_this_db")
                     {
                         uris_queue_cs.commit_and_next(true);
                         continue;
@@ -73,19 +73,18 @@ void main(string[] args)
                     Individual individual;
                     string     new_state;
 
-                    if (key_str != "systicket")
+                    if (prepared_uri != "systicket")
                     {
-                        individual.deserialize(data_str);
-                        new_state = individual.serialize_msgpack();
+                        individual.deserialize(binobj_str);
                     }
                     else
                     {
-                        Individual systicket;
-                        systicket.uri = "systicket";
-                        systicket.addResource("rdf:type", Resource(DataType.Uri, "ticket:Ticket"));
-                        systicket.addResource("ticket:id", Resource(DataType.Uri, data_str));
-                        new_state = systicket.serialize_msgpack();
+                        individual.uri = "systicket";
+                        individual.addResource("rdf:type", Resource(DataType.Uri, "ticket:Ticket"));
+                        individual.addResource("ticket:id", Resource(DataType.Uri, binobj_str));
                     }
+
+                    new_state = individual.serialize_msgpack();
 
                     Individual tt_put_packet;
                     tt_put_packet.addResource("uri", Resource(DataType.Uri, "1"));
@@ -107,17 +106,17 @@ void main(string[] args)
                     RequestResponse rr  = connector.put(false, "cfg:VedaSystem", [ bin ]);
                     if (rr.common_rc != ResultCode.OK)
                     {
-                        stderr.writefln("@COMMON ERR WITH CODE %d", rr.common_rc);
-                        stderr.writeln(new_state);
-                        uris_queue_cs.commit_and_next(true);
-                        continue;
+                        log.tracec("COMMON ERR WITH CODE %d, uri=%s", rr.common_rc, );
+                        log.trace("INDV=%s", individual);
                     }
                     else if (rr.op_rc[ 0 ] != ResultCode.OK)
                     {
-                        stderr.writefln("@OP ERR WITH CODE %d", rr.common_rc);
-                        stderr.writeln(new_state);
-                        uris_queue_cs.commit_and_next(true);
-                        continue;
+                        log.tracec("OP ERR WITH CODE %d", rr.op_rc[ 0 ]);
+                        log.trace("INDV=%s", individual);
+                    }
+                    else
+                    {
+                        log.trace("uri=%s, OK", prepared_uri);
                     }
 
                     uris_queue_cs.commit_and_next(true);
@@ -126,8 +125,7 @@ void main(string[] args)
         }
         catch (Exception ex)
         {
-            //printPrettyTrace(stderr);
-            stderr.writefln("@ERR %s", ex.msg);
+            log.trace("ERR ex.msg=%s", ex.msg);
 
             if (uris_queue !is null)
             {
