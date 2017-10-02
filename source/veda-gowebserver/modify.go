@@ -10,9 +10,9 @@ import (
 
 //modifyIndividual sends request to veda server
 //cmd defines function which server must execute, dataJSON is data passed to veda-server,
-//prepare_events are events rised on this function
+//assigned_subsystems are subsystem rised on this function
 //event_id is current event id
-func modifyIndividual(cmd string, ticket *ticket, dataKey string, dataJSON interface{}, prepareEvents bool,
+func modifyIndividual(cmd string, ticket *ticket, dataKey string, dataJSON interface{}, assignedSubsystems uint64,
 	eventID string, startTime int64, ctx *fasthttp.RequestCtx) ResultCode {
 	timestamp := time.Now().Unix()
 	request := make(map[string]interface{})
@@ -21,7 +21,7 @@ func modifyIndividual(cmd string, ticket *ticket, dataKey string, dataJSON inter
 	request["function"] = cmd
 	request["ticket"] = ticket.Id
 	request[dataKey] = dataJSON
-	request["prepare_events"] = prepareEvents
+	request["assigned_subsystems"] = assignedSubsystems
 	request["event_id"] = eventID
 
 	//Marshal request and send to socket

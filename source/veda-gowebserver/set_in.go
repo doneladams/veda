@@ -14,7 +14,7 @@ import (
 func setInIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
-	var prepareEvents bool
+	var assignedSubsystems uint64
 	var ticketKey, eventID string
 	// var ticket ticket
 
@@ -27,7 +27,7 @@ func setInIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-	prepareEvents = jsonData["prepare_events"].(bool)
+        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	rc, ticket := getTicket(ticketKey)
@@ -38,6 +38,6 @@ func setInIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	rc = modifyIndividual("set_in", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
-		prepareEvents, eventID, time.Now().Unix(), ctx)
+		assignedSubsystems, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "set_in", jsonData, "", rc, timestamp)
 }

@@ -231,7 +231,7 @@ veda.Module(function Backend(veda) { "use strict";
   window.wait_module = function (module_id, op_id) {
     var timeout = 1;
     if (module_id == m_acl)
-	return;
+    return;
     var op_id_from_module;
     for (var i = 0; i < 100; i++) {
       op_id_from_module = get_operation_state (module_id, op_id);
@@ -352,7 +352,7 @@ veda.Module(function Backend(veda) { "use strict";
 
 //////////////////////////
 
-  window.remove_individual = function (ticket, uri, prepare_events, event_id, transaction_id) {
+  window.remove_individual = function (ticket, uri, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -362,7 +362,7 @@ veda.Module(function Backend(veda) { "use strict";
       data: JSON.stringify({
         "ticket": isObj ? arg.ticket : ticket,
         "uri": isObj ? arg.uri : uri,
-        "prepare_events": (isObj ? arg.prepare_events : prepare_events) || true,
+        "assigned_subsystems": (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
         "event_id": (isObj ? arg.event_id : event_id) || "",
         "transaction_id": (isObj ? arg.transaction_id : transaction_id) || ""
       }),
@@ -371,7 +371,7 @@ veda.Module(function Backend(veda) { "use strict";
     return call_server(params);
   }
 
-  window.put_individual = function (ticket, individual, prepare_events, event_id, transaction_id) {
+  window.put_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -382,7 +382,7 @@ veda.Module(function Backend(veda) { "use strict";
         {
           "ticket": isObj ? arg.ticket : ticket,
           "individual": isObj ? arg.individual : individual,
-          "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
+          "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
         },
@@ -395,7 +395,7 @@ veda.Module(function Backend(veda) { "use strict";
     return call_server(params);
   }
 
-  window.add_to_individual = function (ticket, individual, prepare_events, event_id, transaction_id) {
+  window.add_to_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -405,7 +405,7 @@ veda.Module(function Backend(veda) { "use strict";
       data: JSON.stringify({
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
-        "prepare_events": (isObj ? arg.prepare_events : prepare_events) || true,
+        "assigned_subsystems": (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
         "event_id": (isObj ? arg.event_id : event_id) || "",
         "transaction_id": (isObj ? arg.transaction_id : transaction_id) || ""
       }),
@@ -414,7 +414,7 @@ veda.Module(function Backend(veda) { "use strict";
     return call_server(params);
   }
 
-  window.set_in_individual = function (ticket, individual, prepare_events, event_id, transaction_id) {
+  window.set_in_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -424,7 +424,7 @@ veda.Module(function Backend(veda) { "use strict";
       data: JSON.stringify({
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
-        "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
+        "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
         "event_id" : (isObj ? arg.event_id : event_id) || "",
         "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
       }),
@@ -433,7 +433,7 @@ veda.Module(function Backend(veda) { "use strict";
     return call_server(params);
   }
 
-  window.remove_from_individual = function (ticket, individual, prepare_events, event_id, transaction_id) {
+  window.remove_from_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -443,7 +443,7 @@ veda.Module(function Backend(veda) { "use strict";
       data: JSON.stringify({
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
-        "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
+        "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
         "event_id" : (isObj ? arg.event_id : event_id) || "",
         "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
       }),
@@ -452,7 +452,7 @@ veda.Module(function Backend(veda) { "use strict";
     return call_server(params);
   }
 
-  window.put_individuals = function (ticket, individuals, prepare_events, event_id, transaction_id) {
+  window.put_individuals = function (ticket, individuals, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -463,7 +463,7 @@ veda.Module(function Backend(veda) { "use strict";
         {
           "ticket": isObj ? arg.ticket : ticket,
           "individuals": isObj ? arg.individuals : individuals,
-          "prepare_events" : (isObj ? arg.prepare_events : prepare_events) || true,
+          "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
         },
@@ -475,6 +475,7 @@ veda.Module(function Backend(veda) { "use strict";
     };
     return call_server(params);
   }
+
 /////////////////////////////////////////
 
   window.get_property_value = function (ticket, uri, property_uri) {

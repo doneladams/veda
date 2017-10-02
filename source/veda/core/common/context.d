@@ -331,25 +331,25 @@ interface Context
        Returns:
                 Код результата операции
      */
-    public OpResult put_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult put_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                    bool ignore_freeze = false,
                                    OptAuthorize op_auth = OptAuthorize.YES);
 
-    public OpResult remove_individual(Ticket *ticket, string uri, bool prepareEvents, string event_id, long transaction_id, bool ignore_freeze =
+    public OpResult remove_individual(Ticket *ticket, string uri, long assignedSubsystems, string event_id, long transaction_id, bool ignore_freeze =
                                           false,
                                       OptAuthorize op_auth = OptAuthorize.YES);
 
-    public OpResult add_to_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult add_to_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                       bool ignore_freeze =
                                           false,
                                       OptAuthorize op_auth = OptAuthorize.YES);
 
-    public OpResult set_in_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult set_in_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                       bool ignore_freeze =
                                           false,
                                       OptAuthorize op_auth = OptAuthorize.YES);
 
-    public OpResult remove_from_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id,
+    public OpResult remove_from_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id,
                                            long transaction_id,
                                            bool ignore_freeze = false,
                                            OptAuthorize op_auth = OptAuthorize.YES);

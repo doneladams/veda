@@ -14,7 +14,7 @@ import (
 func putIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
-	var prepareEvents bool
+	var assignedSubsystems uint64
 	var ticketKey, eventID string
 	// var ticket ticket
 
@@ -28,7 +28,7 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-	prepareEvents = jsonData["prepare_events"].(bool)
+        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	//Check if ticket is valid, if it's not valid then return fail code to client
@@ -41,7 +41,7 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 
 	//Send modify request to veda-server
 	rc = modifyIndividual("put", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
-		prepareEvents, eventID, time.Now().Unix(), ctx)
+		assignedSubsystems, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
 
 }
@@ -50,7 +50,7 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 func putIndividuals(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
-	var prepareEvents bool
+	var assignedSubsystems uint64
 	var ticketKey, eventID string
 	// var ticket ticket
 
@@ -63,7 +63,7 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-	prepareEvents = jsonData["prepare_events"].(bool)
+        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	rc, ticket := getTicket(ticketKey)
@@ -81,7 +81,7 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	rc = modifyIndividual("put", &ticket, "individuals", individuals,
-		prepareEvents, eventID, time.Now().Unix(), ctx)
+		assignedSubsystems, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "put", jsonData, "", rc, timestamp)
 
 }

@@ -14,7 +14,7 @@ import (
 func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
-	var prepareEvents bool
+        var assignedSubsystems uint64
 	var ticketKey, eventID string
 	// var ticket ticket
 
@@ -28,7 +28,7 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-	prepareEvents = jsonData["prepare_events"].(bool)
+        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	//Check if ticket is valid, if not then return fail code to client
@@ -41,7 +41,7 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 
 	//Send modify request to veda server
 	rc = modifyIndividual("remove_from", &ticket, "individuals", []map[string]interface{}{jsonData["individual"].(map[string]interface{})},
-		prepareEvents, eventID, time.Now().Unix(), ctx)
+		assignedSubsystems, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "remove_from", jsonData, "", rc, timestamp)
 }
 
@@ -51,7 +51,7 @@ func removeFromIndividual(ctx *fasthttp.RequestCtx) {
 func removeIndividual(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
-	var prepareEvents bool
+        var assignedSubsystems uint64
 	var ticketKey, eventID string
 	// var ticket ticket
 
@@ -65,7 +65,7 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-	prepareEvents = jsonData["prepare_events"].(bool)
+        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	//Check if ticket is valid, if not then return fail code to client
@@ -81,6 +81,6 @@ func removeIndividual(ctx *fasthttp.RequestCtx) {
 
 	//Send modify request to veda-server
 	rc = modifyIndividual("remove", &ticket, "uri", jsonData["uri"].(string),
-		prepareEvents, eventID, time.Now().Unix(), ctx)
+		assignedSubsystems, eventID, time.Now().Unix(), ctx)
 	trail(ticket.Id, ticket.UserURI, "remove_individual", jsonData, "", rc, timestamp)
 }

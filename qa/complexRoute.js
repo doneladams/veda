@@ -25,13 +25,20 @@ module.exports = {
     acceptTask: function (driver, decision, commentValue, chooseValue, login, password, firstName, lastName, phase) {
         basic.login(driver, login, password, firstName, lastName, phase);
         basic.menu(driver, 'Inbox', phase);
-        driver.sleep(basic.SLOW_OPERATION);
-        driver.wait(basic.findUp(driver, 'a[property="rdfs:label"]', 3, "****** PHASE#" + phase + " : ERROR = Cannot find 'rdfs:label'"), basic.FAST_OPERATION).then(
-            function(result){basic.clickUp(result);});
+        driver.sleep(basic.FAST_OPERATION);
+//  ------ без этого кода тесты часто не проходят ! ???? 
+        driver.findElement({css:'a[about="v-ft:Inbox"]'}).click()
+            .thenCatch(function (e) {basic.errorHandler(e,"****** PHASE#" + phase + " : ERROR = Cannot click on Inbox messages")});
+        driver.sleep(basic.FAST_OPERATION);
+//  ------
+        driver.wait(basic.findUp(driver, 'a[property="rdfs:label"]', 3, "****** PHASE#" + phase + " : ERROR = Cannot find 'rdfs:label'"), basic.FAST_OPERATION*2).then(
+            function(result){basic.clickUp(result, "****** PHASE#" + phase + " : ERROR = Cannot click on message. Seems message is not located");});
         basic.execute(driver, 'click', 'div[class="radio decision"] input[value="' + decision + '"]', "****** PHASE#" + phase + " : ERROR = Cannot click on '" + decision + "' decision");
+        driver.sleep(basic.FAST_OPERATION);
         if (commentValue === '+') {
             basic.execute(driver, 'sendKeys', 'veda-control[property="rdfs:comment"] div textarea', "****** PHASE#" + phase + " : ERROR = Cannot fill 'comment'", timeStamp);
         }
+        driver.sleep(basic.FAST_OPERATION);
         if (chooseValue === '+') {
             driver.executeScript("document.querySelector('#fulltext').scrollIntoView(true)")
                 .thenCatch(function(e) {basic.errorHandler(e, "****** PHASE#" + phase + " : ERROR = Cannot scroll to fulltext button");});
@@ -61,7 +68,7 @@ module.exports = {
         basic.execute(driver, 'click', 'button[id="submit"]', "Cannot click on 'Submit/Отправить' button");
         driver.sleep(basic.SLOW_OPERATION);
         driver.wait(basic.findUp(driver, 'span[rel="v-wf:isProcess"]', docNumber, "Cannot find isProcess"),
-            basic.FAST_OPERATION).then(function(result) {basic.clickUp(result);});
+            basic.FAST_OPERATION).then(function(result) {basic.clickUp(result, "****** PHASE# : ERROR = Cannot click on isProcess");});
         driver.sleep(basic.FAST_OPERATION);
         basic.execute(driver, 'click', '.glyphicon-share-alt', "Cannot click on 'glyphicon-share-alt'");
         for (var i = 0; i < element.length; i++) {

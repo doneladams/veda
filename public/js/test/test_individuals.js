@@ -166,6 +166,10 @@ function check_rights(ticket, uri, expected_rights)
     return result;
 }
 
+var i = 0;
+
+for (i = 0; i < 1; i++)
+{
     test(
         "#001 Login",
         function()
@@ -1930,6 +1934,8 @@ function check_rights(ticket, uri, expected_rights)
                 'v-s:created': newDate(new Date())
             };
 
+        console.log("@1");
+
             res = put_individual(ticket_user1.id, new_test_doc1, false);
             res = put_individual(ticket_user1.id, new_test_doc2, false);
             res = put_individual(ticket_user1.id, new_test_doc3, false);
@@ -1937,12 +1943,20 @@ function check_rights(ticket, uri, expected_rights)
             res = put_individual(ticket_user1.id, new_test_doc5, false);
             res = put_individual(ticket_user1.id, new_test_doc6, false);
 
+        console.log("@2");
+
             flush (m_fulltext_indexer, res.op_id);
+
+        console.log("@3");
 
             wait_module(m_fulltext_indexer, res.op_id);
             wait_module(m_subject, res.op_id);
+
+        console.log("@4");
             
             var data = query(ticket_user1.id, test_group_uid, undefined, undefined, true).result;
+
+        console.log("@5");
 
             //#1
             ok(compare(data.length, 6));
@@ -1951,32 +1965,44 @@ function check_rights(ticket, uri, expected_rights)
 
             //#2
             ok(compare(data.length, 3));
+
+        console.log("@5.1");
             
             var data = query(ticket_user1.id, "'@' == 'test30.1*' && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
 
             //#3
             ok(compare(data.length, 2));
             
+        console.log("@5.2");
+
             var data = query(ticket_user1.id, "('@' == 'test30.1*' || '@' == 'test30.2*') && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
 
             //#4
             ok(compare(data.length, 4));
             
+        console.log("@5.3");
+
             var data = query(ticket_user1.id, "'@' == 'test30*' && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
 
             //#5
             ok(compare(data.length, 6));
+
+        console.log("@5.4");
             
             var data = query(ticket_user1.id, "'rdfs:label.isExists' == 'true' && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
 
             //#6
             ok(compare(data.length, 5));
             
+        console.log("@5.5");
+
             var data = query(ticket_user1.id, "'rdfs:comment' == 'comment*' && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
 
             //#7
             ok(compare(data.length, 1));            
             
+        console.log("@6");
+
             res = remove_individual(ticket_user1.id, new_test_doc1['@']);
             //wait_module(m_scripts, res.op_id);
             
@@ -1988,6 +2014,7 @@ function check_rights(ticket, uri, expected_rights)
             //#9
             //ok(compare(data.length, 1));            
             
+        console.log("@7");
             
             var data = query(ticket_user1.id, "'rdfs:comment' == 'comm1*' && 'v-s:test_group' === '" + test_group_uid + "'" , undefined, undefined, true).result;
             
@@ -2019,6 +2046,7 @@ function check_rights(ticket, uri, expected_rights)
             
             //#
             //ok(compare(data.length, 2));//0            
+        console.log("@8");
             
             res = remove_individual(ticket_user1.id, new_test_doc5['@']);
             //wait_module(m_scripts, res.op_id);
@@ -2035,6 +2063,8 @@ function check_rights(ticket, uri, expected_rights)
             
             //#13
             //ok(compare(data.length, 2));
+
+        console.log("@9");
             
             res = remove_individual(ticket_user1.id, new_test_doc2['@']);
             //wait_module(m_scripts, res.op_id);
@@ -2059,5 +2089,9 @@ function check_rights(ticket, uri, expected_rights)
             
             //#17
             test_fail_read(ticket_user1, new_test_doc6['@'], new_test_doc6);
+
+        console.log("@10");
+
         }
     );  
+}

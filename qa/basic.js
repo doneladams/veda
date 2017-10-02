@@ -2,9 +2,9 @@
  * You can specify OS/browsers in `drivers` method
  */
 var webdriver = require('selenium-webdriver'),
-    FAST_OPERATION = 900, // ms time limit for fast operations
-    SLOW_OPERATION = 3000, // ms time limit for slow operations
-    EXTRA_SLOW_OPERATION = 6000, // ms time limit for extra slow operations
+    FAST_OPERATION = 1000, // ms time limit for fast operations
+    SLOW_OPERATION = 5000, // ms time limit for slow operations
+    EXTRA_SLOW_OPERATION = 10000, // ms time limit for extra slow operations
     SERVER_ADDRESS = (process.env.TRAVIS_BUILD_NUMBER === undefined)?'http://veda:8080/':'http://localhost:8080/';
     //SERVER_ADDRESS = (process.env.TRAVIS_BUILD_NUMBER === undefined)?'http://live.semantic-machines.com:8080/':'http://127.0.0.1:8080/';
 
@@ -156,9 +156,9 @@ module.exports = {
      * Клик по элементу
      * @param element - элемент
      */
-    clickUp: function (element) {
+    clickUp: function (element, message) {
         element.click()
-            .thenCatch(function(e) {errrorHandlerFunction(e, "Cannot click on" + element)})
+            .thenCatch(function(e) {errrorHandlerFunction(e, message)})
     },
 
     /**
@@ -244,31 +244,35 @@ module.exports = {
     */
     login: function (driver, login, password, assertUserFirstName, assertUserLastName, phase) {
         // Вводим логин и пароль
-        driver.findElement({css:'input[id="login"]'}).sendKeys(login).thenCatch(function (e) {
+        //driver.sleep(FAST_OPERATION/10);
+        driver.navigate().refresh();
+        driver.sleep(SLOW_OPERATION/3);
+        driver.findElement({css:'input#login'}).sendKeys(login).thenCatch(function (e) {
             errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Cannot input login")});
-        driver.findElement({css:'input[id="password"]'}).sendKeys(password).thenCatch(function (e) {
+        driver.findElement({css:'input#password'}).sendKeys(password).thenCatch(function (e) {
             errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Cannot input password")});
-        driver.findElement({css:'button[id="submit"]'}).click().thenCatch(function (e) {
+        driver.findElement({css:'button#submit'}).click().thenCatch(function (e) {
             errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Cannot submit login/password")});
-        driver.findElement({css:'button[id="submit"]'}).sendKeys(webdriver.Key.ENTER).thenCatch(function (e) {})
+        driver.findElement({css:'button#submit'}).sendKeys(webdriver.Key.ENTER).thenCatch(function (e) {})
             .thenCatch(function (e) {errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Cannot press enter")});
-        driver.sleep(FAST_OPERATION);
+        //driver.sleep(FAST_OPERATION/2);
         driver.wait
         (
             webdriver.until.elementIsVisible(driver.findElement({id:'user-info'})),
-            FAST_OPERATION
+            FAST_OPERATION/10
         ).thenCatch(function (e) {errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Login:Seems 'user-info' is not visible");});
 
         // Проверям что мы залогинены корректно
         driver.wait
         (
             webdriver.until.elementTextContains(driver.findElement({id:'user-info'}), assertUserFirstName),
-            FAST_OPERATION
+            FAST_OPERATION/10
         ).thenCatch(function (e) {errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Login:Cannot find user first name")});
+
         driver.wait
         (
             webdriver.until.elementTextContains(driver.findElement({id:'user-info'}), assertUserLastName),
-            FAST_OPERATION
+            FAST_OPERATION/10
         ).thenCatch(function (e) {errrorHandlerFunction(e, "****** PHASE#" + phase + " : ERROR = Login:Cannot find user last name")});
     },
 

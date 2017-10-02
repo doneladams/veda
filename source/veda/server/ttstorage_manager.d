@@ -185,8 +185,10 @@ public long unload(P_MODULE storage_id, string queue_name)
     return count;
 }
 
-public ResultCode put(P_MODULE storage_id, OptAuthorize op_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state, long update_counter,
-                      string event_id, long transaction_id, bool ignore_freeze, out long op_id)
+public ResultCode put(P_MODULE storage_id, OptAuthorize op_auth, string user_uri, Resources type, string indv_uri, string prev_state, string new_state,
+                      long update_counter,
+                      string event_id, long transaction_id, bool ignore_freeze,
+                      out long op_id)
 {
     ResultCode rc;
     Tid        tid = getTid(storage_id);
@@ -236,9 +238,9 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
 
     core.thread.Thread.getThis().name = thread_name;
 
-    int                          size_bin_log         = 0;
-    int                          max_size_bin_log     = 10_000_000;
-    string                       bin_log_name;//         = get_new_binlog_name(db_path);
+    int                          size_bin_log     = 0;
+    int                          max_size_bin_log = 10_000_000;
+    string                       bin_log_name; //         = get_new_binlog_name(db_path);
     long                         last_reopen_rw_op_id = 0;
 
     long                         op_id = 0;
@@ -248,7 +250,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
 
-	Connector connector = new Connector(log);
+    Connector                    connector = new Connector(log);
 
     try
     {
@@ -297,7 +299,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                     send(tid_response_reciever, true);
                 });
 
-    connector.connect("127.0.0.1", 9999);
+        connector.connect("127.0.0.1", 9999);
 
         while (is_exit == false)
         {
@@ -395,11 +397,11 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 if (cmd == INDV_OP.REMOVE)
                                 {
                                     stderr.writefln("@TRY REMOVE %s", uri);
-			                        RequestResponse request_response = connector.remove(OptAuthorize.NO, user_uri, [ uri ], false);
+                                    RequestResponse request_response = connector.remove(OptAuthorize.NO, user_uri, [ uri ], false);
                                     if (request_response.common_rc != ResultCode.OK)
-	                                    stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);
-                                    else if (request_response.op_rc[0] != ResultCode.OK)
-	                                    stderr.writeln("@ERR REMOVE! ", request_response.op_rc[0]);
+                                        stderr.writeln("@ERR COMMON REMOVE! ", request_response.common_rc);
+                                    else if (request_response.op_rc[ 0 ] != ResultCode.OK)
+                                        stderr.writeln("@ERR REMOVE! ", request_response.op_rc[ 0 ]);
 
                                     send(tid_response_reciever, request_response.common_rc, thisTid);
 
@@ -424,58 +426,58 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                             {
                                 if (cmd == INDV_OP.PUT)
                                 {
-                                        if (storage_id == P_MODULE.subject_manager)
+                                    if (storage_id == P_MODULE.subject_manager)
+                                    {
+                                        Individual imm;
+                                        imm.uri = text(op_id);
+                                        imm.addResource("cmd", Resource(cmd));
+                                        imm.addResource("uri", Resource(DataType.Uri, indv_uri));
+
+                                        if (user_uri !is null && user_uri.length > 0)
+                                            imm.addResource("user_uri", Resource(DataType.Uri, user_uri));
+
+                                        imm.addResource("new_state", Resource(DataType.String, new_state));
+
+                                        if (prev_state !is null && prev_state.length > 0)
+                                            imm.addResource("prev_state", Resource(DataType.String, prev_state));
+                                        else
+                                            uris_queue.push(indv_uri);
+
+                                        if (event_id !is null && event_id.length > 0)
+                                            imm.addResource("event_id", Resource(DataType.String, event_id));
+
+                                        if (transaction_id >= 0)
+                                            imm.addResource("tnx_id", Resource(DataType.String, text(transaction_id)));
+
+                                        imm.addResource("op_id", Resource(op_id));
+                                        imm.addResource("u_count", Resource(update_counter));
+
+                                        //log.trace("SEND TO TT %s ", imm);
+
+                                        string binobj = imm.serialize();
+
+                                        RequestResponse request_response = connector.put(op_auth, user_uri, [ binobj ]);
+
+                                        set_subject_manager_op_id(op_id);
+                                        op_id++;
+
+                                        if (request_response.common_rc != ResultCode.OK)
                                         {
-                                            Individual imm;
-                                            imm.uri = text(op_id);
-                                            imm.addResource("cmd", Resource(cmd));
-                                            imm.addResource("uri", Resource(DataType.Uri, indv_uri));
+                                            rc = request_response.common_rc;
+                                            send(tid_response_reciever, rc, thisTid);
 
-                                            if (user_uri !is null && user_uri.length > 0)
-                                                imm.addResource("user_uri", Resource(DataType.Uri, user_uri));
+                                            log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
+                                        }
+                                        else if (request_response.op_rc[ 0 ] != ResultCode.OK)
+                                        {
+                                            rc = request_response.op_rc[ 0 ];
+                                            send(tid_response_reciever, rc, thisTid);
 
-                                            imm.addResource("new_state", Resource(DataType.String, new_state));
-
-                                            if (prev_state !is null && prev_state.length > 0)
-                                                imm.addResource("prev_state", Resource(DataType.String, prev_state));
-                                            else
-                                                uris_queue.push(indv_uri);
-
-                                            if (event_id !is null && event_id.length > 0)
-                                                imm.addResource("event_id", Resource(DataType.String, event_id));
-
-                                            if (transaction_id >= 0)
-                                                imm.addResource("tnx_id", Resource(DataType.String, text (transaction_id)));
-
-                                            imm.addResource("op_id", Resource(op_id));
-                                            imm.addResource("u_count", Resource(update_counter));
-
-                                            //log.trace("SEND TO TT %s ", imm);
-
-                                            string binobj = imm.serialize();
-                                            
-					                        RequestResponse request_response = connector.put(op_auth, user_uri, [ binobj ]);
-												
-											set_subject_manager_op_id(op_id);
-	                                        op_id++;
-
-                                            if (request_response.common_rc != ResultCode.OK)
-                                            {
-                                            	rc = request_response.common_rc;
-                                            	send(tid_response_reciever, rc, thisTid);												
-
-                                                log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
-                                            }
-                                            else if (request_response.op_rc[0] != ResultCode.OK)
-                                            {
-                                            	rc = request_response.op_rc[0];
-                                            	send(tid_response_reciever, rc, thisTid);												
-
-                                                log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
-                                            }
-										    else 
-											{                                            
-                                             rc = request_response.op_rc[0];
+                                            log.trace("ERR!, ttstorage_manager: PUT, op_auth=%s, res=%s, %s", op_auth, rc, imm);
+                                        }
+                                        else
+                                        {
+                                            rc = request_response.op_rc[ 0 ];
                                             //    stderr.writeln("@OK");
 
                                             individual_queue.push(binobj);
@@ -492,16 +494,12 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                             //    send(tid_ccus_channel, msg_to_modules);
                                             //}
 
-	                                        send(tid_response_reciever, rc, thisTid);
+                                            send(tid_response_reciever, rc, thisTid);
 
-	                                            module_info.put_info(op_id, op_id);
-	                                            string new_hash = "0000";
-	                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
-
-
-											}
-											
-											
+                                            module_info.put_info(op_id, op_id);
+                                            string new_hash = "0000";
+                                            bin_log_name = write_in_binlog(new_state, new_hash, bin_log_name, size_bin_log, max_size_bin_log, db_path);
+                                        }
                                     }
 
                                     return;
@@ -574,8 +572,8 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
         }
     } finally
     {
-    	connector.close();
-    	
+        connector.close();
+
         if (module_info !is null)
         {
             module_info.close();

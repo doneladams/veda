@@ -1138,7 +1138,7 @@ class PThreadContext : Context
     static const byte NEW_TYPE    = 0;
     static const byte EXISTS_TYPE = 1;
 
-    private OpResult _remove_individual(Ticket *ticket, string uri, bool prepare_events, string event_id, long transaction_id, bool ignore_freeze)
+    private OpResult _remove_individual(Ticket *ticket, string uri, long assignedSubsystems, string event_id, long transaction_id, bool ignore_freeze)
     {
         OpResult res = OpResult(ResultCode.Fail_Store, -1);
 
@@ -1150,7 +1150,7 @@ class PThreadContext : Context
                 req_body[ "function" ]       = "remove";
                 req_body[ "ticket" ]         = ticket.id;
                 req_body[ "uri" ]            = uri;
-                req_body[ "prepare_events" ] = prepare_events;
+                req_body[ "assigned_subsystems" ] = assignedSubsystems;
                 req_body[ "event_id" ]       = event_id;
                 req_body[ "tnx_id" ]         = transaction_id;
 
@@ -1180,12 +1180,12 @@ class PThreadContext : Context
                 }
 
 
-                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, prepare_events, event_id, transaction_id, ignore_freeze, OptAuthorize.YES);
+                OpResult oprc = store_individual(INDV_OP.PUT, ticket, &prev_indv, assignedSubsystems, event_id, transaction_id, ignore_freeze, OptAuthorize.YES);
 
                 if (oprc.result != ResultCode.OK)
                 {
                     res.result = oprc.result;
-                    log.trace("ERR! remove_individual: fail set [v-s:deleted], :uri=%s, errcode=[%s]", prev_indv.uri, res.result);
+                    log.trace("ERR! remove_individual: fail attempt set [v-s:deleted], :uri=%s, errcode=[%s]", prev_indv.uri, res.result);
                 }
                 else
                 {
@@ -1228,7 +1228,7 @@ class PThreadContext : Context
         }
     }
 
-    private OpResult store_individual(INDV_OP cmd, Ticket *ticket, Individual *indv, bool prepare_events, string event_id, long transaction_id,
+    private OpResult store_individual(INDV_OP cmd, Ticket *ticket, Individual *indv, long assignedSubsystems, string event_id, long transaction_id,
                                       bool ignore_freeze,
                                       OptAuthorize op_auth)
     {
@@ -1271,7 +1271,7 @@ class PThreadContext : Context
                 req_body[ "function" ]       = scmd;
                 req_body[ "ticket" ]         = ticket.id;
                 req_body[ "individuals" ]    = [ individual_to_json(*indv) ];
-                req_body[ "prepare_events" ] = prepare_events;
+                req_body[ "assigned_subsystems" ] = assignedSubsystems;
                 req_body[ "event_id" ]       = event_id;
                 req_body[ "tnx_id" ]         = transaction_id;
 
@@ -1432,38 +1432,38 @@ class PThreadContext : Context
         }
     }
 
-    public OpResult put_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult put_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                    bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.PUT, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
+        return store_individual(INDV_OP.PUT, ticket, &individual, assignedSubsystems, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
-    public OpResult remove_individual(Ticket *ticket, string uri, bool prepareEvents, string event_id, long transaction_id, bool ignore_freeze,
+    public OpResult remove_individual(Ticket *ticket, string uri, long assignedSubsystems, string event_id, long transaction_id, bool ignore_freeze,
                                       OptAuthorize op_auth = OptAuthorize.YES)
     {
-        return _remove_individual(ticket, uri, prepareEvents, event_id, transaction_id, ignore_freeze);
+        return _remove_individual(ticket, uri, assignedSubsystems, event_id, transaction_id, ignore_freeze);
     }
 
-    public OpResult add_to_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult add_to_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                       bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.ADD_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
+        return store_individual(INDV_OP.ADD_IN, ticket, &individual, assignedSubsystems, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
-    public OpResult set_in_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id, long transaction_id,
+    public OpResult set_in_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id, long transaction_id,
                                       bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.SET_IN, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
+        return store_individual(INDV_OP.SET_IN, ticket, &individual, assignedSubsystems, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
-    public OpResult remove_from_individual(Ticket *ticket, string uri, Individual individual, bool prepareEvents, string event_id,
+    public OpResult remove_from_individual(Ticket *ticket, string uri, Individual individual, long assignedSubsystems, string event_id,
                                            long transaction_id, bool ignore_freeze = false, OptAuthorize op_auth = OptAuthorize.YES)
     {
         individual.uri = uri;
-        return store_individual(INDV_OP.REMOVE_FROM, ticket, &individual, prepareEvents, event_id, transaction_id, ignore_freeze, op_auth);
+        return store_individual(INDV_OP.REMOVE_FROM, ticket, &individual, assignedSubsystems, event_id, transaction_id, ignore_freeze, op_auth);
     }
 
     public void set_trace(int idx, bool state)
@@ -1762,11 +1762,7 @@ class PThreadContext : Context
                     OpResult[] rc;
 
                     JSONValue  _ticket         = jsn[ "ticket" ];
-                    JSONValue  jprepare_events = jsn[ "prepare_events" ];
-
-                    bool       prepare_events;
-                    if (jprepare_events.type() == JSON_TYPE.TRUE)
-                        prepare_events = true;
+                    long  assigned_subsystems = jsn[ "assigned_subsystems" ].integer;
 
                     JSONValue event_id       = jsn[ "event_id" ];
                     long      transaction_id = 0;
@@ -1781,7 +1777,7 @@ class PThreadContext : Context
                         {
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
-                                this.put_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                this.put_individual(ticket, individual.uri, individual, assigned_subsystems, event_id.str, transaction_id, false,
                                                     OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
@@ -1796,7 +1792,7 @@ class PThreadContext : Context
                         {
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
-                                this.add_to_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                this.add_to_individual(ticket, individual.uri, individual, assigned_subsystems, event_id.str, transaction_id, false,
                                                        OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
@@ -1811,7 +1807,7 @@ class PThreadContext : Context
                         {
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
-                                this.set_in_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                this.set_in_individual(ticket, individual.uri, individual, assigned_subsystems, event_id.str, transaction_id, false,
                                                        OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
@@ -1826,7 +1822,7 @@ class PThreadContext : Context
                         {
                             Individual individual = json_to_individual(individual_json);
                             OpResult   ires       =
-                                this.remove_from_individual(ticket, individual.uri, individual, prepare_events, event_id.str, transaction_id, false,
+                                this.remove_from_individual(ticket, individual.uri, individual, assigned_subsystems, event_id.str, transaction_id, false,
                                                             OptAuthorize.YES);
                             rc ~= ires;
                             if (transaction_id <= 0)
@@ -1836,7 +1832,7 @@ class PThreadContext : Context
                     else if (sfn == "remove")
                     {
                         JSONValue uri  = jsn[ "uri" ];
-                        OpResult  ires = this.remove_individual(ticket, uri.str, prepare_events, event_id.str, transaction_id, false, OptAuthorize.YES);
+                        OpResult  ires = this.remove_individual(ticket, uri.str, assigned_subsystems, event_id.str, transaction_id, false, OptAuthorize.YES);
                         rc ~= ires;
                         if (transaction_id <= 0)
                             transaction_id = ires.op_id;
