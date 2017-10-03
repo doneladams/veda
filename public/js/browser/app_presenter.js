@@ -133,6 +133,26 @@ veda.Module(function AppPresenter(veda) { "use strict";
     }
   });
 
+  var registerTmpl = $("#register-template").html();
+  var registerContainer = $("#register-container");
+  registerContainer.html(registerTmpl);  
+
+  var register = $("#register", loginContainer);
+  register.click(function(e) {
+    //Register form
+    // var loginTmpl = $("#login-template").html();
+    
+    loginContainer.addClass("hidden");
+    registerContainer.removeClass("hidden");
+
+  });
+
+  var toLogin = $("#to-login", registerContainer);
+  toLogin.click(function(e) {
+    registerContainer.addClass("hidden");
+    loginContainer.removeClass("hidden");
+  })
+
   // NTLM auth using iframe
   var ntlmProvider = new veda.IndividualModel({uri: "cfg:NTLMAuthProvider", cache: true, init: false}),
     ntlm = !ntlmProvider.hasValue("v-s:deleted", true) && ntlmProvider.hasValue("rdf:value") && ntlmProvider.get("rdf:value")[0],

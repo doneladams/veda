@@ -46,6 +46,10 @@
     <!-- Login form -->
     <div id="login-container" class="hidden"></div>
 
+    <!-- Register form -->
+    <div id="register-container" class="hidden">
+    </div>
+
     <!-- Autocomplete feature -->
     <iframe name="autocomplete-frame" style="display:none" src="about:blank"></iframe>
     <form target="autocomplete-frame" method="post" action="about:blank" autocomplete="on" onkeypress="return (event.keyCode !== 13 || event.target.tagName === 'TEXTAREA')">
@@ -78,6 +82,33 @@
         <input class="form-control input-lg" id="password" required="required" placeholder="password" type="password" name="password"/>
         <br>
         <button type="submit" id="submit" class="btn btn-lg btn-primary btn-block">Войти / Sign in</button>
+        <button type="submit" id="register" class="btn btn-lg btn-secondary btn-block">Регистрирация / Registration</button>
+        <br>
+        <div id="login-error" class="hidden">
+          <p><strong class="text-danger">Ошибка!</strong> Неверное имя пользователя или пароль.</p>
+          <p><strong class="text-danger">Error!</strong> Wrong login or password.</p>
+        </div>
+      </form>
+    </script>
+
+    <!-- Register -->
+    <script type="html/template" id="register-template">
+      <form role="form" id="credentials">
+        <h3>Регистрация / Registration</h3>
+        <input class="form-control input-lg" id="register-login" required="required" placeholder="login" type="text" name="login" autofocus="autofocus"/>
+        <input class="form-control input-lg" id="register-password" required="required" placeholder="password" type="password" name="password"/>
+        <br>
+        <div class="btn-group btn-group-justified" data-toggle="buttons" role="group">
+          <label class="btn btn-primary active">
+            <input type="radio" name="options" id="option1" autocomplete="off" checked> Компания / Company
+          </label>
+          <label class="btn btn-primary">
+            <input type="radio" name="options" id="option2" autocomplete="off"> Разработчик / Developer
+          </label>
+        </div>
+        <br>
+        <button type="submit" id="submit-registration" class="btn btn-lg btn-primary btn-block">Зарегистрироваться / Register</button>
+        <button type="submit" id="to-login" class="btn btn-lg btn-secondary btn-block">Назад / Back</button>
         <br>
         <div id="login-error" class="hidden">
           <p><strong class="text-danger">Ошибка!</strong> Неверное имя пользователя или пароль.</p>
