@@ -147,6 +147,15 @@ veda.Module(function AppPresenter(veda) { "use strict";
 
   });
 
+  var registerSubmit = $("#submit-registration", registerContainer);
+  registerSubmit.click(function(e) {
+     var a = new veda.IndividualModel();
+    // regRequest["rdf:type"] = [ "cfg:RegRequest"];
+    // individual["@"] = veda.Util.genUri();
+    // alert(individual["@"]);
+    alert('wwerwer');
+  });
+
   var toLogin = $("#to-login", registerContainer);
   toLogin.click(function(e) {
     registerContainer.addClass("hidden");
