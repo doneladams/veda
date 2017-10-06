@@ -21,6 +21,7 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 	//if no ticket id or systicket passed then change it to guest
 	if ticketKey == "" || ticketKey == "systicket" {
 		ticketKey = "guest"
+		ticket.Id = "guest"
 		ticket.UserURI = "cfg:Guest"
 		ticket.result = Ok
 		return Ok, ticket
