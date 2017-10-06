@@ -58,7 +58,7 @@ veda.Module(function AppPresenter(veda) { "use strict";
     }
   });
 
-  // Triggered in veda.init()
+  // Triggered in veda.start()
   veda.one("started", function () {
     var welcome;
     if (veda.user.hasValue("v-s:origin", "External User")) {
@@ -89,14 +89,15 @@ veda.Module(function AppPresenter(veda) { "use strict";
 
   // Login invitation
   var loginTmpl = $("#login-template").html();
-  var loginContainer = $("#login-container");
-  loginContainer.html(loginTmpl);
-  var errorMsg = $("#login-error", loginContainer);
-  var submit = $("#submit", loginContainer);
+  var loginForm = $(loginTmpl);
+  var credentials = $(".credentials");
+  credentials.append(loginForm);
+  var errorMsg = $("#login-error", loginForm);
+  var submit = $("#submit", loginForm);
   submit.click( function (e) {
     e.preventDefault();
-    var login = $("#login", loginContainer).val(),
-      password = $("#password", loginContainer).val(),
+    var login = $("#login", loginForm).val(),
+      password = $("#password", loginForm).val(),
       hash = Sha256.hash(password),
       authResult;
     try {
@@ -133,41 +134,20 @@ veda.Module(function AppPresenter(veda) { "use strict";
     }
   });
 
-  var registerTmpl = $("#register-template").html();
-  var registerContainer = $("#register-container");
-  registerContainer.html(registerTmpl);  
-
-  var register = $("#register", loginContainer);
-  register.click(function(e) {
-    //Register form
-    // var loginTmpl = $("#login-template").html();
-    
-    loginContainer.addClass("hidden");
-    registerContainer.removeClass("hidden");
-
+  var registerButton = $("#register", loginForm);
+  registerButton.click(function(e) {
+    loginForm.addClass("hidden");
+    var regRequest = new veda.IndividualModel();
+    regRequest["rdf:type"] = [ new veda.IndividualModel("v-s:RegistrationRequest") ];
+    regRequest.present(credentials, "v-s:RegistrationRequestTemplate", "edit");
   });
-
-  var registerSubmit = $("#submit-registration", registerContainer);
-  registerSubmit.click(function(e) {
-     var a = new veda.IndividualModel();
-    // regRequest["rdf:type"] = [ "cfg:RegRequest"];
-    // individual["@"] = veda.Util.genUri();
-    // alert(individual["@"]);
-    alert('wwerwer');
-  });
-
-  var toLogin = $("#to-login", registerContainer);
-  toLogin.click(function(e) {
-    registerContainer.addClass("hidden");
-    loginContainer.removeClass("hidden");
-  })
 
   // NTLM auth using iframe
   var ntlmProvider = new veda.IndividualModel({uri: "cfg:NTLMAuthProvider", cache: true, init: false}),
     ntlm = !ntlmProvider.hasValue("v-s:deleted", true) && ntlmProvider.hasValue("rdf:value") && ntlmProvider.get("rdf:value")[0],
     iframe = $("<iframe>", {"class": "hidden"});
   if ( ntlm ) {
-    iframe.appendTo(loginContainer);
+    iframe.appendTo(credentials);
   }
 
   veda.on("login:failed", function () {
@@ -179,7 +159,7 @@ veda.Module(function AppPresenter(veda) { "use strict";
     if ( ntlm ) {
       iframe.one("load", function () {
         try {
-          loginContainer.addClass("hidden");
+          credentials.addClass("hidden");
           var body = iframe.contents().find("body"),
             ticket = $("#ticket", body).text(),
             user_uri = $("#user_uri", body).text(),
@@ -196,19 +176,19 @@ veda.Module(function AppPresenter(veda) { "use strict";
           }
         } catch (ex) {
           console.log(ex);
-          loginContainer.removeClass("hidden");
+          credentials.removeClass("hidden");
         }
       });
       document.domain = document.domain;
       iframe.attr("src", ntlm);
     } else {
-      loginContainer.removeClass("hidden");
+      credentials.removeClass("hidden");
     }
   });
 
   // Initialize application if ticket is valid
   veda.on("login:success", function (authResult) {
-    loginContainer.addClass("hidden");
+    credentials.addClass("hidden");
     veda.user_uri = authResult.user_uri;
     veda.ticket = authResult.ticket;
     veda.end_time = authResult.end_time;
@@ -216,7 +196,7 @@ veda.Module(function AppPresenter(veda) { "use strict";
     storage.user_uri = authResult.user_uri;
     storage.end_time = authResult.end_time.toString();
     setCookie("ticket", authResult.ticket);
-    veda.init();
+    veda.start();
 
     // Re-login on ticket expiration
     var ticketDelay = new Date( parseInt(veda.end_time) ) - new Date();
@@ -235,8 +215,11 @@ veda.Module(function AppPresenter(veda) { "use strict";
     delete storage.user_uri;
     delete storage.end_time;
     delCookie("ticket");
-    loginContainer.removeClass("hidden");
+    credentials.removeClass("hidden");
   });
+
+  // Load ontology
+  veda.init();
 
   try {
     // Check if ticket in cookies is valid

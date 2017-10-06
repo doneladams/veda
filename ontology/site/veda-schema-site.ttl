@@ -1,0 +1,40 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix v-fs: <http://semantic-machines.com/veda/veda-search/> .
+@prefix v-s: <http://semantic-machines.com/veda/veda-schema/> .
+@prefix v-ui: <http://semantic-machines.com/veda/veda-ui/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix d: <http://semantic-machines.com/veda/veda-data/> .
+@prefix td: <http://semantic-machines.com/veda/test-data/> .
+
+<http://semantic-machines.com/veda/veda-schema-Site>
+  rdf:type owl:Ontology ;
+  rdfs:label "Veda system ontology. Site"@en ;
+  rdfs:label "Онтология системы Veda. Сайт"@ru ;
+#  owl:versionInfo "1.3" ;
+  v-s:loadPriority 10 ;
+.
+
+# ------------------------------------------------------------ КЛАССЫ --
+
+v-s:RegistrationRequest
+  rdf:type owl:Class ;
+  rdfs:subClassOf v-s:UserThing ;
+  rdfs:subClassOf v-s:Temporal ;
+  rdfs:label "Registration request" ;
+  rdfs:label "Запрос на регистрацию"@ru ;
+  v-ui:hasTemplate v-s:RegistrationRequestTemplate ;
+.
+
+v-s:RegistrationRequestTemplate
+  rdf:type v-ui:ClassTemplate ;
+  rdfs:label "Registration request template" ;
+  rdfs:label "Шаблон запроса на регистрацию"@ru ;
+  v-ui:template """
+<div>
+  <strong property="@"></strong>
+  <div rel="rdf:type" data-template="v-ui:LabelTemplate"></div>
+</div>
+  """ ;
+.
