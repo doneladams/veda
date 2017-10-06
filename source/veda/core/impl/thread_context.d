@@ -383,7 +383,7 @@ class PThreadContext : Context
     }
 
     import backtrace.backtrace, Backtrace = backtrace.backtrace;
-//    bool authorize(string uri, Ticket *ticket, ubyte request_acess, bool is_check_for_reload)
+
     ubyte authorize(string _uri, Ticket *ticket, ubyte request_access, bool is_check_for_reload,
                     void delegate(string resource_group, string subject_group, string right)
                     trace_acl,
@@ -392,14 +392,19 @@ class PThreadContext : Context
         if (ticket is null)
         {
             printPrettyTrace(stderr);
+            return 0;
         }
 
-        ubyte res = individuals_storage_r.authorize(ticket.user_uri, _uri, false);
+        string user_uri = ticket.user_uri;
+
+        if (user_uri is null || user_uri.length == 0)
+            user_uri = "cfg:Guest";
+
+        ubyte res = individuals_storage_r.authorize(user_uri, _uri, false);
 
         //log.trace("authorize %s, request=%s, answer=[%s]", _uri, access_to_pretty_string(request_access), access_to_pretty_string(res));
 
         return res & request_access;
-        //return request_access;
     }
 
     public string get_name()
@@ -1147,12 +1152,12 @@ class PThreadContext : Context
             version (isModule)
             {
                 JSONValue req_body;
-                req_body[ "function" ]       = "remove";
-                req_body[ "ticket" ]         = ticket.id;
-                req_body[ "uri" ]            = uri;
+                req_body[ "function" ]            = "remove";
+                req_body[ "ticket" ]              = ticket.id;
+                req_body[ "uri" ]                 = uri;
                 req_body[ "assigned_subsystems" ] = assignedSubsystems;
-                req_body[ "event_id" ]       = event_id;
-                req_body[ "tnx_id" ]         = transaction_id;
+                req_body[ "event_id" ]            = event_id;
+                req_body[ "tnx_id" ]              = transaction_id;
 
                 res = reqrep_2_main_module(req_body)[ 0 ];
             }
@@ -1268,12 +1273,12 @@ class PThreadContext : Context
                     scmd = "remove_from";
 
                 JSONValue req_body;
-                req_body[ "function" ]       = scmd;
-                req_body[ "ticket" ]         = ticket.id;
-                req_body[ "individuals" ]    = [ individual_to_json(*indv) ];
+                req_body[ "function" ]            = scmd;
+                req_body[ "ticket" ]              = ticket.id;
+                req_body[ "individuals" ]         = [ individual_to_json(*indv) ];
                 req_body[ "assigned_subsystems" ] = assignedSubsystems;
-                req_body[ "event_id" ]       = event_id;
-                req_body[ "tnx_id" ]         = transaction_id;
+                req_body[ "event_id" ]            = event_id;
+                req_body[ "tnx_id" ]              = transaction_id;
 
                 //log.trace("[%s] store_individual: (isModule), req=(%s)", name, req_body.toString());
 
@@ -1761,13 +1766,13 @@ class PThreadContext : Context
                 {
                     OpResult[] rc;
 
-                    JSONValue  _ticket         = jsn[ "ticket" ];
-                    long  assigned_subsystems = jsn[ "assigned_subsystems" ].integer;
+                    JSONValue  _ticket             = jsn[ "ticket" ];
+                    long       assigned_subsystems = jsn[ "assigned_subsystems" ].integer;
 
-                    JSONValue event_id       = jsn[ "event_id" ];
-                    long      transaction_id = 0;
+                    JSONValue  event_id       = jsn[ "event_id" ];
+                    long       transaction_id = 0;
 
-                    Ticket    *ticket = this.get_ticket(_ticket.str);
+                    Ticket     *ticket = this.get_ticket(_ticket.str);
 
                     if (sfn == "put")
                     {
