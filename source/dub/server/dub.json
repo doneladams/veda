@@ -20,6 +20,7 @@
 	"../../veda/util/container.d",
         "../../veda/util/module_info.d",
 	"../../veda/util/tests_tools.d",
+        "../../veda/util/properd.d",
 	"../../veda/connector/connector.d",
 	"../../veda/connector/requestresponse.d"
  	],

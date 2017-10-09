@@ -4,7 +4,7 @@ private
 {
     import core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, core.runtime, core.thread, core.memory;
     import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime, std.json, core.thread, std.uuid, std.algorithm : remove;
-    import kaleidic.nanomsg.nano;
+    import kaleidic.nanomsg.nano, veda.util.properd;
     import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue, veda.util.container;
     import veda.common.logger, veda.core.impl.thread_context;
     import veda.core.common.context, veda.util.tools, veda.onto.onto, veda.util.module_info, veda.common.logger;
@@ -75,7 +75,7 @@ class VedaModule
     bool[ string ]   subsrc;
 
     long   module_id;
-	long   subsystem_id;
+    long   subsystem_id;
 
     Logger log;
 
@@ -94,7 +94,7 @@ class VedaModule
         log            = _log;
         main_cs.length = 1;
         module_id      = _module_id;
-        subsystem_id = _subsystem_id;
+        subsystem_id   = _subsystem_id;
     }
 
     ~this()
@@ -181,6 +181,18 @@ class VedaModule
         // attempt open [prepareall] queue
         open_perapare_batch_queue(true);
         load_systicket();
+
+        try
+        {
+    	    string[ string ] properties;
+            properties         = readProperties("./veda.properties");
+            notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
+        }
+        catch (Throwable ex)
+        {
+            log.trace("ERR! unable read ./veda.properties");
+        }
+
 
         sock = nn_socket(AF_SP, NN_SUB);
         if (sock >= 0)
@@ -384,11 +396,11 @@ class VedaModule
                 continue;
             }
 
-            string new_bin          = imm.getFirstLiteral("new_state");
-            string prev_bin         = imm.getFirstLiteral("prev_state");
-            string user_uri         = imm.getFirstLiteral("user_uri");
-            string event_id         = imm.getFirstLiteral("event_id");
-            long   transaction_id   = imm.getFirstInteger("tnx_id");
+            string new_bin             = imm.getFirstLiteral("new_state");
+            string prev_bin            = imm.getFirstLiteral("prev_state");
+            string user_uri            = imm.getFirstLiteral("user_uri");
+            string event_id            = imm.getFirstLiteral("event_id");
+            long   transaction_id      = imm.getFirstInteger("tnx_id");
             long   assigned_subsystems = imm.getFirstInteger("assigned_subsystems");
 /*
             if (assigned_subsystems > 0)
@@ -408,7 +420,7 @@ class VedaModule
                     continue;
                 }
             }
-*/
+ */
             if (priority(user_uri) != i)
             {
                 main_cs[ i ].commit_and_next(true);

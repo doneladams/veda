@@ -32,6 +32,7 @@
         "../../veda/util/tests_tools.d",
         "../../veda/fanout/to_sql.d",
         "../../veda/fanout/fanout_sql_np.d",
+        "../../veda/util/properd.d",
 	"../../veda/connector/connector.d",
 	"../../veda/connector/requestresponse.d"
 	],
