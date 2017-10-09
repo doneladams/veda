@@ -46,3 +46,4 @@ veda-bootstrap
 /source/rust_db_handler/db_handler/target/
 /source/rust_db_handler/rmp_bind/target/
 /source/rust_db_handler/graphql/target/
+config.ttl
