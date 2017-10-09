@@ -34,7 +34,19 @@ v-s:RegistrationRequestTemplate
   v-ui:template """
 <div>
   <strong property="@"></strong>
-  <div rel="rdf:type" data-template="v-ui:LabelTemplate"></div>
+  <h3><div rel="rdf:type" data-template="v-ui:LabelTemplate"></div></h3>
+  
+  <em about="v-s:firstName" property="rdfs:label">Имя</em>
+  <div property="v-s:firstName"></div>
+  <veda-control property="v-s:firstName" data-type="string" class="-view edit search"></veda-control>
+  
+  <em about="v-s:lastName" property="rdfs:label">Фамилия</em>
+  <div property="v-s:lastName"></div>
+  <veda-control property="v-s:firstName" data-type="string" class="-view edit search"></veda-control>
+
+  <em about="v-s:patronymic" property="rdfs:label">Отчество</em>
+  <div property="v-s:patronymic"></div>
+  <veda-control property="v-s:patronymic" data-type="string" class="-view edit search"></veda-control>
 </div>
   """ ;
 .
