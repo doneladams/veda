@@ -28,7 +28,10 @@ func putIndividual(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
+
+	if jsonData["assigned_subsystems"] != nil {
+		assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
+	}
 	eventID = jsonData["event_id"].(string)
 
 	//Check if ticket is valid, if it's not valid then return fail code to client
@@ -63,7 +66,7 @@ func putIndividuals(ctx *fasthttp.RequestCtx) {
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
+	assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	rc, ticket := getTicket(ticketKey)
