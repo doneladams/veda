@@ -20,9 +20,8 @@
 
 v-s:RegistrationRequest
   rdf:type owl:Class ;
-  rdfs:subClassOf v-s:UserThing ;
-  rdfs:subClassOf v-s:Temporal ;
-  rdfs:label "Registration request" ;
+  rdfs:subClassOf v-s:SystemThing ;
+  rdfs:label "Registration request"@en ;
   rdfs:label "Запрос на регистрацию"@ru ;
   v-ui:hasTemplate v-s:RegistrationRequestTemplate ;
 .
@@ -33,20 +32,24 @@ v-s:RegistrationRequestTemplate
   rdfs:label "Шаблон запроса на регистрацию"@ru ;
   v-ui:template """
 <div>
-  <strong property="@"></strong>
-  <h3><div rel="rdf:type" data-template="v-ui:LabelTemplate"></div></h3>
-  
-  <em about="v-s:firstName" property="rdfs:label">Имя</em>
-  <div property="v-s:firstName"></div>
-  <veda-control property="v-s:firstName" data-type="string" class="-view edit search"></veda-control>
-  
-  <em about="v-s:lastName" property="rdfs:label">Фамилия</em>
-  <div property="v-s:lastName"></div>
+  <h3 about="@" rel="rdf:type" data-template="v-ui:LabelTemplate"></h3>
+
+  <em about="v-s:lastName" property="rdfs:label"></em>
+  <div property="v-s:lastName" class="view -edit -search"></div>
+  <veda-control property="v-s:lastName" data-type="string" class="-view edit search"></veda-control>
+
+  <em about="v-s:firstName" property="rdfs:label"></em>
+  <div property="v-s:firstName" class="view -edit -search"></div>
   <veda-control property="v-s:firstName" data-type="string" class="-view edit search"></veda-control>
 
-  <em about="v-s:patronymic" property="rdfs:label">Отчество</em>
-  <div property="v-s:patronymic"></div>
-  <veda-control property="v-s:patronymic" data-type="string" class="-view edit search"></veda-control>
+  <em about="v-s:middleName" property="rdfs:label"></em>
+  <div property="v-s:middleName" class="view -edit -search"></div>
+  <veda-control property="v-s:middleName" data-type="string" class="-view edit search"></veda-control>
+
+  <br>
+  <button class="btn btn-success btn-lg btn-block action" id="save" about="v-s:Send" property="rdfs:label"></button>
+  <br>
+  <span class="text-muted" about="@" property="@"></span>
 </div>
   """ ;
 .
