@@ -104,12 +104,12 @@ void main(char[][] args)
     Context context = PThreadContext.create_new(process_name, "file_reader", "", log, sticket, parent_url);
     sticket = context.sys_ticket();
 
-	while (sticket.result != ResultCode.OK)
-	{
-	    Thread.sleep(dur!("seconds")(1));
-            log.trace("fail read systicket: wait 1s, and repeate");
-	    sticket = context.sys_ticket();
-	}
+    while (sticket.result != ResultCode.OK)
+    {
+        Thread.sleep(dur!("seconds")(1));
+        log.trace("fail read systicket: wait 1s, and repeate");
+        sticket = context.sys_ticket();
+    }
 
     string[] uris =
         context.get_individuals_ids_via_query(&sticket, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, null, OptAuthorize.NO, false).result;
@@ -394,6 +394,7 @@ Individual[ string ] check_and_read_changed(string[] changes, Context context, b
 void processed(string[] changes, Context context, bool is_check_changes)
 {
     Ticket sticket = context.sys_ticket();
+
     log.trace("processed:find systicket [%s]", sticket.id);
 
     Individual[ string ] individuals = check_and_read_changed(changes, context, is_check_changes);
@@ -404,10 +405,10 @@ void processed(string[] changes, Context context, bool is_check_changes)
     {
         for (int priority = 0; priority < 100; priority++)
         {
-            bool is_loaded = false;
+            bool     is_loaded = false;
 
-			OpResult op_res;
-			op_res.op_id = -1;
+            OpResult op_res;
+            op_res.op_id = -1;
 
             foreach (uri, indv; individuals)
             {
@@ -436,13 +437,12 @@ void processed(string[] changes, Context context, bool is_check_changes)
                             if (indv.getResources("rdf:type").length > 0)
                             {
                                 if (trace_msg[ 33 ] == 1)
-                                    log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv),
-                                              text(indv_in_storage));
+                                    log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, indv_in_storage, indv);
 
-								op_res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, OptAuthorize.NO);
+                                op_res = context.put_individual(&sticket, indv.uri, indv, true, null, -1, false, OptAuthorize.NO);
                                 ResultCode res = op_res.result;
-                                if (trace_msg[ 33 ] == 1)
-                                    log.trace("file reader:store, uri=%s", indv.uri);
+                                //if (trace_msg[ 33 ] == 1)
+                                log.trace("file reader:store, uri=%s, res=%s", indv.uri, res);
 
                                 if (res != ResultCode.OK)
                                     log.trace("individual [%s], not store, errcode =%s", indv.uri, text(res));
@@ -574,7 +574,7 @@ private void prepare_list(ref Individual[ string ] individuals, Individual *[] s
     }
     catch (Exception ex)
     {
-    	log.trace("file_reader:Exception! %s", ex);
+        log.trace("file_reader:Exception! %s", ex);
         writeln("file_reader:Exception!", ex);
     }
 }
