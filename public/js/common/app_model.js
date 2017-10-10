@@ -51,12 +51,7 @@
     self.init = function () {
       self.ontology = new veda.OntologyModel();
       self.drafts = new veda.DraftsModel();
-      // Set default locale
-      var defaultLanguage = (new veda.IndividualModel("v-ui:DefaultLanguage"))["rdf:value"][0];
-      var defaultLanguageLabel = (new veda.IndividualModel("v-ui:DefaultLanguage"))["rdf:value"][0]["rdf:value"][0].toString();
-      self.user = {};
-      self.user.language = {};
-      self.user.language[defaultLanguageLabel] = defaultLanguage;
+      self.user = new veda.UserModel("cfg:Guest");
     };
 
     // Start application
