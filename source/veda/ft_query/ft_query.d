@@ -1,9 +1,29 @@
 /**
  * filltext query module
  */
+
+import core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, core.runtime;
 import std.stdio, std.socket, std.conv, std.array, std.outbuffer;
 import core.thread, core.atomic;
 import veda.common.logger, veda.core.common.context, veda.core.impl.thread_context, veda.common.type;
+
+static this()
+{
+    bsd_signal(SIGINT, &handleTermination3);
+}
+
+bool f_listen_exit = false;
+
+extern (C) void handleTermination3(int _signal)
+{
+    stderr.writefln("!SYS: caught signal: %s", text(_signal));
+
+    f_listen_exit = true;
+    listener.close();
+
+    thread_term();
+    Runtime.terminate();
+}
 
 class HandlerThread : Thread
 {
@@ -29,7 +49,7 @@ private:
             string[]     els = request.split('�');
             if (els.length == 8)
             {
-		//context.get_logger.trace ("query: %s", els);
+                //context.get_logger.trace ("query: %s", els);
 
                 string _ticket    = els[ 0 ];
                 string _query     = els[ 1 ];
@@ -60,7 +80,7 @@ private:
                     try
                     {
                         res = context.get_individuals_ids_via_query(ticket, _query, _sort, _databases, _from, _top, _limit, null, OptAuthorize.YES, false);
-			//context.get_logger.trace("res=%s", res);
+                        //context.get_logger.trace("res=%s", res);
                     }
                     catch (Throwable tr)
                     {
@@ -163,7 +183,7 @@ class ContextPool
                 return ctx;
             }
         }
-		Ticket systicket;
+        Ticket  systicket;
         Context new_ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", "", log, systicket, null);
         stderr.writefln("create new context %X", &new_ctx);
         pool[ new_ctx ] = true;
@@ -177,10 +197,11 @@ class ContextPool
 }
 
 shared ContextPool ctx_pool;
+TcpSocket          listener;
 
 void main()
 {
-    TcpSocket listener = new TcpSocket();
+    listener = new TcpSocket();
 
     listener.bind(getAddress("localhost", 11112)[ 0 ]);
     listener.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
@@ -193,7 +214,7 @@ void main()
     ctx_pool.free_context(context);
     try
     {
-        while (true)
+        while (!f_listen_exit)
         {
             Socket socket = listener.accept();
             context = ctx_pool.allocate_context();
