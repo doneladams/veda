@@ -45,7 +45,12 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
     {
         if (value.type == DataType.Uri)
         {
-            packer.pack(value.get!string.dup);
+            string svalue = value.get!string;
+
+            if (svalue == "")
+                packer.pack(null);
+            else
+                packer.pack(svalue.dup);
             // stderr.writef("\tDATATYPE URI %s\n", value.get!string);
         }
         else if (value.type == DataType.Integer)
@@ -73,18 +78,21 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
         {
             string svalue = value.get!string;
 
-            if (svalue is null)
-                svalue = "";
-
             if (value.lang != LANG.NONE)
             {
-                packer.beginArray(3).pack(DataType.String, svalue.dup, value.lang);
+                if (svalue == "")
+                    packer.beginArray(3).pack(DataType.String, null, value.lang);
+                else
+                    packer.beginArray(3).pack(DataType.String, svalue.dup, value.lang);
                 // stderr.writef("\tSOME LANG %s %d\n", svalue , value.lang);
             }
             else
             {
+                if (svalue == "")
+                    packer.beginArray(2).pack(DataType.String, null);
+                else
+                    packer.beginArray(2).pack(DataType.String, svalue.dup);
                 // stderr.writef("\tLANG NONE %s\n", svalue);
-                packer.beginArray(2).pack(DataType.String, svalue.dup);
             }
         }
     }

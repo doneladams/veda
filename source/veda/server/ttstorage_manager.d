@@ -428,6 +428,9 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                                 {
                                     if (storage_id == P_MODULE.subject_manager)
                                     {
+								        if (user_uri is null || user_uri.length == 0)
+								            user_uri = "cfg:Guest";
+                                    	
                                         Individual imm;
                                         imm.uri = text(op_id);
                                         imm.addResource("cmd", Resource(cmd));
