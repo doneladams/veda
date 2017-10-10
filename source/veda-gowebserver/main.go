@@ -72,6 +72,7 @@ var endpoint *nanomsg.Endpoint
 
 //vedaServerURL is tcp address of veda server
 var vedaServerURL = "tcp://127.0.0.1:9112"
+var updateChannelURL = "tcp://127.0.0.1:9111"
 
 //attachmentsPath is path where files from request are stored
 var attachmentsPath = "./data/files/"
@@ -209,15 +210,16 @@ func main() {
 	mifCache = make(map[int]*ModuleInfoFile)
 	externalUsersTicketId = make(map[string]bool)
 
+	go monitorIndividualChanges()
 	err = fasthttp.ListenAndServe("0.0.0.0:"+portStr, requestHandler)
 	if err != nil {
 		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
 	}
-/*
-	err = fasthttp.ListenAndServeTLS("0.0.0.0:8020", "ssl-certs/server.crt",
-		"ssl-certs/server.key", requestHandler)
-	if err != nil {
-		log.Fatal("@ERR ON STARTUP WEBSERVER ON HTTPS", err)
-	}
-*/
+	/*
+		err = fasthttp.ListenAndServeTLS("0.0.0.0:8020", "ssl-certs/server.crt",
+			"ssl-certs/server.key", requestHandler)
+		if err != nil {
+			log.Fatal("@ERR ON STARTUP WEBSERVER ON HTTPS", err)
+		}
+	*/
 }
