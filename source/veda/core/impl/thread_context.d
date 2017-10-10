@@ -1306,9 +1306,14 @@ class PThreadContext : Context
                 string     prev_state;
                 Individual prev_indv;
 
+				string user_uri = ticket.user_uri;
+
+				if (user_uri is null || user_uri == "")
+					user_uri = "cfg:Guest";
+
                 try
                 {
-                    prev_state = get_from_individual_storage_thread(ticket.user_uri, indv.uri);
+                    prev_state = get_from_individual_storage_thread(user_uri, indv.uri);
 
                     if ((prev_state is null ||
                          prev_state.length == 0) && (cmd == INDV_OP.ADD_IN || cmd == INDV_OP.SET_IN || cmd == INDV_OP.REMOVE_FROM))
@@ -1389,7 +1394,7 @@ class PThreadContext : Context
                 }
 
                 res.result =
-                    subject_storage_module.put(P_MODULE.subject_manager, op_auth, ticket.user_uri, _types, indv.uri, prev_state, new_state,
+                    subject_storage_module.put(P_MODULE.subject_manager, op_auth, user_uri, _types, indv.uri, prev_state, new_state,
                                                update_counter, event_id, transaction_id, ignore_freeze, res.op_id);
                 //log.trace("res.result=%s", res.result);
 
