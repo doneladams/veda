@@ -187,6 +187,7 @@ class VedaModule
     	    string[ string ] properties;
             properties         = readProperties("./veda.properties");
             notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
+            main_module_url = properties.as!(string)("main_module_url") ~ "\0";
         }
         catch (Throwable ex)
         {

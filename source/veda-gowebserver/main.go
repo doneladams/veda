@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	//	"github.com/muller95/traildb-go"
+
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
@@ -70,9 +71,11 @@ var socket *nanomsg.Socket
 //endpoint is nanomsg endpoint connected to server
 var endpoint *nanomsg.Endpoint
 
-//vedaServerURL is tcp address of veda server
-var vedaServerURL = "tcp://127.0.0.1:9112"
-var updateChannelURL = "tcp://127.0.0.1:9111"
+//mainModuleURL is tcp address of veda server
+var mainModuleURL = "tcp://127.0.0.1:9112"
+var notifyChannelURL = "tcp://127.0.0.1:9111"
+var ftQueryURL = "127.0.0.1:11112"
+var tarantoolURL = "127.0.0.1:9999"
 
 //attachmentsPath is path where files from request are stored
 var attachmentsPath = "./data/files/"
@@ -194,16 +197,19 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 func main() {
 	var err error
 	socket, err = nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REQ)
+
+	configWebServer()
+
 	if err != nil {
 		log.Fatal("@ERR ON CREATING SOCKET")
 	}
 
-	endpoint, err = socket.Connect(vedaServerURL)
+	endpoint, err = socket.Connect(mainModuleURL)
 	for err != nil {
-		endpoint, err = socket.Connect(vedaServerURL)
+		endpoint, err = socket.Connect(mainModuleURL)
 		time.Sleep(3000 * time.Millisecond)
 	}
-	conn.Connect("127.0.0.1:9999")
+	conn.Connect(tarantoolURL)
 
 	ticketCache = make(map[string]ticket)
 	ontologyCache = make(map[string]map[string]interface{})

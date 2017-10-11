@@ -51,6 +51,8 @@ struct TransactionItem
 }
 TransactionItem *[ string ] transaction_buff;
 TransactionItem *[] transaction_queue;
+private string tarantool_addr = "127.0.0.1";
+private ushort tarantool_port = 9999;
 
 public void freeze(P_MODULE storage_id)
 {
@@ -299,7 +301,7 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
                     send(tid_response_reciever, true);
                 });
 
-        connector.connect("127.0.0.1", 9999);
+        connector.connect(tarantool_addr, tarantool_port);
 
         while (is_exit == false)
         {

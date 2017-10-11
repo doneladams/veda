@@ -1,0 +1,56 @@
+package main
+
+import (
+	"bufio"
+	"log"
+	"os"
+	"strings"
+)
+
+func configWebServer() {
+	file, err := os.Open("veda.properties")
+	if err == nil {
+		scanner := bufio.NewScanner(file)
+		count := 0
+		for scanner.Scan() {
+			count++
+			line := scanner.Text()
+			line = strings.Trim(line, "\r\n\t ")
+			line = strings.Replace(line, " ", "", -1)
+			idx := strings.Index(line, "#")
+
+			if idx >= 0 {
+				line = string([]rune(line)[:idx])
+			}
+
+			if len(line) == 0 {
+				continue
+			}
+
+			splitted := strings.SplitN(line, "=", 2)
+			if len(splitted) < 2 {
+				log.Printf("@ERR NO ASSIGNATION SING FOUND ON LINE %d\n", count)
+				continue
+			}
+
+			paramName := splitted[0]
+			paramVal := splitted[1]
+			switch paramName {
+			case "notify_channel_url":
+				notifyChannelURL = paramVal
+			case "main_module_url":
+				mainModuleURL = paramVal
+			case "ft_query_url":
+				ftQueryURL = paramVal
+			case "tarantool_url":
+				tarantoolURL = paramVal
+
+			default:
+				continue
+			}
+		}
+		file.Close()
+	} else {
+		log.Println("@ERR ON READING CONFIG, START WITH DEFAULTS: ", err)
+	}
+}

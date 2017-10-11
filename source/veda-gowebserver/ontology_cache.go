@@ -36,24 +36,24 @@ func tryStoreInOntologyCache(individual map[string]interface{}) {
 //and waits for notifications about individual changes, if ontology was changed
 //then it updates cache
 func monitorIndividualChanges() {
-	updateChannel, err := nanomsg.NewSubSocket()
+	notifyChannel, err := nanomsg.NewSubSocket()
 	if err != nil {
 		log.Fatal("@ERR ON CREATING UPDATE CHANNEL SOCKET: ", err)
 	}
 
-	err = updateChannel.Subscribe("")
+	err = notifyChannel.Subscribe("")
 	if err != nil {
 		log.Fatal("@ERR ON SUBSCRIBING TO UPDATES: ", err)
 	}
 
-	_, err = updateChannel.Connect(updateChannelURL)
+	_, err = notifyChannel.Connect(notifyChannelURL)
 	for err != nil {
-		_, err = updateChannel.Connect(updateChannelURL)
+		_, err = notifyChannel.Connect(notifyChannelURL)
 		time.Sleep(3000 * time.Millisecond)
 	}
 
 	for {
-		bytes, err := updateChannel.Recv(0)
+		bytes, err := notifyChannel.Recv(0)
 		if err != nil {
 			log.Println("@ERR ON RECEIVING MESSAGE VIA UPDATE CHANNEL: ", err)
 			continue

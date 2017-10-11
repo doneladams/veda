@@ -16,7 +16,7 @@ func query(ctx *fasthttp.RequestCtx) {
 	timestamp := time.Now().Unix()
 
 	//Creates tcp socket connection to ft-query module
-	socket, err := net.Dial("tcp", "127.0.0.1:11112")
+	socket, err := net.Dial("tcp", ftQueryURL)
 	if err != nil {
 		log.Println("@ERR QUERY: ERR ON DIAL ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))

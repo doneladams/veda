@@ -15,6 +15,7 @@ private
     import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.core.storage.tarantool_storage, veda.core.search.vql;
     import veda.util.module_info;
     import veda.common.logger;
+    import veda.util.properd;
 
     version (isServer)
     {
@@ -31,6 +32,7 @@ private File   *ff_key2slot_r = null;
 private long   last_size_key2slot;
 private int[ string ] old_key2slot;
 private string file_name_key2slot;
+
 
 public int[ string ] read_key2slot()
 {
@@ -95,10 +97,13 @@ class PThreadContext : Context
     private string           node_id;
 
     private bool             API_ready = true;
-    private string           main_module_url;
+    private static string           main_module_url;
     private Logger           log;
 
     private long             last_ticket_manager_op_id = 0;
+
+    private static string tarantool_addr = "127.0.0.1";
+    private static ushort tarantool_port = 9999;
 
     public Logger get_logger()
     {
@@ -228,7 +233,7 @@ class PThreadContext : Context
  */
         ctx.node_id = _node_id;
 
-        ctx.individuals_storage_r = new TarantoolStorage("127.0.0.1", 9999, ctx.log);
+        ctx.individuals_storage_r = new TarantoolStorage(tarantool_addr, tarantool_port, ctx.log);
         // ctx.tickets_storage_r    = new LmdbStorage(tickets_db_path, DBMode.R, context_name ~ ":tickets", ctx.log);
 
         ctx.name = context_name;
@@ -260,6 +265,20 @@ class PThreadContext : Context
         //ft_local_count  = get_count_indexed();
 
         ctx.log.trace_log_and_console("NEW CONTEXT [%s]", context_name);
+
+        try
+        {
+    	    string[ string ] properties;
+            properties         = readProperties("./veda.properties");
+            string tarantool_url_full = properties.as!(string)("tarantool_url");
+            main_module_url = properties.as!(string)("main_module_url") ~ "\0";
+            stderr.writefln("@TARANTOOL URL %s", tarantool_url_full);
+            stderr.writefln("@MAIN MODULE %s", main_module_url);
+        }
+        catch (Throwable ex)
+        {
+            ctx.log.trace("ERR! unable read ./veda.properties");
+        }
 
         return ctx;
     }
