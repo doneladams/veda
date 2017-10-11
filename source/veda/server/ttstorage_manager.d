@@ -14,6 +14,7 @@ private
     import msgpack;
     import veda.connector.connector;
     import veda.connector.requestresponse;
+    import veda.util.properd;
 }
 
 // ////// Logger ///////////////////////////////////////////
@@ -51,8 +52,7 @@ struct TransactionItem
 }
 TransactionItem *[ string ] transaction_buff;
 TransactionItem *[] transaction_queue;
-private string tarantool_addr = "127.0.0.1";
-private ushort tarantool_port = 9999;
+
 
 public void freeze(P_MODULE storage_id)
 {
@@ -248,11 +248,32 @@ public void tt_individuals_manager(P_MODULE _storage_id, string db_path, string 
     long                         op_id = 0;
 
     string                       notify_channel_url = "tcp://127.0.0.1:9111\0";
+    string                       tarantool_addr = "127.0.0.1";
+    ushort                       tarantool_port = 9999;
     int                          sock;
     bool                         already_notify_channel = false;
     ModuleInfoFile               module_info;
 
     Connector                    connector = new Connector(log);
+
+    try
+    {
+        string[ string ] properties;
+        properties         = readProperties("./veda.properties");
+        string tarantool_url_full = properties.as!(string)("tarantool_url");
+        notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
+        long idx = indexOf(tarantool_url_full, ":");
+        if (idx >= 0) {
+            tarantool_addr = tarantool_url_full[0..idx];
+            tarantool_port = to!ushort(tarantool_url_full[idx+1..$]);
+        } else {
+            log.trace("ERR! cannot split tarantool_url into address and port");
+        }
+    }
+    catch (Throwable ex)
+    {
+        log.trace("ERR! unable read ./veda.properties");
+    }
 
     try
     {

@@ -7,7 +7,7 @@ module veda.core.impl.thread_context;
 private
 {
     import core.thread, std.stdio, std.format, std.datetime, std.concurrency, std.conv, std.outbuffer, std.string, std.uuid, std.file, std.path,
-           std.json, std.regex;
+           std.json, std.regex, std.string;
     import veda.bind.xapian_d_header;
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context,
@@ -272,8 +272,13 @@ class PThreadContext : Context
             properties         = readProperties("./veda.properties");
             string tarantool_url_full = properties.as!(string)("tarantool_url");
             main_module_url = properties.as!(string)("main_module_url") ~ "\0";
-            stderr.writefln("@TARANTOOL URL %s", tarantool_url_full);
-            stderr.writefln("@MAIN MODULE %s", main_module_url);
+            long idx = indexOf(tarantool_url_full, ":");
+            if (idx >= 0) {
+                tarantool_addr = tarantool_url_full[0..idx];
+                tarantool_port = to!ushort(tarantool_url_full[idx+1..$]);
+            } else {
+                ctx.log.trace("ERR! cannot split tarantool_url into address and port");
+            }
         }
         catch (Throwable ex)
         {

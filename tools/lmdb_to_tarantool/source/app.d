@@ -1,12 +1,35 @@
 import std.stdio, std.socket, std.datetime, std.conv;
 import individual;
 import connector, type, resource, requestresponse, veda.util.queue, veda.core.storage.lmdb_storage, logger;
+import veda.util.properd;
 
 void main(string[] args)
 {
     Connector connector = new Connector();
+    string tarantool_addr = "127.0.0.1";
+    ushort tarantool_port = "127.0.0.1";
+    
+    try
+    {
+        string[ string ] properties;
+        properties         = readProperties("./veda.properties");
+        string tarantool_url_full = properties.as!(string)("tarantool_url");
+        notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
+        long idx = indexOf(tarantool_url_full, ":");
+        if (idx >= 0) {
+            tarantool_addr = tarantool_url_full[0..idx];
+            tarantool_port = to!ushort(tarantool_url_full[idx+1..$]);
+        } else {
+            log.trace("ERR! cannot split tarantool_url into address and port");
+        }
+    }
+    catch (Throwable ex)
+    {
+        log.trace("ERR! unable read ./veda.properties");
+    }
 
-    connector.connect("127.0.0.1", 9999);
+
+    connector.connect(tarantool_addr, tarantool_port);
 
     Logger       log = new Logger("lmdb_to_tarantool", "log", "");
 
