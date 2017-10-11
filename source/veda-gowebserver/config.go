@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -44,6 +45,15 @@ func configWebServer() {
 				ftQueryURL = paramVal
 			case "tarantool_url":
 				tarantoolURL = paramVal
+			case "use_https":
+				boolVal, err := strconv.ParseBool(paramVal)
+				if err != nil {
+					log.Printf("@ERR ON PARSING BOOL IN CONFIG ON LINE %d\n", count)
+					continue
+				}
+				useHTTPS = boolVal
+			case "https_port":
+				webserverHTTPSPort = paramVal
 
 			default:
 				continue

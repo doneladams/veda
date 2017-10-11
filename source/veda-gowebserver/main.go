@@ -76,6 +76,9 @@ var mainModuleURL = "tcp://127.0.0.1:9112"
 var notifyChannelURL = "tcp://127.0.0.1:9111"
 var ftQueryURL = "127.0.0.1:11112"
 var tarantoolURL = "127.0.0.1:9999"
+var webserverPort = "8080"
+var webserverHTTPSPort = "8020"
+var useHTTPS = false
 
 //attachmentsPath is path where files from request are stored
 var attachmentsPath = "./data/files/"
@@ -217,10 +220,22 @@ func main() {
 	externalUsersTicketId = make(map[string]bool)
 
 	go monitorIndividualChanges()
-	err = fasthttp.ListenAndServe("0.0.0.0:"+portStr, requestHandler)
-	if err != nil {
-		log.Fatal("@ERR ON STARTUP WEBSERVER ", err)
+	go func() {
+		err = fasthttp.ListenAndServe("0.0.0.0:"+webserverPort, requestHandler)
+		if err != nil {
+			log.Fatal("@ERR ON STARTUP HTTP WEBSERVER ", err)
+		}
+	}()
+
+	if useHTTPS {
+		err = fasthttp.ListenAndServeTLS("0.0.0.0:"+webserverHTTPSPort, "ssl-certs/server.crt",
+			"ssl-certs/server.key", requestHandler)
+		if err != nil {
+			log.Fatal("@ERR ON STARTUP HTTPS WEBSERVER", err)
+		}
 	}
+
+	select {}
 	/*
 		err = fasthttp.ListenAndServeTLS("0.0.0.0:8020", "ssl-certs/server.crt",
 			"ssl-certs/server.key", requestHandler)
