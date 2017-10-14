@@ -16,7 +16,7 @@
   v-s:loadPriority 10 ;
 .
 
-# ------------------------------------------------------------ КЛАССЫ --
+### CLASSES ####
 
 v-s:RegistrationRequest
   rdf:type owl:Class ;
@@ -25,6 +25,99 @@ v-s:RegistrationRequest
   rdfs:label "Запрос на регистрацию"@ru ;
   v-ui:hasTemplate v-s:RegistrationRequestTemplate ;
 .
+
+v-s:Site
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Сайт"@ru ;
+  rdfs:label "Site"@en ;
+.
+
+v-s:Page
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Страница"@ru ;
+  rdfs:label "Page"@en ;
+.
+
+v-s:Section
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Раздел"@ru ;
+  rdfs:label "Section"@en ;
+.
+
+v-s:Article
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Статья"@ru ;
+  rdfs:label "Article"@en ;
+.
+
+v-s:Comment
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Комментарий"@ru ;
+  rdfs:label "Comment"@en ;
+.
+
+v-s:Category
+  rdf:type owl:Class ;
+  rdfs:subClassOf owl:Thing ;
+  rdfs:label "Категория"@ru ;
+  rdfs:label "Category"@en ;
+.
+
+### PROPERTIES ###
+
+v-s:url
+  rdf:type owl:DatatypeProperty ;
+  rdfs:domain v-s:Site ;
+  rdfs:label "URL" ;
+  rdfs:range xsd:string ;
+.
+
+v-s:hasSection
+  rdf:type owl:ObjectProperty ;
+  rdfs:domain v-s:Article ;
+  rdfs:label "Section"@en ;
+  rdfs:label "Раздел"@ru ;
+  rdfs:range v-s:Section ;
+.
+
+v-s:hasCategory
+  rdf:type owl:ObjectProperty ;
+  rdfs:domain v-s:Article ;
+  rdfs:label "Category"@en ;
+  rdfs:label "Категория"@ru ;
+  rdfs:range v-s:Category ;
+.
+
+site:hasArticle
+  rdf:type owl:ObjectProperty ;
+  rdfs:domain v-s:Section ;
+  rdfs:label "article"@en ;
+  rdfs:label "статья"@ru ;
+  rdfs:range v-s:Article ;
+.
+
+v-s:heading
+  rdf:type owl:DatatypeProperty ;
+  rdfs:domain v-s:Article ;
+  rdfs:label "Heading"@en ;
+  rdfs:label "Заголовок"@ru ;
+  rdfs:range xsd:string ;
+.
+
+v-s:summary
+  rdf:type owl:DatatypeProperty ;
+  rdfs:domain v-s:Article ;
+  rdfs:label "Summary"@en ;
+  rdfs:label "Резюме"@ru ;
+  rdfs:range xsd:string ;
+.
+
+### TEMPLATES ###
 
 v-s:RegistrationRequestTemplate
   rdf:type v-ui:ClassTemplate ;
@@ -52,4 +145,25 @@ v-s:RegistrationRequestTemplate
   <span class="text-muted" about="@" property="@"></span>
 </div>
   """ ;
+.
+
+### SECURITY ###
+
+v-s:SiteAdmin
+  rdf:type v-s:Group ;
+  rdfs:label "Группа администраторов сайта"@ru ;
+  rdfs:label "Site admin group"@en ;
+.
+
+v-s:SiteAdminPermission
+  rdf:type v-s:PermissionStatement ;
+  rdfs:label "Полномочия группы администраторов сайта"@ru ;
+  rdfs:label "Site admin group permissions"@en ;
+  v-s:permissionSubject v-s:SiteAdmin ;
+  v-s:permissionObject v-s:Page, v-s:Section, v-s:Article, v-s:Category, v-s:Comment ;
+  v-s:permissionObject v-s:Page_group, v-s:Section_group, v-s:Article_group, v-s:Category_group ;
+  v-s:canCreate "true"^^xsd:boolean ;
+  v-s:canRead "true"^^xsd:boolean ;
+  v-s:canUpdate "true"^^xsd:boolean ;
+  v-s:canDelete "true"^^xsd:boolean ;
 .
