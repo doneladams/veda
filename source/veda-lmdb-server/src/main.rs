@@ -24,7 +24,8 @@ pub fn fail(resp_msg: &mut Vec<u8>, code: rest::Codes, err_msg: String) {
     encode::encode_uint(resp_msg, code as u64);
 }
 
-fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, db: &DbHandle) {
+fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut Vec<u8>, 
+    env: &Environment, db_handle: &DbHandle) {
     if arr_size < 4 {
         ///Minimal valid array size for request is 4
         fail(resp_msg, rest::Codes::BadRequest, "@INVALID MSGPACK SIZE < 4".to_string());
@@ -45,7 +46,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     }
     match op_code {
         // PUT => rest::put(cursor, arr_size, need_auth, resp_msg),
-        GET => rest::get(cursor, arr_size, need_auth, resp_msg, db),
+        GET => rest::get(cursor, arr_size, need_auth, resp_msg, env, db_handle),
         /// Auth request don't need need_auth flag
         /// But for the sake of generality request contains it always.AUTHORIZE
         /// Three rest requests need auth function with different params.
@@ -62,7 +63,7 @@ fn unmarshal_request(cursor: &mut Cursor<&[u8]>, arr_size: u64, resp_msg: &mut V
     // writeln!(stderr(), "@END REQUEST");*/
 }
 
-fn handle_client(stream: &mut TcpStream, db: &DbHandle) {
+fn handle_client(stream: &mut TcpStream, env: &Environment, db_handle: &DbHandle) {
     let mut buf = vec![0; 4];
     let mut read = 0;
     while read < 4 {
@@ -102,7 +103,7 @@ fn handle_client(stream: &mut TcpStream, db: &DbHandle) {
     
     match decode::decode_array(&mut cursor) {
         Err(err) => fail(&mut resp_msg, rest::Codes::InternalServerError, err),
-        Ok(arr_size) => unmarshal_request(&mut cursor, arr_size, &mut resp_msg, db)
+        Ok(arr_size) => unmarshal_request(&mut cursor, arr_size, &mut resp_msg, &env, db_handle)
     }
 }
 
@@ -127,15 +128,15 @@ fn main() {
         }
     }
 
-    let db;
+    let db_handle;
     loop {
         match env.get_default_db(DbFlags::empty()) {
-            Ok(lmdb_db_res) => {
-                db = lmdb_db_res;
+            Ok(db_handle_res) => {
+                db_handle = db_handle_res;
                 break;
             },
             Err(e) => {
-                writeln!(stderr(), "Err opening db: {:?}", e).unwrap();
+                writeln!(stderr(), "Err opening db handle: {:?}", e).unwrap();
                 thread::sleep(time::Duration::from_secs(3));
                 writeln!(stderr(), "Retry").unwrap(); 
             }
@@ -144,7 +145,7 @@ fn main() {
     loop {
         writeln!(stdout(), "Accepting").unwrap();
         match listener.accept() {
-            Ok((mut stream, _)) => handle_client(&mut stream, &db),
+            Ok((mut stream, _)) => handle_client(&mut stream, &env, &db_handle),
             Err(e) => writeln!(stderr(), "Err accepting connection: {:?}", e).unwrap(),
         }
     }

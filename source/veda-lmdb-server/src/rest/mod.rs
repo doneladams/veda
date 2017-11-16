@@ -1,4 +1,4 @@
-use lmdb_rs::{DbHandle};
+use lmdb_rs::{DbHandle, Environment, MdbError};
 use std;
 use std::io::{ Write, stderr, Cursor };
 use rmp_bind::{ encode, decode };
@@ -16,7 +16,8 @@ pub enum Codes {
     UnprocessableEntity = 422
 }
 
-pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>, db: &DbHandle) {
+pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: &mut Vec<u8>, 
+    env: &Environment ,db_handle: &DbHandle) {
     let mut user_id_buf = Vec::default();
     let user_id: &str;
     match decode::decode_string(cursor, &mut user_id_buf) {
@@ -36,6 +37,38 @@ pub fn get(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
             Ok(_) => res_uri = std::str::from_utf8(&res_uri_buf).unwrap()
         }
 
+        match env.new_transaction() {
+            Ok(txn) => {
+                let db = txn.bind(db_handle);
+                match db.get::<String>(&res_uri.to_string()) {
+                    Ok(val) => {
+                        encode::encode_uint(resp_msg, Codes::Ok as u64);
+                        encode::encode_string(resp_msg, &val);
+                    },
+                    Err(e) => {
+                        match e {
+                            MdbError::NotFound => {
+                                encode::encode_uint(resp_msg, Codes::UnprocessableEntity as u64);
+                                encode::encode_nil(resp_msg);
+                            },
+
+                            _ => {
+                                writeln!(stderr(), "@ERR ON GET TRANSACTION {:?}, {}", e, res_uri).unwrap();
+                                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                                encode::encode_nil(resp_msg);
+                            }
+                        }
+                    }
+                }
+            },
+            Err(e) => {
+                writeln!(stderr(), "@ERR ON CREATING GET TRANSACTION {:?}", e).unwrap();
+                encode::encode_uint(resp_msg, Codes::InternalServerError as u64);
+                encode::encode_nil(resp_msg);
+            }
+
+        }
+        
   /*      // writeln!(stderr(), "@GET user: {0} / res: {1}", user_id, res_uri);
         encode::encode_array(&mut request, 1);
         encode::encode_string(&mut request, res_uri);
