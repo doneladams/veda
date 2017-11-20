@@ -154,7 +154,7 @@ pub fn put(cursor: &mut Cursor<&[u8]>, arr_size: u64, need_auth:bool, resp_msg: 
 
         let mut individual = put_routine::Individual::new();
         ///Decoding msgpack to individual structure
-        match put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[..]), &mut individual) {
+        match put_routine::msgpack_to_individual(&mut Cursor::new(&individual_msgpack_buf[1..]), &mut individual) {
             Ok(_) => {}
             Err(err) => {
                 writeln!(stderr(), "@ERR DECODING INDIVIDUAL {:?}", err).unwrap();
