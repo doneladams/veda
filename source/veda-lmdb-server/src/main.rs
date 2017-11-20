@@ -115,7 +115,7 @@ fn main() {
     env_builder.max_dbs(1);
     let env;
     loop {
-        match env_builder.open("./data/lmdb-individuals/", 0) {
+        match env_builder.open("./data/lmdb-individuals/", 0o777) {
             Ok(env_res) => {
                 env = env_res;
                 break
