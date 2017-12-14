@@ -2,38 +2,26 @@ module veda.authorization.az_client;
 
 private
 {
-    import core.thread, std.stdio, std.conv, std.concurrency, std.file, std.datetime, std.array, std.string, core.time, std.outbuffer;
-    import url;
+    import core.thread, std.stdio, std.conv, std.concurrency, std.file, std.datetime, std.array, std.string, core.time, std.outbuffer, std.json;
+    import url, kaleidic.nanomsg.nano;
     import veda.common.type, veda.core.common.define, veda.storage.authorization;
     import veda.common.logger, veda.util.module_info;
-}
-import kaleidic.nanomsg.nano;
-version (VibeDefaultMain)
-{
-    import vibe.core.net;
-}
-
-static this()
-{
 }
 
 class ClientAuthorization : Authorization
 {
-    Logger log;
-    string host;
-    ushort port;
+    private Logger log;
+    private string acl_service_url;
+    private int    sock = -1;
 
     this(string _url, Logger _log)
     {
-        auto prsurl = parseURL(_url);
-
-        host = prsurl.host;
-        port = prsurl.port;
-
-        log = _log;
+        acl_service_url = _url;
+        log             = _log;
     }
 
-    ubyte authorize(string _uri, string user_uri, ubyte _request_access, bool is_check_for_reload, OutBuffer _trace_acl, OutBuffer _trace_group, OutBuffer _trace_info)
+    ubyte authorize(string _uri, string user_uri, ubyte _request_access, bool is_check_for_reload, OutBuffer _trace_acl, OutBuffer _trace_group,
+                    OutBuffer _trace_info)
     {
         ubyte res;
 
@@ -71,7 +59,7 @@ class ClientAuthorization : Authorization
             string req = buff.toString();
 
             bytes = nn_send(sock, cast(char *)req, req.length + 1, 0);
-            stderr.writefln("AZCL send [%d](%s)", req.length, req);
+            //stderr.writefln("AZCL send [%d](%s)", req.length, req);
             bytes = nn_recv(sock, &buf, NN_MSG, 0);
             if (bytes > 0)
             {
@@ -80,8 +68,40 @@ class ClientAuthorization : Authorization
 
                 if (rep.length > 4 && rep[ 0 ] == '[' && rep[ 1 ] == '"')
                 {
-                    rep = rep[ 2..$ - 2 ];
-                    stderr.writefln("AZCL rep (%s)", rep);
+                    //stderr.writefln("AZCL rep (%s)", rep);
+
+                    if (_trace_acl !is null || _trace_group !is null || _trace_info !is null)
+                    {
+                        JSONValue jsn;
+
+                        try
+                        {
+                            jsn = parseJSON(rep);
+                        }
+                        catch (Throwable tr)
+                        {
+                            stderr.writefln("ERR! az_client: fail parse rep=%s, err=%s", rep, tr.msg);
+                        }
+
+                        if (jsn.type == JSON_TYPE.ARRAY)
+                        {
+                            int idx = 1;
+                            rep = jsn.array[ 0 ].str;
+
+                            if (_trace_acl !is null)
+                                _trace_acl.write(jsn.array[ idx++ ].str);
+
+                            if (_trace_group !is null)
+                                _trace_group.write(jsn.array[ idx++ ].str);
+
+                            if (_trace_info !is null)
+                                _trace_info.write(jsn.array[ idx++ ].str);
+                        }
+                    }
+                    else
+                    {
+                        rep = rep[ 2..$ - 2 ];
+                    }
 
                     res = access_from_pretty_string(rep);
                 }
@@ -99,12 +119,10 @@ class ClientAuthorization : Authorization
     {
     }
 
-    private int    sock            = -1;
-    private string main_module_url = "tcp://127.0.0.1:22000\0";
-
-
     bool open()
     {
+        writefln("az_client: connect to %s", acl_service_url);
+
         if (sock >= 0)
             return true;
 
@@ -114,20 +132,20 @@ class ClientAuthorization : Authorization
             log.trace("ERR! cannot create socket");
             return false;
         }
-        else if (nn_connect(sock, cast(char *)main_module_url) < 0)
+        else if (nn_connect(sock, cast(char *)(acl_service_url ~ "\0")) < 0)
         {
-            log.trace("ERR! cannot connect socket to %s", main_module_url);
+            log.trace("ERR! cannot connect socket to %s", acl_service_url);
             return false;
         }
         else
         {
-            log.trace("success connect %s", main_module_url);
+            log.trace("success connect %s", acl_service_url);
             return true;
         }
-        //return false;
     }
 
     void close()
     {
+        nn_close(sock);
     }
 }

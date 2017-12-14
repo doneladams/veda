@@ -5,6 +5,7 @@ module veda.authorization.az_server;
 
 import core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, core.runtime, core.thread, core.atomic;
 import std.stdio, std.socket, std.conv, std.array, std.outbuffer, std.json, std.string;
+import kaleidic.nanomsg.nano, commando;
 import veda.common.logger, veda.storage.authorization, veda.storage.lmdb.lmdb_acl, veda.storage.common, veda.common.type;
 
 static this()
@@ -21,11 +22,11 @@ extern (C) void handleTermination3(int _signal)
     f_listen_exit = true;
 }
 
-const byte     TRACE_ACL   = 0;
-const byte     TRACE_GROUP = 1;
-const byte     TRACE_INFO  = 2;
+const byte TRACE_ACL   = 1;
+const byte TRACE_GROUP = 2;
+const byte TRACE_INFO  = 3;
 
-private char[] az_prepare(string request, Authorization acl_indexes)
+private string az_prepare(string request, Authorization acl_indexes)
 {
     OutBuffer trace_acl;
     OutBuffer trace_group;
@@ -37,7 +38,7 @@ private char[] az_prepare(string request, Authorization acl_indexes)
     byte[ 3 ] order_trace;
 
     string user_uri;
-    stderr.writefln("request=|%s| len=%d", request, request.length);
+    //stderr.writefln("request=|%s| len=%d", request, request.length);
 
     JSONValue jsn;
 
@@ -47,7 +48,7 @@ private char[] az_prepare(string request, Authorization acl_indexes)
     }
     catch (Throwable tr)
     {
-        stderr.writefln("ERR! fail parse request=%s, err=%s", request, tr.msg);
+        stderr.writefln("ERR! az_server: fail parse request=%s, err=%s", request, tr.msg);
     }
 
     response[ response_offset++ ] = '[';
@@ -87,25 +88,27 @@ private char[] az_prepare(string request, Authorization acl_indexes)
                             {
                                 if (el.array[ ii ].str == "TRACE-ACL")
                                 {
-                                    order_trace[ TRACE_ACL ] = cast(byte)ii;
-                                    trace_acl                = new OutBuffer();
+                                    order_trace[ ii - 2 ] = TRACE_ACL;
+                                    trace_acl             = new OutBuffer();
                                 }
                                 else if (el.array[ ii ].str == "TRACE-GROUP")
                                 {
-                                    order_trace[ TRACE_GROUP ] = cast(byte)ii;
-                                    trace_group                = new OutBuffer();
+                                    order_trace[ ii - 2 ] = TRACE_GROUP;
+                                    trace_group           = new OutBuffer();
                                 }
                                 else if (el.array[ ii ].str == "TRACE-INFO")
                                 {
-                                    order_trace[ TRACE_INFO ] = cast(byte)ii;
-                                    trace_info                = new OutBuffer();
+                                    order_trace[ ii - 2 ] = TRACE_INFO;
+                                    trace_info            = new OutBuffer();
                                 }
                             }
                         }
 
-                        ubyte res = acl_indexes.authorize(uri, user_uri, access_from_pretty_string(s_access), true, trace_acl, trace_group, trace_info);
+                        ubyte res = acl_indexes.authorize(uri, user_uri, access_from_pretty_string(
+                                                                                                   s_access), true, trace_acl, trace_group,
+                                                          trace_info);
 
-                        stderr.writefln("uri=%s user_uri=%s response_access=%s", uri, user_uri, access_to_pretty_string(res));
+                        //stderr.writefln("uri=%s user_uri=%s response_access=%s", uri, user_uri, access_to_pretty_string(res));
 
                         if (res & Access.can_create)
                             response[ response_offset++ ] = 'C';
@@ -129,28 +132,57 @@ private char[] az_prepare(string request, Authorization acl_indexes)
 
     //stderr.writefln ("res_trace=%s", res_trace);
 
-    foreach (oo; order_trace)
+    if (trace_group !is null || trace_acl !is null || trace_info !is null)
     {
-        if (oo > 0)
+        string[] all_res;
+
+        all_res ~= cast(string)response[ 2..response_offset - 1 ];
+
+        foreach (oo; order_trace)
         {
-            //stderr.writefln ("%s", res_trace[oo-2]);
+            if (oo > 0)
+            {
+                if (oo == TRACE_ACL)
+                    all_res ~= trace_acl.toString();
+                else if (oo == TRACE_GROUP)
+                    all_res ~= trace_group.toString();
+                else if (oo == TRACE_INFO)
+                    all_res ~= trace_info.toString();
+            }
         }
+        JSONValue jout = JSONValue(all_res);
+        string    sout = jout.toString();
+        return sout;
     }
 
     response[ response_offset++ ] = ']';
     response[ response_offset++ ] = 0;
-    return response[ 0..response_offset ];
+    return cast(string)response[ 0..response_offset ];
 }
-
 
 long   count;
 
 Logger log;
-import kaleidic.nanomsg.nano;
-void main()
+void main(string[] args)
 {
+	
+    string bind_url = "tcp://127.0.0.1:22000";
+    try
+    {
+        ArgumentParser.parse(args, (ArgumentSyntax syntax)
+                             {
+                                 syntax.config.caseSensitive = commando.CaseSensitive.yes;
+                                 syntax.option('b', "bind", &bind_url, Required.no,
+                                               "Set binding url, example: --bind=tcp://127.0.0.1:22000");
+                             });
+    }
+    catch (ArgumentParserException ex)
+    {
+        stderr.writefln(ex.msg);
+        return;
+    }	
+	
     int    sock;
-    string url = "tcp://127.0.0.1:22000\0";
 
     sock = nn_socket(AF_SP, NN_REP);
     if (sock < 0)
@@ -158,12 +190,12 @@ void main()
         stderr.writefln("ERR! cannot create socket");
         return;
     }
-    if (nn_bind(sock, cast(char *)url) < 0)
+    if (nn_bind(sock, cast(char *)(bind_url ~ "\0")) < 0)
     {
-        stderr.writefln("ERR! cannot bind to socket, url=%s", url);
+        stderr.writefln("ERR! cannot bind to socket, url=%s", bind_url);
         return;
     }
-    stderr.writefln("success bind to %s", url);
+    stderr.writefln("success bind to %s", bind_url);
 
     log = new Logger("veda-authorization", "log", "");
     Authorization acl_indexes;
@@ -181,14 +213,14 @@ void main()
             if (bytes >= 0)
             {
                 string req = cast(string)buf[ 0..bytes ];
-                stderr.writefln("RECEIVED [%d](%s) cont=%d", bytes, req, count);
+                //stderr.writefln("RECEIVED [%d](%s) cont=%d", bytes, req, count);
 
-                char[] rep = az_prepare(req, acl_indexes);
+                string rep = az_prepare(req, acl_indexes);
 
                 nn_freemsg(buf);
 
                 bytes = nn_send(sock, cast(char *)rep, rep.length, 0);
-                stderr.writefln("SENDING (%s) %d bytes", rep, bytes);
+                //stderr.writefln("SENDING (%s) %d bytes", rep, bytes);
             }
         }
         catch (Throwable tr)
