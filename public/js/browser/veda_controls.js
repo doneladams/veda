@@ -1278,96 +1278,144 @@
   }
 
   $.fn.veda_file = function( options ) {
-    var opts = $.extend( {}, $.fn.veda_file.defaults, options ),
-      control = $(opts.template),
-      spec = opts.spec,
-      individual = opts.individual,
-      rel_uri = opts.rel_uri,
-      rangeRestriction = spec && spec.hasValue("v-ui:rangeRestriction") ? spec["v-ui:rangeRestriction"][0] : undefined,
-      range = rangeRestriction ? [ rangeRestriction ] : (new veda.IndividualModel(rel_uri))["rdfs:range"],
-      isSingle = spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true,
-      acceptedFileType = this.attr("accept");
+    if (window.FormData) {
+      var opts = $.extend( {}, $.fn.veda_file.defaults, options ),
+        control = $(opts.templateAJAX),
+        spec = opts.spec,
+        individual = opts.individual,
+        rel_uri = opts.rel_uri,
+        rangeRestriction = spec && spec.hasValue("v-ui:rangeRestriction") ? spec["v-ui:rangeRestriction"][0] : undefined,
+        range = rangeRestriction ? [ rangeRestriction ] : (new veda.IndividualModel(rel_uri))["rdfs:range"],
+        isSingle = spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true,
+        acceptedFileType = this.attr("accept");
 
-    var fileInput = $(".file", control);
-    if (!isSingle) fileInput.attr("multiple", "multiple");
-    var btn = $(".btn", control),
-        indicatorPercentage = $(".indicator-percentage", control),
-        indicatorSpinner = $(".indicator-spinner", control);
-    btn.click(function (e) {
-      fileInput.click();
-    });
-    var files = [], n;
-    var uploaded = function (file, path, uri) {
-      var f = new veda.IndividualModel();
-      f["rdf:type"] = range;
-      f["v-s:fileName"] = [ file.name ];
-      f["rdfs:label"] = [ file.name ];
-      f["v-s:fileSize"] = [ file.size ];
-      f["v-s:fileUri"] = [ uri ];
-      f["v-s:filePath"] = [ path ];
-      f["v-s:parent"] = [ individual ]; // v-s:File is subClassOf v-s:Embedded
-      if ( (/^(?!thumbnail-).+\.(jpg|jpeg|gif|png|tiff|tif|bmp)$/i).test(file.name) ) {
-        resize(file, 148, function (thumbnail) {
-          uploadFile(thumbnail, undefined, function (_, path, uri) {
-            var t = new veda.IndividualModel();
-            t["rdf:type"] = range;
-            t["v-s:fileName"] = [ "thumbnail-" + file.name ];
-            t["rdfs:label"] = [ "thumbnail-" + file.name ];
-            t["v-s:fileUri"] = [ uri ];
-            t["v-s:filePath"] = [ path ];
-            t["v-s:parent"] = [ f ]; // v-s:File is subClassOf v-s:Embedded
-            t.save();
-            f["v-s:thumbnail"] = [ t ];
-            f.save();
-            files.push(f);
-            if (files.length === n) {
-              if (isSingle) {
-                individual.set(rel_uri, files);
-              } else {
-                individual.set(rel_uri, individual.get(rel_uri).concat(files));
+      var fileInput = $("#file", control);
+      if (!isSingle) fileInput.attr("multiple", "multiple");
+      var btn = $("#btn", control),
+          indicatorPercentage = $(".indicator-percentage", control),
+          indicatorSpinner = $(".indicator-spinner", control);
+      btn.click(function (e) {
+        fileInput.click();
+      });
+      var files = [], n;
+      var uploaded = function (file, path, uri) {
+        var f = new veda.IndividualModel();
+        f["rdf:type"] = range;
+        f["v-s:fileName"] = [ file.name ];
+        f["rdfs:label"] = [ file.name ];
+        f["v-s:fileSize"] = [ file.size ];
+        f["v-s:fileUri"] = [ uri ];
+        f["v-s:filePath"] = [ path ];
+        f["v-s:parent"] = [ individual ]; // v-s:File is subClassOf v-s:Embedded
+        if ( (/^(?!thumbnail-).+\.(jpg|jpeg|gif|png|tiff|tif|bmp)$/i).test(file.name) ) {
+          resize(file, 148, function (thumbnail) {
+            uploadFile(thumbnail, undefined, function (_, path, uri) {
+              var t = new veda.IndividualModel();
+              t["rdf:type"] = range;
+              t["v-s:fileName"] = [ "thumbnail-" + file.name ];
+              t["rdfs:label"] = [ "thumbnail-" + file.name ];
+              t["v-s:fileUri"] = [ uri ];
+              t["v-s:filePath"] = [ path ];
+              t["v-s:parent"] = [ f ]; // v-s:File is subClassOf v-s:Embedded
+              t.save();
+              f["v-s:thumbnail"] = [ t ];
+              f.save();
+              files.push(f);
+              if (files.length === n) {
+                if (isSingle) {
+                  individual.set(rel_uri, files);
+                } else {
+                  individual.set(rel_uri, individual.get(rel_uri).concat(files));
+                }
               }
-            }
-            indicatorSpinner.empty().hide();
-            indicatorPercentage.empty().hide();
+              indicatorSpinner.empty().hide();
+              indicatorPercentage.empty().hide();
+            });
           });
-        });
-      } else {
-        f.save();
-        files.push(f);
-        if (files.length === n) {
-          if (isSingle) {
-            individual.set(rel_uri, files);
-          } else {
-            individual.set(rel_uri, individual.get(rel_uri).concat(files));
+        } else {
+          f.save();
+          files.push(f);
+          if (files.length === n) {
+            if (isSingle) {
+              individual.set(rel_uri, files);
+            } else {
+              individual.set(rel_uri, individual.get(rel_uri).concat(files));
+            }
           }
+          indicatorSpinner.empty().hide();
+          indicatorPercentage.empty().hide();
         }
-        indicatorSpinner.empty().hide();
-        indicatorPercentage.empty().hide();
-      }
-    };
-    var progress = function (progressEvent) {
-      if (progressEvent.lengthComputable) {
-        var percentComplete = Math.round(progressEvent.loaded / progressEvent.total * 100);
-        indicatorPercentage.text(percentComplete + "%").show();
-      } else {
-        indicatorSpinner.show();
-      }
-    };
-    fileInput.change(function () {
-      files = [];
-      n = this.files.length;
-      for (var i = 0, file; (file = this.files && this.files[i]); i++) {
-        uploadFile(file, acceptedFileType, uploaded, progress);
-      }
-    });
-    this.on("view edit search", function (e) {
-      e.stopPropagation();
-    });
-    this.append(control);
-    return this;
+      };
+      var progress = function (progressEvent) {
+        if (progressEvent.lengthComputable) {
+          var percentComplete = Math.round(progressEvent.loaded / progressEvent.total * 100);
+          indicatorPercentage.text(percentComplete + "%").show();
+        } else {
+          indicatorSpinner.show();
+        }
+      };
+      fileInput.change(function () {
+        files = [];
+        n = this.files.length;
+        for (var i = 0, file; (file = this.files && this.files[i]); i++) {
+          uploadFile(file, acceptedFileType, uploaded, progress);
+        }
+      });
+      this.on("view edit search", function (e) {
+        e.stopPropagation();
+      });
+      this.append(control);
+      return this;
+    } else {
+      var opts = $.extend( {}, $.fn.veda_file.defaults, options ),
+        control = $(opts.templateIFRAME),
+        fileInput = $("input#file", control),
+        filePath = $("input#path", control),
+        fileUri = $("input#uri", control),
+        form = $("form", control),
+        iframe = $("iframe", control),
+        spec = opts.spec,
+        individual = opts.individual,
+        rel_uri = opts.rel_uri,
+        isSingle = spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true,
+        id = veda.Util.guid();
+      form.attr("target", id);
+      iframe.attr("id", id).attr("name", id).attr("src", "javascript:void(0);");
+      fileInput.change(function () {
+        if (this.value) {
+          var d = new Date(),
+          path = ["", d.getFullYear(), d.getMonth() + 1, d.getDate()].join("/"),
+          uri = veda.Util.guid(),
+          name = this.value.match(/([^\\\/]+)$/gi)[0];
+          filePath.val(path);
+          fileUri.val(uri);
+          form.submit();
+          iframe.one("load", function () {
+            var f = new veda.IndividualModel();
+            f["rdf:type"] = [ new veda.IndividualModel("v-s:File") ];
+            f["v-s:fileName"] = [ name ];
+            f["rdfs:label"] = [ name ];
+            f["v-s:fileUri"] = [ uri ];
+            f["v-s:filePath"] = [ path ];
+            f.save();
+            if (isSingle) {
+              individual.set(rel_uri, [f]);
+            } else {
+              individual.set(rel_uri, individual.get(rel_uri).concat(f));
+            }
+          });
+        }
+      });
+      this.on("view edit search", function (e) {
+        e.stopPropagation();
+      });
+      this.append(control);
+      return this;
+    }
   }
   $.fn.veda_file.defaults = {
-    template: $("#file-control-template").html()
+    templateAJAX: $("#file-control-template-ajax").html(),
+    templateIFRAME: $("#file-control-template-iframe").html()
   };
 
   // OBJECT PROPERTY CONTROL
@@ -1390,10 +1438,11 @@
       displayedProperty = spec && spec.hasValue("v-ui:treeDisplayedProperty") ? spec["v-ui:treeDisplayedProperty"] : [ new veda.IndividualModel("rdfs:label") ],
       rel_uri = opts.rel_uri,
       isSingle = spec && spec.hasValue("v-ui:maxCardinality") ? spec["v-ui:maxCardinality"][0] === 1 : true,
-      create = $(".create", control),
-      dropdown = $(".dropdown", control),
-      fulltext = $(".fulltext", control),
-      tree = $(".tree", control);
+      create = $("#create", control),
+      dropdown = $("#dropdown", control),
+      fulltext = $("#fulltext", control),
+      tree = $("#tree", control),
+      fullsearch = $("#fullsearch", control);
 
     this.removeAttr("data-template");
     function renderTemplate (individual) {
@@ -1623,6 +1672,32 @@
       });
     } else {
       dropdown.remove();
+    }
+
+    // Search modal feature
+    if ( this.hasClass("fullsearch") || this.hasClass("full") ) {
+      // Search modal
+      var tmpl = $("#individual-modal-template").html();
+      fullsearch.on("click", function (e) {
+        var $modal = $(tmpl);
+        $modal.on('hidden.bs.modal', function (e) {
+          $modal.remove();
+        });
+        $modal.modal();
+        $("body").append($modal);
+        var srch = new veda.SearchModel(undefined, $(".modal-body", $modal), queryPrefix, sort);
+        // Add found values
+        $("#ok", $modal).on("click", function (e) {
+          $(this).off("click");
+          var selected = [];
+          for (var uri in srch.selected) {
+            selected.push( srch.selected[uri] );
+          }
+          select(selected);
+        });
+      });
+    } else {
+      fullsearch.remove();
     }
 
     if ( !$("input", control).length ) {

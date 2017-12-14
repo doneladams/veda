@@ -270,7 +270,7 @@ veda.Module(function (veda) { "use strict";
           };
         } else if (e.code === 472) {
           this.isNew(false);
-          this.isSync(true);
+          this.isSync(false);
           this.properties = {
             "@": uri,
             "rdf:type": [{type: "Uri", data: "rdfs:Resource"}],
@@ -280,13 +280,11 @@ veda.Module(function (veda) { "use strict";
             ]
           };
         } else if (e.code === 470 || e.code === 471) {
-          this.isNew(false);
-          this.isSync(true);
           this.trigger("afterLoad", this);
           return this;
         } else {
           this.isNew(false);
-          this.isSync(true);
+          this.isSync(false);
           this.properties = {
             "@": uri,
             "rdf:type": [{type: "Uri", data: "rdfs:Resource"}],
