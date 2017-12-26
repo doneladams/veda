@@ -11,7 +11,7 @@ class TarantoolAuthorization : ImplAuthorization
     this(Logger _log)
     {
         log    = _log;
-        driver = new TarantoolDriver(log);
+        driver = new TarantoolDriver(log, "acl-indexes", 513);
     }
 
 
@@ -35,7 +35,7 @@ class TarantoolAuthorization : ImplAuthorization
 
     override string get_in_current_transaction(string in_key)
     {
-        return null;
+        return driver.find(OptAuthorize.NO, null, in_key);
     }
 
     override void abort_transaction()

@@ -4,14 +4,14 @@
 
 module veda.mstorage.acl_manager;
 
-private
-{
-    import core.thread, std.stdio, std.conv, std.concurrency, std.file, std.datetime, std.array, std.outbuffer, std.string;
-    import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.common.define,
-           veda.core.common.know_predicates, veda.core.common.log_msg, veda.storage.common;
-    import veda.core.util.utils, veda.common.logger, veda.util.module_info;
-    import veda.core.impl.thread_context, veda.storage.common, veda.storage.right_set, veda.storage.lmdb.lmdb_acl, veda.storage.lmdb.lmdb_driver;
-}
+import core.thread, std.stdio, std.conv, std.concurrency, std.file, std.datetime, std.array, std.outbuffer, std.string;
+import veda.util.properd;
+import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.common.define,
+       veda.core.common.know_predicates;
+import veda.core.common.log_msg, veda.storage.common, veda.core.util.utils, veda.common.logger, veda.util.module_info, veda.core.impl.thread_context;
+import veda.storage.common, veda.storage.right_set;
+import veda.storage.lmdb.lmdb_acl, veda.storage.lmdb.lmdb_driver;
+import veda.storage.tarantool.tarantool_driver;
 
 // ////////////// ACLManager
 protected byte err;
@@ -68,10 +68,24 @@ void acl_manager(string thread_name)
 {
     core.thread.Thread.getThis().name = thread_name;
 
-    KeyValueDB                   storage = new LmdbDriver(acl_indexes_db_path, DBMode.RW, "acl_manager", log);
+    KeyValueDB                   storage;
 
-    long                         l_op_id;
-    long                         committed_op_id;
+    string[ string ] properties;
+    properties = readProperties("./veda.properties");
+    string tarantool_url = properties.as!(string)("tarantool_url");
+
+    if (tarantool_url !is null)
+    {
+        storage = new TarantoolDriver(log, "acl-indexes", 513);
+    }
+    else
+    {
+        storage = new LmdbDriver(acl_indexes_db_path, DBMode.RW, "acl_manager", log);
+    }
+
+
+    long l_op_id;
+    long committed_op_id;
 
     // SEND ready
     receive((Tid tid_response_reciever)
@@ -144,6 +158,10 @@ void acl_manager(string thread_name)
                             finally
                             {
                                 l_op_id = op_id;
+                                
+                                if (tarantool_url !is null)
+	                                committed_op_id = l_op_id;
+                                
                                 module_info.put_info(l_op_id, committed_op_id);
                             }
                         }
@@ -175,7 +193,7 @@ void acl_manager(string thread_name)
         }
         catch (Throwable ex)
         {
-            log.trace("acl manager# ERR! LINE:[%s], FILE:[%s], MSG:[%s]", ex.line, ex.file, ex.msg);
+            log.trace("acl manager# ERR! MSG:[%s] [%s]", ex.msg, ex.info);
         }
     }
 
