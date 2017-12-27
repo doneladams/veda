@@ -147,10 +147,10 @@ public class MdbxDriver : KeyValueDB
                     hash_str = "0";
 
                 summ_hash_this_db = BigInt("0x" ~ hash_str);
-                log.trace("MDBX:open db %s data_str=[%s], last_op_id=%d", _path, data_str, last_op_id);
+                log.trace("MDBX:open MDBX %s data_str=[%s], last_op_id=%d", _path, data_str, last_op_id);
                 db_is_opened = true;
 
-                growth_db(env, null);
+                //growth_db(env, null);
             }
         }
     }
@@ -568,7 +568,7 @@ public class MdbxDriver : KeyValueDB
 
                 rc = mdbx_get(txn_r, dbi, &key, &data);
                 if (rc == 0)
-                    str = cast(string)(data.iov_base[ 0..data.iov_len ]);
+                    str = cast(string)(data.iov_base[ 0..data.iov_len ]).dup;
 
                 swA.stop();
                 long tA = cast(long)swA.peek().usecs;
@@ -581,12 +581,7 @@ public class MdbxDriver : KeyValueDB
                 return null;
             }
 
-            if (str !is null)
-            {
-                return str.dup;
-            }
-            else
-                return str;
+            return str;
         }
         finally
         {
