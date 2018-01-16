@@ -1,12 +1,18 @@
 module veda.authorization.cache;
 
-import std.stdio, veda.common.type;
+import std.stdio, std.conv, veda.common.type;
 
 class GroupInfo
 {
-    int       level;
-    bool      is_deprecated;
-    GroupInfo parent;
+    //int       level;
+    bool is_deprecated;
+    GroupInfo[ string ] childs;
+
+    override
+    string toString()
+    {
+        return "" ~ text(childs) ~ "";
+    }
 }
 
 class CacheElement
@@ -52,42 +58,39 @@ class Cache
         ckey_2_permissons[ ckey ] = (ea ^ prev_access) & ea;
     }
 
-    // добавляет группу в дерево
+    // добавляет группу id в дерево
     bool add_group(string id, string parent_id)
     {
+        //stderr.writefln("#0 cache.add_group id=%s, parent_id=%s", id, parent_id);
+
         GroupInfo gi = group_index.get(id, null);
 
         if (gi !is null && gi.is_deprecated)
-        {
-            gi = null;
             return false;
-        }
 
         if (gi is null)
         {
-            int level;
-            gi = new GroupInfo();
-            if (parent_id !is null)
-            {
-                GroupInfo pgi = group_index.get(parent_id, null);
-                if (pgi !is null)
-                {
-                    level     = pgi.level;
-                    gi.parent = pgi;
-                }
-            }
-
-            gi.level          = level + 1;
+            gi                = new GroupInfo();
             group_index[ id ] = gi;
+            //stderr.writefln("@ %s", group_index);
+        }
 
-            stderr.writefln("cache.add_group id=%s, parent_id=%s, level=%d", id, parent_id, level);
-
+        GroupInfo pgi = group_index.get(parent_id, null);
+        if (pgi !is null && pgi.is_deprecated)
             return false;
-        }
-        else
+
+        if (pgi is null)
         {
-            return true;
+            pgi                      = new GroupInfo();
+            group_index[ parent_id ] = pgi;
         }
+
+        if (pgi !is null && gi !is null)
+        {
+            pgi.childs[ id ] = gi;
+        }
+
+        return true;
     }
 
     // отмечает группу как deprecated
@@ -130,7 +133,10 @@ class Cache
         string       ckey = subject_group_id ~ object_group_id;
 
         CacheElement ce = ckey_2_cache_element.get(ckey, null);
-        stderr.writefln("cache.get, subject_group_id=%s, object_group_id=%s, req_access=%s", subject_group_id, object_group_id, access_to_pretty_string1(req_access));
+
+        stderr.writefln("cache.get, subject_group_id=%s, object_group_id=%s, req_access=%s", subject_group_id, object_group_id,
+                        access_to_pretty_string1(
+                                                 req_access));
 
         if (ce !is null)
         {
@@ -141,12 +147,12 @@ class Cache
                 return -1;
 
             stderr.writefln("cache.get, #1");
-
+/*
             for (GroupInfo igri = ce.subject_group; igri !is null; igri = igri.parent)
             {
                 if (igri.is_deprecated == true)
                 {
-                    // ветки выше устарели, удалить этот результат из кэша
+                    // ветки ниже устарели, удалить этот результат из кэша
                     ckey_2_cache_element.remove(ckey);
                     return -1;
                 }
@@ -169,7 +175,7 @@ class Cache
                 }
             }
             stderr.writefln("cache.get, #4");
-
+ */
             res = req_access & ce.req_access;
 
             int ea = ckey_2_permissons.get(ckey, -1);
