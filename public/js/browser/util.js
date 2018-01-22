@@ -79,12 +79,15 @@ veda.Module(function Util(veda) { "use strict";
     return (re.test(uid) ? "d:a" + uid : "d:" + uid);
   };
   veda.Util.guid = function () {
-    return veda.Util.s4() + veda.Util.s4() + veda.Util.s4() + veda.Util.s4() + veda.Util.s4() + veda.Util.s4() + veda.Util.s4() + veda.Util.s4();
-  };
-  veda.Util.s4 = function () {
-    return Math.floor((1 + Math.random()) * 0x10000)
-      .toString(36)
-      .substring(1);
+    var d = new Date().getTime();
+    if (typeof performance !== "undefined" && typeof performance.now === "function"){
+      d += performance.now(); //use high-precision timer if available
+    }
+    return "xxxxxxxxxxxxxxxxxxxxxxxxxx".replace(/x/g, function (c) {
+      var r = (d + Math.random() * 36) % 36 | 0;
+      d = Math.floor(d / 36);
+      return r.toString(36);
+    });
   };
 
   veda.Util.mlstring = function (ru, en) {
@@ -351,7 +354,7 @@ veda.Module(function Util(veda) { "use strict";
               .filter(function(item){return !!item && !!item.valueOf();})
               .map( function (value) {
                 if (property_uri === "rdf:type") {
-                  return "'" + property_uri + "'==='" + value.data + "'";
+                  return "'" + property_uri + "'=='" + value.data + "'";
                 } else {
                   return "'" + property_uri + "'=='" + value.data + "'";
                 }
@@ -405,7 +408,6 @@ veda.Module(function Util(veda) { "use strict";
     if (modal) {
       veda.Util.showModal(startForm, undefined, 'edit');
     } else {
-      //startForm.present('#main', undefined, 'edit');
       riot.route("#/" + startForm.id + "///edit");
     }
   }
@@ -417,45 +419,16 @@ veda.Module(function Util(veda) { "use strict";
    */
   veda.Util.send = function (individual, template, transformId, modal) {
     if ( transformId ) {
-      if ( !individual.isSync() ) template.trigger('save');
-      var startForm = veda.Util.buildStartFormByTransformation(individual, new veda.IndividualModel(transformId));
-      veda.Util.showModal(startForm, undefined, 'edit');
+      template.trigger("save");
+      var transform = new veda.IndividualModel(transformId);
+      var startForm = veda.Util.buildStartFormByTransformation(individual, transform);
+      veda.Util.showModal(startForm, undefined, "edit");
     } else {
       individual["v-wf:hasStatusWorkflow"] = [ new veda.IndividualModel("v-wf:ToBeSent") ];
-      var results = query(veda.ticket, "'rdf:type' == 'v-s:DocumentLinkRules' && 'v-s:classFrom' == '" + individual["rdf:type"][0].id + "'").result;
-      if ( results.length === 0 ) {
-        $("#send.action", template).remove();
-        $("#edit.action", template).remove();
-        $("#save.action", template).remove();
-        $("#cancel.action", template).remove();
-        $("#delete.action", template).remove();
-        template.trigger('save');
-        template.closest(".modal").modal("hide").remove();
-        var notify = veda.Notify ? new veda.Notify() : function () {};
-        notify("success", {name: "Успешно отправлено / Successfully sent"});
-      } else if ( results.length === 1 ) {
-        template.trigger('save');
-        results.forEach( function (res_id) {
-          var res = new veda.IndividualModel(res_id);
-          var startForm = veda.Util.buildStartFormByTransformation(individual, res['v-s:hasTransformation'][0]);
-          veda.Util.showModal(startForm, undefined, 'edit');
-        });
-      } else {
-        var sendDropdown = $('[resource="' + individual.id + '"] #send + .dropdown-menu');
-        sendDropdown.addClass('dropup').addClass('dropdown-toggle');
-        if (sendDropdown.html() === '') {
-          results.forEach( function (res_id) {
-            var res = new veda.IndividualModel(res_id);
-            $("<li/>", {
-              "style": "cursor:pointer",
-              "html" : "<a>" + new veda.IndividualModel(res_id)['rdfs:label'][0] + "</a>",
-              "click": (function (e) {
-                veda.Util.send(individual, template, res['v-s:hasTransformation'][0].id);
-              })
-            }).appendTo(sendDropdown);
-          });
-        }
-      }
+      template.trigger("save");
+      template.closest(".modal").modal("hide").remove();
+      var notify = veda.Notify ? new veda.Notify() : function () {};
+      notify("success", {name: "Успешно отправлено / Successfully sent"});
     }
   }
 
@@ -481,23 +454,23 @@ veda.Module(function Util(veda) { "use strict";
       $('[resource="'+individual.id+'"]').find("#createReport").dropdown('toggle');
       veda.Util.redirectToReport(individual, reportId);
     } else {
-      var s = new veda.SearchModel("'rdf:type' == 'v-s:ReportsForClass' && 'v-ui:forClass' == '"+individual["rdf:type"][0].id+"'", null);
-      if (Object.getOwnPropertyNames(s.results).length == 0) {
+      var s = query(veda.ticket, "'rdf:type' == 'v-s:ReportsForClass' && 'v-ui:forClass' == '"+individual["rdf:type"][0].id+"'");
+      if (s.result.length === 0) {
         alert('Нет отчета. Меня жизнь к такому не готовила.');
-      } else if (Object.getOwnPropertyNames(s.results).length == 1) {
+      } else if (s.result.length === 1) {
         $('[resource="'+individual.id+'"]').find("#createReport").dropdown('toggle');
-        veda.Util.redirectToReport(individual, Object.getOwnPropertyNames(s.results)[0]);
+        veda.Util.redirectToReport(individual, s.result[0]);
       } else {
         var reportsDropdown = $('[resource="'+individual.id+'"] #chooseReport + .dropdown-menu');
         if (reportsDropdown.html()== '') {
-          Object.getOwnPropertyNames(s.results).forEach( function (res_id) {
+          s.result.forEach( function (res_id) {
             $("<li/>", {
-                 "style" : "cursor:pointer",
-                       "html" : "<a href='#'>"+new veda.IndividualModel(res_id)['rdfs:label'][0]+"</a>",
-                       "click": (function (e) {
-                        veda.Util.redirectToReport(individual, res_id);
-                       })
-                      }).appendTo(reportsDropdown);
+              "style" : "cursor:pointer",
+              "html" : "<a href='#'>" + new veda.IndividualModel(res_id)["rdfs:label"].join(" ") + "</a>",
+              "click": (function (e) {
+                veda.Util.redirectToReport(individual, res_id);
+              })
+            }).appendTo(reportsDropdown);
           });
         }
       }
@@ -521,12 +494,12 @@ veda.Module(function Util(veda) { "use strict";
         hiddenField.setAttribute("type", "hidden");
         hiddenField.setAttribute("name", key.replace(':','_'));
         var value = '';
-        individual[key].forEach(function(item, i, arr) {
+        individual.get(key).forEach(function(item, i, arr) {
           if (i>0) value+=',';
           value += (
-            individual[key][i] instanceof veda.IndividualModel ? individual[key][i].id :
-            individual[key][i] instanceof Date ? individual[key][i].toISOString() :
-            individual[key][i]
+            item instanceof veda.IndividualModel ? item.id :
+            item instanceof Date ? item.toISOString() :
+            item
           );
         });
         console.log(key, value);

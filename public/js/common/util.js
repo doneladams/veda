@@ -43,24 +43,20 @@ function removeV(arr, what) {
   return res;
 }
 
-function genUri()
-{
-  var uid = guid();
-  if (uid[0] == '0' || uid[0] == '1' || uid[0] == '2' || uid[0] == '3' || uid[0] == '4' || uid[0] == '5' || uid[0] == '6' || uid[0] == '7' || uid[0] == '8' || uid[0] == '9')
-    return 'd:a' + uid;
-  else
-    return 'd:' + uid;
+function genUri () {
+  var uid = guid(), re = /^\d/;
+  return (re.test(uid) ? "d:a" + uid : "d:" + uid);
 }
-
-function guid()
-{
-  function s4()
-  {
-    return Math.floor((1 + Math.random()) * 0x10000)
-      .toString(36)
-      .substring(1);
+function guid () {
+  var d = new Date().getTime();
+  if (typeof performance !== "undefined" && typeof performance.now === "function"){
+    d += performance.now(); //use high-precision timer if available
   }
-  return s4() + s4() + s4() + s4() + s4() + s4() + s4() + s4();
+  return "xxxxxxxxxxxxxxxxxxxxxxxxxx".replace(/x/g, function (c) {
+    var r = (d + Math.random() * 36) % 36 | 0;
+    d = Math.floor(d / 36);
+    return r.toString(36);
+  });
 }
 
 function compare(a, b)
@@ -1254,8 +1250,10 @@ function clone(obj)
 
 function complexLabel(individual) {
 
+  individual = individual.properties || individual;
   var cache = {};
-  cache[individual["@"]] = individual;
+  cache[ individual["@"] ] = individual;
+  var ticket_id = typeof ticket !== "undefined" ? ticket : typeof veda.ticket !== "undefined" ? veda.ticket : undefined;
   function get (uri) {
     return cache[uri] ? cache[uri] : cache[uri] = get_individual(ticket_id, uri);
   }
@@ -1263,8 +1261,6 @@ function complexLabel(individual) {
   //print("INDIVIDUAL =", JSON.stringify(individual));
 
   try {
-
-    var ticket_id = typeof ticket !== "undefined" ? ticket : typeof veda.ticket !== "undefined" ? veda.ticket : undefined;
 
     var availableLanguages = get("v-ui:AvailableLanguage");
     var languages = availableLanguages["rdf:value"].map(function (languageValue) {
@@ -1281,7 +1277,10 @@ function complexLabel(individual) {
       var result = languages.map(function (language) {
         var replaced = pattern.replace(/{(\s*([^{}]+)\s*)}/g, function (match, group) {
           var chain = group.split(".");
-          return get_localized_chain.apply({}, [language, individual["@"]].concat(chain));
+          if (chain[0] === "@") {
+            chain[0] = individual["@"];
+          }
+          return get_localized_chain.apply({}, [language].concat(chain));
         });
         return {
           data: replaced,
