@@ -1740,6 +1740,68 @@ for (i = 0; i < 1; i++)
             compare(new_test_doc3, read_individual3));
     });
 */
+    test("#025 test get_rights_origin", function()
+    {
+        var ticket_admin = get_admin_ticket();
+
+        var res = get_rights_origin(ticket_admin.id, "td:Preferences_RomanKarpov")
+        var result_rights = 0;
+        res.forEach(function(item, i) {
+            if (res[i]["v-s:canCreate"]) {
+                result_rights |= 1;
+            } else if (res[i]["v-s:canRead"]) {
+                result_rights |= 2;
+            } else if (res[i]["v-s:canUpdate"]) {
+                result_rights |= 4;
+            } else if (res[i]["v-s:canDelete"]) {
+                result_rights |= 8;
+            }
+        });
+
+        var res = get_rights(ticket_admin.id, "td:Preferences_RomanKarpov");
+        var expected_rights = 0;
+        if (res["v-s:canCreate"]) {
+            expected_rights |= 1;
+        }
+        if (res["v-s:canRead"]) {
+            expected_rights |= 2;
+        }
+        if (res["v-s:canUpdate"]) {
+            expected_rights |= 4;
+        }
+        if (res["v-s:canDelete"]) {
+            expected_rights |= 8;
+        }
+
+        //#1
+        ok(result_rights == expected_rights);
+    });
+
+    test("#026 test get_membership", function()
+    {
+    //"v-s:memberOf":[{"type":"Uri","data":"v-s:AllResourcesGroup"},{"type":"Uri","data":"td:Preferences_RomanKarpov"},{"type":"Uri","data":"cfg:TTLResourcesGroup"}]}
+
+        var ticket_admin = get_admin_ticket();
+
+        var res = get_membership(ticket_admin.id, "td:Preferences_RomanKarpov")
+        var check = true;
+        var found = 0;
+        res["v-s:memberOf"].forEach(function(item, i) {
+            switch (res["v-s:memberOf"][i]["data"]) {
+                case "td:Preferences_RomanKarpov":
+                case "v-s:AllResourcesGroup":
+                case "cfg:TTLResourcesGroup":
+                    found++
+                    break;
+                default:
+                    check = false;
+                    break;
+            }
+        });
+
+        //#1
+        ok(check && (found == 3));
+    });
 
     test("#027 test cycle of group", function()
     {
@@ -2150,68 +2212,4 @@ for (i = 0; i < 1; i++)
 
     });
 */
-
-    test("#025 test get_rights_origin", function()
-    {
-        var ticket_admin = get_admin_ticket();
-        
-        var res = get_rights_origin(ticket_admin.id, "td:Preferences_RomanKarpov")
-        var result_rights = 0;
-        res.forEach(function(item, i) {
-            if (res[i]["v-s:canCreate"]) {
-                result_rights |= 1;
-            } else if (res[i]["v-s:canRead"]) {
-                result_rights |= 2;
-            } else if (res[i]["v-s:canUpdate"]) {
-                result_rights |= 4;
-            } else if (res[i]["v-s:canDelete"]) {
-                result_rights |= 8;
-            }
-        });
-
-        var res = get_rights(ticket_admin.id, "td:Preferences_RomanKarpov");
-        var expected_rights = 0;
-        if (res["v-s:canCreate"]) {
-            expected_rights |= 1;
-        }
-        if (res["v-s:canRead"]) {
-            expected_rights |= 2;
-        }
-        if (res["v-s:canUpdate"]) {
-            expected_rights |= 4;
-        }
-        if (res["v-s:canDelete"]) {
-            expected_rights |= 8;
-        }
-        
-        //#1
-        ok(result_rights == expected_rights);
-    });
-
-    test("#026 test get_membership", function()
-    {
-    //"v-s:memberOf":[{"type":"Uri","data":"v-s:AllResourcesGroup"},{"type":"Uri","data":"td:Preferences_RomanKarpov"},{"type":"Uri","data":"cfg:TTLResourcesGroup"}]}
-    
-        var ticket_admin = get_admin_ticket();
-    
-        var res = get_membership(ticket_admin.id, "td:Preferences_RomanKarpov")
-        var check = true;
-        var found = 0;
-        res["v-s:memberOf"].forEach(function(item, i) {
-            switch (res["v-s:memberOf"][i]["data"]) {
-                case "td:Preferences_RomanKarpov":
-                case "v-s:AllResourcesGroup":
-                case "cfg:TTLResourcesGroup":
-                    found++
-                    break;
-                default:
-                    check = false;
-                    break;
-            }
-        });
-            
-        //#1
-        ok(check && (found == 3));
-    });
-
 }
