@@ -3,7 +3,7 @@
 
 DMD_VER=2.073.2
 DUB_VER=1.2.0
-GO_VER=go1.9.2
+GO_VER=go1.9.3
 TARANTOOL_VER=1.7.6
 MSGPUCK_VER=2.0
 
@@ -21,6 +21,18 @@ LIB_NAME[11]="automake"
 
 LIB_OK="Status: install ok installed"
 F_UL=0
+
+#echo "--- INSTALL VIBE.D ---"
+#mkdir tmp
+#cd tmp
+#wget https://github.com/vibe-d/vibe.d/archive/v0.7.30.tar.gz
+#tar -xvzf v0.7.30.tar.gz
+#mkdir ~/.dub/packages/vibe-d-0.7.30
+#mkdir ~/.dub/packages/vibe-d-0.7.30/vibe-d
+#cp -r ./vibe.d-0.7.30/* ~/.dub/packages/vibe-d-0.7.30/vibe-d
+#cp ./../source/vibe-d/dub.json ~/.dub/packages/vibe-d-0.7.30/vibe-d
+#rm ~/.dub/packages/vibe-d-0.7.30/vibe-d/dub.sdl
+#cd ..
 
 ### RUST LANG ###
 
