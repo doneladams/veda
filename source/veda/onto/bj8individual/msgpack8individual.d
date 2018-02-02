@@ -1,6 +1,6 @@
 /**
  * msgpack <-> individual
-   Copyright: © 2014-2017 Semantic Machines
+   Copyright: © 2014-2018 Semantic Machines
    License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
    Authors: Valeriy Bushenev
  */
@@ -98,22 +98,34 @@ private void write_resources(string uri, ref Resources vv, ref Packer packer)
     }
 }
 
+ubyte magic_header = 0xFF; 
+
 public string individual2msgpack(ref Individual in_obj)
 {
-    ubyte[] buff = write_individual(in_obj);
-
-    return cast(string)buff[ 0..buff.length ].dup;
+	// this concatinate created copy ?
+	return cast(string) ([magic_header] ~ write_individual(in_obj));
+	
+    //ubyte[] buff = write_individual(in_obj);
+    //return cast(string)buff[ 0..buff.length ].dup;
 }
 
 /////////////////////////////////////////////////////////////////////
 
 public int msgpack2individual(ref Individual individual, string in_str)
 {
+	ubyte[] src = cast(ubyte[])in_str;
+	
+	if (src[0] != magic_header)
+	{
+		stderr.writeln("ERR! msgpack2individual: invalid format");
+        return -1;	
+	}                    
+	
     try
     {
         try
         {
-            StreamingUnpacker unpacker = StreamingUnpacker(cast(ubyte[])in_str);
+            StreamingUnpacker unpacker = StreamingUnpacker(src[1..$]);
 
             if (unpacker.execute())
             {

@@ -87,7 +87,7 @@ public ResultCode flush_int_module(P_MODULE f_module, bool is_wait)
     return rc;
 }
 
-public ResultCode update(P_MODULE storage_id, OptAuthorize opt_request, immutable (TransactionItem)[] _ti, long tnx_id, OptFreeze opt_freeze,
+public ResultCode save(P_MODULE storage_id, OptAuthorize opt_request, immutable (TransactionItem)[] _ti, long tnx_id, OptFreeze opt_freeze,
                          out long op_id)
 {
     ResultCode rc;
@@ -108,7 +108,7 @@ public ResultCode update(P_MODULE storage_id, OptAuthorize opt_request, immutabl
     return rc;
 }
 
-public ResultCode update(P_MODULE storage_id, OptAuthorize opt_request, INDV_OP cmd, string user_uri, string indv_uri, string prev_binobj,
+public ResultCode save(P_MODULE storage_id, OptAuthorize opt_request, INDV_OP cmd, string user_uri, string indv_uri, string prev_binobj,
                          string new_binobj,
                          long update_counter,
                          string event_id, long tnx_id, long assigned_subsystems, OptFreeze opt_freeze,
@@ -410,7 +410,7 @@ public void individuals_manager(P_MODULE _storage_id, string node_id)
 
                                             //log.trace ("imm=[%s]", imm);
 
-                                            string binobj = imm.serialize();
+                                            string binobj = imm.serialize_to_cbor();
                                             //writeln("*binobj.length=", binobj.length);
 
                                             individual_queue.push(binobj);
