@@ -337,7 +337,7 @@ function create_version(ticket, document, prev_state, user_uri, _event_id) {
       'rdf:type'     : newUri('v-s:Membership'),
       'v-s:memberOf' : newUri(actualId),
       'v-s:resource' : newUri(versionId),
-      'rdfs:comment' : newStr('создано cfg:Event_3'),
+      'rdfs:comment' : newStr('создано: server script create_version ()'),
       'v-s:canRead'  : newBool(true)
     };
     put_individual (ticket, membership, _event_id);
@@ -424,4 +424,14 @@ function set_err_on_indv (msg, indv, src)
     add_to_individual(ticket, add_to_indv, _event_id);
 
     print("ERR! " + src + ':' +  msg);
+}
+
+function set_field_to_document (field_name, value, doc_id)
+{
+    var set_in_document = {
+		'@': doc_id
+    };
+
+    set_in_document[field_name] = value;
+    set_in_individual(ticket, set_in_document, _event_id);
 }
