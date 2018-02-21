@@ -780,13 +780,26 @@ for (i = 0; i < 1; i++)
             //#2
             test_fail_read(ticket, new_test_doc1['@'], new_test_doc1);
 
+        console.log("@6.1");
+
             var new_test_doc2 = new_test_doc1;
             var new_test_doc2_uri = "test9:" + guid();
             new_test_doc2['@'] = new_test_doc2_uri;
             new_test_doc2['v-s:canRead'] = newBool(false);
+
+        console.log("@6.2");
+
             var res = put_individual(ticket.id, new_test_doc2);
+
+        console.log("@6.3");
+
             wait_module(m_subject, res.op_id);
+
+        console.log("@6.4");
+
             wait_module(m_acl, res.op_id);
+
+        console.log("@6.5");
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
 
