@@ -733,6 +733,7 @@ for (i = 0; i < 1; i++)
         "#009 Individual of [v-s:NoPermissionStatement] store 3 and read 3",
         function()
         {
+        console.log("@0");
             var ticket = get_user1_ticket();
 
         console.log("@1");
@@ -752,11 +753,19 @@ for (i = 0; i < 1; i++)
                 'v-s:author': newUri('td:ValeriyBushenev-Programmer1')
             };
 
+        console.log("@2");
+
             var res = put_individual(ticket.id, new_test_doc1);
+
+        console.log("@3");
+
             wait_module(m_subject, res.op_id);
+
+        console.log("@4");
+
             wait_module(m_acl, res.op_id);
 
-        console.log("@2");
+        console.log("@5");
 
             var read_individual = get_individual(ticket.id, new_test_doc1_uri);
 
@@ -766,7 +775,7 @@ for (i = 0; i < 1; i++)
             res = remove_individual(ticket.id, new_test_doc1['@']);
             //wait_module(m_scripts, res.op_id);
 
-        console.log("@3");
+        console.log("@6");
 
             //#2
             test_fail_read(ticket, new_test_doc1['@'], new_test_doc1);
@@ -781,7 +790,7 @@ for (i = 0; i < 1; i++)
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
 
-        console.log("@4");
+        console.log("@7");
 
             //#3
             ok(compare(new_test_doc2, read_individual));
@@ -793,7 +802,7 @@ for (i = 0; i < 1; i++)
             //#4
             test_fail_read(ticket, new_test_doc2['@'], new_test_doc2);
 
-        console.log("@5");
+        console.log("@8");
 
             var new_test_doc3 = new_test_doc2;
             var new_test_doc3_uri = "test9:" + guid();
@@ -805,7 +814,7 @@ for (i = 0; i < 1; i++)
 
             read_individual = get_individual(ticket.id, new_test_doc3_uri);
 
-        console.log("@6");
+        console.log("@9");
 
             //#5
             ok((read_individual['@'] == new_test_doc3_uri) == true);
