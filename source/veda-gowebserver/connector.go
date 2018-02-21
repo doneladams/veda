@@ -60,23 +60,23 @@ const (
 	Remove = 51
 )
 
-func (conn *Connector) open_db() {	
-		var err error
-		err = conn.indivEnv.Open("./data/lmdb-individuals", lmdb.Readonly|lmdb.NoMetaSync|lmdb.NoSync|lmdb.NoLock, 0644)
-		if err != nil {
-			log.Fatal("Err: can not open lmdb individuals base: ", err)
-			conn.db_is_open = false
-			return
-		}
+func (conn *Connector) open_db() {
+	var err error
+	err = conn.indivEnv.Open("./data/lmdb-individuals", lmdb.Readonly|lmdb.NoMetaSync|lmdb.NoSync|lmdb.NoLock, 0644)
+	if err != nil {
+		log.Fatal("Err: can not open lmdb individuals base: ", err)
+		conn.db_is_open = false
+		return
+	}
 
-		err = conn.ticketEnv.Open("./data/lmdb-tickets", lmdb.Readonly|lmdb.NoMetaSync|lmdb.NoSync|lmdb.NoLock, 0644)
-		if err != nil {
-			log.Fatal("Err: can not open tickets lmdb base: ", err)
-			conn.db_is_open = false
-			return
-		}
+	err = conn.ticketEnv.Open("./data/lmdb-tickets", lmdb.Readonly|lmdb.NoMetaSync|lmdb.NoSync|lmdb.NoLock, 0644)
+	if err != nil {
+		log.Fatal("Err: can not open tickets lmdb base: ", err)
+		conn.db_is_open = false
+		return
+	}
 
-		conn.db_is_open = true
+	conn.db_is_open = true
 }
 
 //Connect tries to connect to socket in tarantool while connection is not established
