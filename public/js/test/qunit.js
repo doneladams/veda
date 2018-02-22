@@ -800,7 +800,7 @@ window.onerror = function ( error, filePath, linerNr ) {
 			QUnit.pushFailure( error, filePath + ":" + linerNr );
 		} else {
 			QUnit.test( "global failure", extend( function() {
-				QUnit.pushFailure( error, filePath + ":" + linerNr );
+				//QUnit.pushFailure( error, filePath + ":" + linerNr );
 			}, { validTest: validTest } ) );
 		}
 		return false;
