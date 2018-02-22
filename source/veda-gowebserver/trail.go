@@ -1,6 +1,6 @@
 package main
 
-//	"log"
+import	"log"
 //	"time"
 
 //	"strconv"
@@ -12,6 +12,9 @@ package main
 
 //trail stores data about request in traildb
 func trail(ticketId, userId, action string, args map[string]interface{}, result string, resultCode ResultCode, startTime int64) {
+
+			log.Printf("\n%s %s %s %s %s %s %s\n", ticketId, userId, action, args, result, resultCode, startTime)
+
 	//	timestamp := time.Now().Unix()
 	if !isTrail {
 		return
