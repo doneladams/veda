@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"strings"
 
-	//	"github.com/muller95/traildb-go"
-
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
