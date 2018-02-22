@@ -779,7 +779,7 @@ if ( defined.document ) {
 
 // `onErrorFnPrev` initialized at top of scope
 // Preserve other handlers
-onErrorFnPrev = window.onerror;
+//onErrorFnPrev = window.onerror;
 
 // Cover uncaught exceptions
 // Returning true will suppress the default browser handler,
