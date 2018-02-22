@@ -799,7 +799,7 @@ for (i = 0; i < 1; i++)
 
             wait_module(m_acl, res.op_id);
 
-        console.log("@6.5");
+        console.log("@6.5 new_test_doc2_uri=" + new_test_doc2_uri);
 
             read_individual = get_individual(ticket.id, new_test_doc2_uri);
 
