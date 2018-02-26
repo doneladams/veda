@@ -2,6 +2,11 @@
 //module('Individuals',
 //{});
 
+//require ('./q1.js');
+
+//      veda.Module();
+
+
 var _admin_ticket = '';
 var _user1_ticket = '';
 var _user2_ticket = '';
