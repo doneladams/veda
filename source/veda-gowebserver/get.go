@@ -19,7 +19,7 @@ func getIndividual(ctx *fasthttp.RequestCtx) {
 	ticketKey = string(ctx.QueryArgs().Peek("ticket")[:])
 	uri = string(ctx.QueryArgs().Peek("uri")[:])
 
-		//log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
+	//	log.Println("\t@getIndividual: ticket=", ticketKey, ", uri=", uri)
 
 	if len(uri) == 0 {
 		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
@@ -208,7 +208,7 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 		for i := 0; i < len
 		rr := conn.Get(true, ticket.UserURI, urisToGet, false)
 		if rr.CommonRC != Ok {
-			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC, ", uris=", urisToGet)
+			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
 			ctx.Response.SetStatusCode(int(rr.CommonRC))
 			return
 		}
@@ -242,7 +242,7 @@ func getIndividuals(ctx *fasthttp.RequestCtx) {
 	for i := 0; i < len(urisToGet); i++ {
 		rr := conn.Get(true, ticket.UserURI, []string{urisToGet[i]}, false)
 		if rr.CommonRC != Ok {
-			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC, ", uri=", urisToGet[i])
+			log.Println("@ERR GET_INDIVIDUALS: GET COMMON ", rr.CommonRC)
 			ctx.Response.SetStatusCode(int(rr.CommonRC))
 			trail(ticket.Id, ticket.UserURI, "get_individuals", jsonArgs, "{}", rr.CommonRC, timestamp)
 			continue

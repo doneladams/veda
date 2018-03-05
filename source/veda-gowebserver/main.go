@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	//	"github.com/muller95/traildb-go"
+
 	"github.com/op/go-nanomsg"
 	"github.com/valyala/fasthttp"
 )
@@ -144,9 +146,6 @@ func codeToJsonException(code ResultCode) []byte {
 
 //requestHandler passes request context pointer to handler according to request pass
 func requestHandler(ctx *fasthttp.RequestCtx) {
-
-	log.Printf("%s", ctx.Path())
-
 	routeParts := strings.Split(string(ctx.Path()[:]), "/")
 	if len(routeParts) >= 2 && routeParts[1] == "files" {
 		log.Printf("len=%v arr=%v\n", len(routeParts), routeParts)
@@ -208,8 +207,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	default:
 		fasthttp.FSHandler("public/", 0)(ctx)
 	}
-
-	log.Println("*")
 }
 
 func main() {
