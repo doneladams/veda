@@ -94,7 +94,7 @@ fi
 #fi
 
 if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
-    echo "\n**************** BUILD [gowebserver] **************\n"
+    echo "**************** BUILD [gowebserver] **************"
     cd source/veda-gowebserver
     go build
     cd $BUILD_PATH
