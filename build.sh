@@ -11,11 +11,11 @@ then
 fi
 ./update-version-ttl.sh
 
-    cd source/authorization
-    cargo build --release
-    cd $BUILD_PATH
-    sudo cp ./source/lib64/libauthorization.so /usr/local/lib
-    sudo ldconfig
+cd source/authorization
+cargo build --release
+cd $BUILD_PATH
+sudo cp ./source/lib64/libauthorization.so /usr/local/lib
+sudo ldconfig
 
 if [ -z $1 ] || [ $1 == "ccus" ] || [ $1 == "veda-ccus" ] ; then
 
@@ -94,6 +94,7 @@ fi
 #fi
 
 if [ -z $1 ] || [ $1 == "gowebserver" ] || [ $1 == "veda-gowebserver" ]; then
+    echo "\n**************** BUILD [gowebserver] **************\n"
     cd source/veda-gowebserver
     go build
     cd $BUILD_PATH
