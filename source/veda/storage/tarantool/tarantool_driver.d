@@ -275,7 +275,7 @@ public class TarantoolDriver : KeyValueDB
         tnt.read_reply(tnt, &reply);
         if (reply.code != 0)
         {
-            log.trace("Insert failed errcode=%s msg=%s []", reply.code, to!string(reply.error), row);
+            log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
             tnt_reply_free(&reply);
             return;        // ResultCode.Internal_Server_Error;
         }
