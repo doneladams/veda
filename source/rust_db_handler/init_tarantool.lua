@@ -63,6 +63,17 @@ if box.space.tickets == nil then
     box.schema.user.grant('guest', 'read,write', 'space', 'tickets')
 end
 
+if box.space.migration == nil then
+    if memtx then
+        box.schema.space.create('migration')
+    else
+        box.schema.space.create('migration', {engine='vinyl'})
+    end
+    box.space.migration:create_index('primary', {parts={1, 'string'}})
+    box.schema.user.grant('guest', 'read,write', 'space', 'migration')
+end
+
+
 socket = require('socket')
 require('db_handler')
 msgpack = require('msgpack')

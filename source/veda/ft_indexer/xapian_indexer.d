@@ -1,11 +1,11 @@
+
 /**
- * XAPIAN indexer thread
+ * XAPIAN ft indexer
  */
 
 module veda.ft_indexer.xapian_indexer;
 
 private import std.concurrency, std.outbuffer, std.datetime, std.conv, std.typecons, std.stdio, std.string, std.file, std.algorithm;
-private import backtrace.backtrace, Backtrace = backtrace.backtrace;
 private import veda.common.type;
 private import veda.bind.xapian_d_header;
 private import veda.core.util.utils, veda.common.logger;
@@ -46,8 +46,6 @@ public class IndexerContext
     long   counter                         = 0;
     long   last_counter_after_timed_commit = 0;
 
-    long   last_update_time = 0;
-
     ulong  last_size_key2slot = 0;
 
     string thread_name;
@@ -75,13 +73,15 @@ public class IndexerContext
         else
         {
             ff_key2slot_w = new File(file_name_key2slot, "r+");
-
+            long cur_size = getSize(file_name_key2slot);
             ff_key2slot_w.seek(0);
-            auto buf = ff_key2slot_w.rawRead(new char[ 100 * 1024 ]);
+            auto buf = ff_key2slot_w.rawRead(new char[ cur_size + 128 ]);
 
             //writefln("@indexer:init:data [%s]", cast(string)buf);
             ResultCode rc;
-            key2slot = deserialize_key2slot(cast(string)buf, rc);
+            key2slot           = deserialize_key2slot(cast(string)buf, rc);
+            last_size_key2slot = key2slot.length;
+
             //writeln("@indexer:init:key2slot", key2slot);
         }
 
@@ -185,16 +185,30 @@ public class IndexerContext
             iproperty.load(true);
     }
 
-    void index_msg(ref Individual indv, ref Individual prev_indv, INDV_OP cmd, long op_id, Context context)
+    void index_msg(ref Individual indv, ref Individual prev_indv, INDV_OP cmd, long op_id, Context context, bool is_trace = false)
     {
-        //writeln("@ft index, indv.uri=", indv.uri);
-        bool is_deleted;
+        bool is_deleted, prev_is_deleted, is_restored;
+
+        //if (is_trace)
+        log.trace("index uri=%s", indv.uri);
 
         if (cmd == INDV_OP.REMOVE)
             is_deleted = true;
 
         if (is_deleted == false && indv.isExists(veda_schema__deleted, true) == true)
             is_deleted = true;
+
+        if (prev_indv.isExists(veda_schema__deleted, true) == true)
+            prev_is_deleted = true;
+
+        if (prev_is_deleted == true && is_deleted == false)
+        {
+            log.trace("index msg: restore individual: %s ", indv.uri);
+            is_restored = true;
+        }
+
+        if (prev_is_deleted == false && is_deleted == true)
+            log.trace("index msg: delete individual: %s", indv.uri);
 
         try
         {
@@ -216,8 +230,7 @@ public class IndexerContext
                     return;
                 }
 
-                if (is_deleted == false && (actualVersion !is null && actualVersion != indv.uri /*||
-                                                                                                       (previousVersion_prev !is null && previousVersion_prev == previousVersion_new)*/))
+                if (is_deleted == false && (actualVersion !is null && actualVersion != indv.uri))
                 {
                     if (actualVersion !is null && actualVersion != indv.uri)
                         log.trace("new[%s].v-s:actualVersion[%s] != [%s], ignore", indv.uri, actualVersion, indv.uri);
@@ -228,23 +241,43 @@ public class IndexerContext
                 XapianDocument doc      = new_Document(&err);
                 indexer.set_document(doc, &err);
 
-                //if (trace_msg[ 220 ] == 1)
-                //log.trace("index document:[%s]", indv.uri);
+                if (trace_msg[ 220 ] == 1)
+                    log.trace("index document:[%s]", indv.uri);
 
                 Resources types = indv.getResources(rdf__type);
+
+                Resources prev_types  = prev_indv.getResources(rdf__type);
+                string    prev_dbname = "base";
+                foreach (_type; prev_types)
+                {
+                    prev_dbname = iproperty.get_dbname_of_class(_type.uri);
+                    if (prev_dbname != "base")
+                        break;
+                }
+
+                string uuid = "uid_" ~ to_lower_and_replace_delimeters(indv.uri);
 
                 // используем информацию о типе, для определения, в какой базе следует проводить индексацию
                 string dbname = "base";
                 foreach (_type; types)
                 {
                     if (_type.uri == "vdi:ClassIndex")
-                    {
                         iproperty.add_schema_data(indv);
-                    }
 
                     dbname = iproperty.get_dbname_of_class(_type.uri);
                     if (dbname != "base")
                         break;
+                }
+
+                if (prev_dbname != dbname)
+                {
+                    log.trace("[%s] prev_db[%s] != new_db[%s]", indv.uri, prev_dbname, dbname);
+                    log.trace("[%s] remove from [%s]", indv.uri, prev_dbname);
+
+                    if (prev_dbname == "system")
+                        indexer_system_db.delete_document(uuid.ptr, uuid.length, &err);
+                    else
+                        indexer_base_db.delete_document(uuid.ptr, uuid.length, &err);
                 }
 
                 if (dbname == "not-indexed")
@@ -261,6 +294,13 @@ public class IndexerContext
 
                     string p_text_ru = "";
                     string p_text_en = "";
+
+                    void    doc_add_text_value(int l_slot, string data, byte *err)
+                    {
+                        if (data.length > 16)
+                            data = data[ 0..16 ];
+                        doc.add_value(l_slot, data.ptr, data.length, err);
+                    }
 
                     void index_double(string predicate, Resource oo)
                     {
@@ -348,7 +388,7 @@ public class IndexerContext
                                 log.trace("index [DataType.Uri] :[%s], prefix=%s[%s]", data, prefix, predicate);
                             indexer.index_text(data.ptr, data.length, prefix.ptr, prefix.length, &err);
 
-                            doc.add_value(slot_L1, oo.literal.ptr, oo.literal.length, &err);
+                            //doc.add_value(slot_L1, oo.literal.ptr, oo.literal.length, &err);
 
                             all_text.write(data);
                             all_text.write('|');
@@ -379,7 +419,7 @@ public class IndexerContext
                                       predicate);
 
                         indexer.index_text(data.ptr, data.length, prefix.ptr, prefix.length, &err);
-                        doc.add_value(slot_L1, oo.literal.ptr, oo.literal.length, &err);
+                        doc_add_text_value(slot_L1, oo.literal, &err);
 
                         all_text.write(data);
                         all_text.write('|');
@@ -430,7 +470,7 @@ public class IndexerContext
                             try
                             {
                                 // 1. считать индивид по ссылке
-                                Individual inner_indv = context.get_individual(ticket, rs.uri);
+                                Individual inner_indv = context.get_individual(ticket, rs.uri, OptAuthorize.NO);
 
                                 //string tab; for (int i = 0; i < level; i++)
                                 //    tab ~= "	";
@@ -440,7 +480,6 @@ public class IndexerContext
                                 //writeln (tab, "@idx = ", idx);
                                 foreach (predicate, values; idx.resources)
                                 {
-                                    //writeln (tab, "@@@5 predicate = ", predicate);
                                     if (predicate == "vdi:inherited_index")
                                     {
                                         foreach (value; values)
@@ -517,6 +556,11 @@ public class IndexerContext
                                                                     index_double(ln ~ "." ~ indexed_field.uri, rc);
                                                                 }
                                                             }
+
+                                                            if (rrc.length > 0)
+                                                            {
+                                                                index_boolean(ln ~ "." ~ indexed_field.uri ~ ".isExists", Resource(true));
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -543,7 +587,7 @@ public class IndexerContext
                         {
                             // если это относится к class_property__2__indiviual, следует обновить
 
-                            if (predicate != rdf__type)
+                            //if (predicate != rdf__type)
                             {
                                 // используем информацию о типе
                                 foreach (_type; types)
@@ -605,7 +649,7 @@ public class IndexerContext
                             if (trace_msg[ 220 ] == 1)
                                 log.trace("index as ru text:[%s]", p_text_ru);
 
-                            doc.add_value(slot_L1, p_text_ru.ptr, p_text_ru.length, &err);
+                            doc_add_text_value(slot_L1, p_text_ru, &err);
                             //writeln ("slot:", slot_L1, ", value:", p_text_ru);
                         }
 
@@ -619,14 +663,14 @@ public class IndexerContext
                             if (trace_msg[ 220 ] == 1)
                                 log.trace("index as en text:[%s]", p_text_en);
 
-                            doc.add_value(slot_L1, p_text_en.ptr, p_text_en.length, &err);
+                            doc_add_text_value(slot_L1, p_text_en, &err);
                             //writeln ("slot:", slot_L1, ", value:", p_text_en);
                         }
                     }
 
                     int slot_L1;
 
-                    if (type == xsd__string)
+                    if (type == "xsd:string")
                     {
                         bool sp = true;
                         foreach (oo; resources)
@@ -641,7 +685,7 @@ public class IndexerContext
                                     sp = false;
                                 }
 
-                                doc.add_value(slot_L1, oo.literal.ptr, oo.literal.length, &err);
+                                doc_add_text_value(slot_L1, oo.literal, &err);
                                 indexer.index_text(oo.literal.ptr, oo.literal.length, prefix.ptr, prefix.length, &err);
 
                                 if (trace_msg[ 220 ] == 1)
@@ -667,7 +711,7 @@ public class IndexerContext
                                     sp = false;
                                 }
 
-                                doc.add_value(slot_L1, oo.literal.ptr, oo.literal.length, &err);
+                                doc_add_text_value(slot_L1, oo.literal, &err);
                                 indexer.index_text(oo.literal.ptr, oo.literal.length, prefix.ptr, prefix.length, &err);
 
                                 if (trace_msg[ 220 ] == 1)
@@ -679,7 +723,7 @@ public class IndexerContext
                             }
                         }
                     }
-                    else if (type == xsd__decimal)
+                    else if (type == "xsd:decimal")
                     {
                         slot_L1 = get_slot_and_set_if_not_found(predicate ~ ".decimal", key2slot);
                         prefix  = "X" ~ text(slot_L1) ~ "X";
@@ -697,7 +741,7 @@ public class IndexerContext
                             }
                         }
                     }
-                    else if (type == xsd__dateTime)
+                    else if (type == "xsd:dateTime")
                     {
                         slot_L1 = get_slot_and_set_if_not_found(predicate ~ ".dateTime", key2slot);
                         prefix  = "X" ~ text(slot_L1) ~ "X";
@@ -728,9 +772,11 @@ public class IndexerContext
                 if (trace_msg[ 221 ] == 1)
                     log.trace("index all text [%s]", data);
 
-                string uuid = "uid_" ~ to_lower_and_replace_delimeters(indv.uri);
                 doc.add_boolean_term(uuid.ptr, uuid.length, &err);
                 doc.set_data(indv.uri.ptr, indv.uri.length, &err);
+
+                if (is_restored)
+                    indexer_deleted_db.delete_document(uuid.ptr, uuid.length, &err);
 
                 if (is_deleted)
                 {
@@ -754,17 +800,14 @@ public class IndexerContext
 //                    log.trace("prepare msg counter:%d,slot size=%d", counter, key2slot.length);
 //            }
 
-                long now = Clock.currTime().stdTime();
-
-                if (counter % 5000 == 0 || (now - last_update_time) > 300_000_000)
+                if (counter % 5000 == 0)
                 {
-                    //if (trace_msg[ 212 ] == 1)
-                    log.trace("commit index, (now - last_update_time)=%d", now - last_update_time);
+                    if (trace_msg[ 212 ] == 1)
+                        log.trace("commit index..");
 
                     if (key2slot.length > 0)
                         store__key2slot();
 
-                    last_update_time = now;
                     commit_all_db();
                 }
 
@@ -803,6 +846,9 @@ public class IndexerContext
         string hash;
         string data = serialize_key2slot(key2slot, hash);
 
+        if (data.length == last_size_key2slot)
+            return;
+
         try
         {
             ff_key2slot_w.seek(0);
@@ -813,6 +859,8 @@ public class IndexerContext
             ff_key2slot_w.write('\n');
             ff_key2slot_w.write(data);
             ff_key2slot_w.flush();
+
+            last_size_key2slot = data.length;
         }
         catch (Throwable tr)
         {
@@ -824,7 +872,7 @@ public class IndexerContext
     private int get_slot_and_set_if_not_found(string field, ref int[ string ] key2slot)
     {
 //	writeln ("get_slot:", field);
-        int slot = key2slot.get(field, -1);
+        int slot = get_slot(key2slot, field);
 
         if (slot == -1)
         {

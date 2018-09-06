@@ -9,7 +9,7 @@ veda.Module(function (veda) { "use strict";
         if (typeof self[key] !== "function") delete self[key];
       });
     }
-  }
+  };
 
   veda.OntologyModel = function () {
 
@@ -57,15 +57,19 @@ veda.Module(function (veda) { "use strict";
     processOntology();
 
     // Auto update ontology on change
-    /*var OntoVsn = new veda.IndividualModel("cfg:OntoVsn");
-    var updateService = new veda.UpdateService();
-    updateService.subscribe(OntoVsn.id);
-    OntoVsn.on("afterReset", function () {
-      ontology = getOntology();
-      storage.ontology = JSON.stringify(ontology);
-      processOntology();
-      console.log("Ontology reloaded!", JSON.stringify(OntoVsn));
-    });*/
+    //var OntoVsn = new veda.IndividualModel("cfg:OntoVsn");
+    //var updateService = new veda.UpdateService();
+    //updateService.subscribe(OntoVsn.id);
+    //OntoVsn.on("afterReset", function () {
+    //  var delay = Math.round(Math.random() * 60000);
+    //  console.log("Ontology will reload in %d ms", delay);
+    //  setTimeout(function () {
+    //    ontology = getOntology();
+    //    storage.ontology = JSON.stringify(ontology);
+    //    processOntology();
+    //    console.log("Ontology reloaded!");
+    //  }, delay);
+    //});
 
     function processOntology () {
 
@@ -74,7 +78,7 @@ veda.Module(function (veda) { "use strict";
         if (uri === "cfg:OntoVsn") { return; }
         var individual_json = ontology[uri];
         var type = individual_json["rdf:type"][0].data;
-        var individual = new veda.IndividualModel( individual_json, true, false );
+        var individual = new veda.IndividualModel( individual_json, Date.now() + 1000 * 60 * 60 * 24 * 365 * 100, false );
 
         switch ( type ) {
           case "rdfs:Class" :
@@ -125,7 +129,6 @@ veda.Module(function (veda) { "use strict";
         // If class is not a subclass of another then make it a subclass of rdfs:Resource
         if ( !_class.hasValue("rdfs:subClassOf") ) {
           _class["rdfs:subClassOf"] = [ classes["rdfs:Resource"] ];
-          classTree[_class.id].superClasses.push("rdfs:Resource");
         }
         _class["rdfs:subClassOf"].map( function ( superClass ) {
           classTree[_class.id].superClasses.push( superClass.id );
@@ -205,7 +208,7 @@ veda.Module(function (veda) { "use strict";
 
     this.getClassProperties = function (_class_uri) {
       return veda.Util.unique( getProps(_class_uri) );
-    }
+    };
 
     function getProps (_class_uri) {
       var _class = classTree[_class_uri];
@@ -216,7 +219,7 @@ veda.Module(function (veda) { "use strict";
       } else {
         return getProps("rdfs:Resource");
       }
-    };
+    }
 
     this.getClassSpecifications = function getSpecs (_class_uri) {
       var _class = classTree[_class_uri];
@@ -237,7 +240,7 @@ veda.Module(function (veda) { "use strict";
       return specs;
     };
 
-    return veda.OntologyModel.prototype._singletonInstance = self;
+    return ( veda.OntologyModel.prototype._singletonInstance = self );
 
     // Get ontology from server
     function getOntology () {
@@ -260,7 +263,7 @@ veda.Module(function (veda) { "use strict";
           "'rdf:type' === 'v-ui:ObjectPropertySpecification'";
 
       var result = {};
-      var ontology_uris = query({ ticket: veda.ticket, query: q, limit: 10000 }).result;
+      var ontology_uris = query(veda.ticket, q).result;
       var ontology_individuals = get_individuals(veda.ticket, ontology_uris);
       ontology_individuals.map( function (item) {
         result[ item["@"] ] = item;

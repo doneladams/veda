@@ -6,11 +6,10 @@ module veda.core.util.utils;
 
 private
 {
-    import core.stdc.stdio, core.stdc.string, core.sys.posix.time;
+    import core.stdc.string, core.sys.posix.time;
     import std.file, std.datetime, std.json, std.format, std.stdio, std.conv, std.string, std.concurrency, std.digest.crc;
     import std.ascii, std.csv, std.typecons, std.outbuffer;
-    import veda.onto.individual, veda.onto.resource, veda.core.common.define, veda.util.container, veda.core.common.know_predicates,
-           veda.core.common.context;
+    import veda.onto.individual, veda.onto.resource, veda.core.common.define, veda.util.container, veda.core.common.know_predicates;
     import veda.common.type;
 }
 
@@ -23,6 +22,73 @@ Logger log()
         _log = new Logger("veda-core-" ~ process_name, "log", "UTIL");
     return _log;
 }
+
+int get_slot(ref int[ string ] key2slot, string key)
+{
+    if (key.length < 1)
+        return -1;
+
+    if (key[ 0 ] == '#')
+    {
+        try
+        {
+            int slot = to!int (key[ 1..$ ]);
+            return slot;
+        }
+        catch (Throwable tr)
+        {
+            return -1;
+        }
+    }
+
+    return key2slot.get(key, -1);
+}
+
+public void subject2Ticket(ref Individual ticket, Ticket *tt)
+{
+    string when;
+    long   duration;
+
+    tt.id       = ticket.uri;
+    tt.user_uri = ticket.getFirstLiteral(ticket__accessor);
+    when        = ticket.getFirstLiteral(ticket__when);
+    string dd = ticket.getFirstLiteral(ticket__duration);
+
+    try
+    {
+        duration = parse!uint (dd);
+    }
+    catch (Exception ex)
+    {
+        writeln("Ex!: ", __FUNCTION__, ":", text(__LINE__), ", ", ex.msg);
+    }
+
+    if (tt.user_uri is null)
+    {
+        //if (trace_msg[ T_API_10 ] == 1)
+        log.trace("found a session ticket is not complete, the user can not be found.");
+    }
+
+    if (tt.user_uri !is null && (when is null || duration < 10))
+    {
+        //if (trace_msg[ T_API_20 ] == 1)
+        log.trace("found a session ticket is not complete, we believe that the user has not been found.");
+        tt.user_uri = null;
+    }
+
+    if (when !is null)
+    {
+        //if (trace_msg[ T_API_30 ] == 1)
+        //    log.trace("session ticket %s Ok, user=%s, when=%s, duration=%d", tt.id, tt.user_uri, when,
+        //              duration);
+
+        long start_time = stringToTime(when);
+
+        tt.start_time = start_time;
+        tt.end_time   = start_time + duration * 10_000_000;
+    }
+}
+
 // ////// ////// ///////////////////////////////////////////
 public Individual *indv_apply_cmd(INDV_OP cmd, Individual *prev_indv, Individual *indv)
 {
@@ -166,11 +232,11 @@ public int[ string ] deserialize_key2slot(string data, out ResultCode rc)
         {
             if (record.length != 2)
             {
-                writeln("ERR! key2slot, invalid record=", record);
+                stderr.writeln("ERR! key2slot, invalid record=", record);
                 rc = ResultCode.Unprocessable_Entity;
                 return key2slot;
             }
-            //	writeln ("@&2 record=[", record, "]");
+            //stderr.writeln ("@&2 record=[", record, "]");
 
             if (idx > 0)
                 key2slot[ record[ 0 ] ] = record[ 1 ];
@@ -180,7 +246,7 @@ public int[ string ] deserialize_key2slot(string data, out ResultCode rc)
     }
     catch (Throwable tr)
     {
-        writeln("ERR! key2slot err=", tr.msg);
+        stderr.writeln("ERR! key2slot err=", tr.msg);
         rc = ResultCode.Unprocessable_Entity;
     }
 

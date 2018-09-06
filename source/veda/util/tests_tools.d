@@ -11,8 +11,6 @@ public Individual generate_new_test_individual()
 
     new_indv_A.addResource("v-s:isSuccess", Resource(true));
     new_indv_A.addResource("v-s:infoOfExecuting", Resource("text(res))"));
-    new_indv_A.addResource("v-s:info0", Resource(DataType.Uri, ""));
-    new_indv_A.addResource("v-s:infoS", Resource(DataType.String, ""));
     new_indv_A.addResource("v-s:info1", Resource(DataType.Uri, "rdfs:label"));
     new_indv_A.addResource("v-s:info2", Resource("русский текст", LANG.RU));
     new_indv_A.addResource("v-s:info2", Resource("english text", LANG.EN));

@@ -40,7 +40,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 
 	//If no uri passed then return BadRequest
 	if len(uri) == 0 {
-		log.Println("@ERR GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
+		log.Println("ERR! GET_INDIVIDUAL: ZERO LENGTH TICKET OR URI")
 		ctx.Response.SetStatusCode(int(BadRequest))
 		return
 	}
@@ -53,11 +53,11 @@ func getRights(ctx *fasthttp.RequestCtx) {
 	}
 
 	//Send authorize request to tarantool
-	rr := conn.Authorize(true, ticket.UserURI, []string{uri}, Authorize, false, false)
+	rr := conn.Authorize(true, ticket.UserURI, uri, Authorize, false, false)
 
 	//If common response code is not Ok return fail to client
 	if rr.CommonRC != Ok {
-		log.Println("@ERR GET RIGHS: AUTH ", rr.CommonRC)
+		log.Println("ERR! GET RIGHS: AUTH ", rr.CommonRC)
 		ctx.Response.SetStatusCode(int(rr.CommonRC))
 		return
 	}
@@ -92,7 +92,7 @@ func getRights(ctx *fasthttp.RequestCtx) {
 	//Marshal individual to hson and give response to client
 	individualJSON, err := json.Marshal(individual)
 	if err != nil {
-		log.Println("@ERR GET_INDIVIDUAL: ENCODING INDIVIDUAL TO JSON ", err)
+		log.Println("ERR! GET_INDIVIDUAL: ENCODING INDIVIDUAL TO JSON ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}

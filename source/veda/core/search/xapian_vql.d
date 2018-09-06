@@ -4,7 +4,8 @@
 
 module veda.core.search.xapian_vql;
 
-import std.string, std.concurrency, std.stdio, std.datetime, std.conv, std.algorithm, std.uni, utf = std.utf;
+import std.string, std.concurrency, std.stdio, std.datetime, std.conv, std.algorithm, std.regex, std.uni, utf = std.utf;
+import dt                                                                                                     = std.datetime.stopwatch;
 import veda.bind.xapian_d_header;
 import veda.core.util.utils, veda.onto.onto, veda.common.logger;
 import veda.core.search.vel;
@@ -15,6 +16,7 @@ class XapianVQL
 {
     private Logger log;
     protected byte err;
+    private auto   r_is_uuid = ctRegex!(`^[a-z0-9_-]+:[a-z0-9_-]*$`, "i");
 
     this(Logger _log)
     {
@@ -45,7 +47,7 @@ class XapianVQL
                     else
                         asc_desc = true;
 
-                    int slot = key2slot.get(key, -1);
+                    int slot = get_slot(key2slot, key);
                     if (slot >= 0)
                     {
                         if (trace)
@@ -69,6 +71,8 @@ class XapianVQL
     private TokenType get_token_type(string token, out double value)
     {
         TokenType res = TokenType.TEXT;
+
+        //log.trace ("token=[%s]", token);
 
         token = token.strip();
 
@@ -251,8 +255,13 @@ class XapianVQL
                 {
                     Names subclasses = ctx.get_onto().get_sub_classes(rs);
 
-                    foreach (classz; subclasses.keys)
-                        rs ~= " OR " ~ classz;
+                    if (subclasses.length > 0)
+                    {
+                        foreach (classz; subclasses.keys)
+                            rs ~= " OR " ~ classz;
+
+                        rs = to_lower_and_replace_delimeters(rs);
+                    }
                 }
 
                 if (query_l is null && query_r is null)
@@ -273,6 +282,14 @@ class XapianVQL
                             }
 
                             query = qp.parse_query(cast(char *)query_str, query_str.length, flags, &err);
+
+                            if (err == XapianQueryParserError)
+                            {
+                                log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", query_str, query_str);
+                                query_str = "\"" ~ query_str ~ "\"";
+                                query     = qp.parse_query(cast(char *)query_str, query_str.length, flags, &err);
+                            }
+
                             if (err != 0)
                                 throw new XapianError(err, "parse_query1 query=" ~ query_str);
                         }
@@ -280,9 +297,9 @@ class XapianVQL
                         {
                             int slot;
                             if (rs !is null && rs[ 0 ] == '*' && is_good_token(rs))
-                                slot = key2slot.get(ls ~ "#F", -1);
+                                slot = get_slot(key2slot, ls ~ "#F");
                             else
-                                slot = key2slot.get(ls, -1);
+                                slot = get_slot(key2slot, ls);
 
                             //log.trace("@p slot=%d, predicate=%s", slot, ls);
 
@@ -301,6 +318,17 @@ class XapianVQL
 
                                     query = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
                                                            xtr.length, &err);
+
+                                    if (err == XapianQueryParserError)
+                                    {
+                                        log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", query_str, query_str);
+
+                                        query_str = "\"" ~ query_str ~ "\"";
+                                        query     = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
+                                                                   xtr.length, &err);
+                                    }
+
+
                                     if (query is null)
                                         throw new XapianError(err, "parse_query '" ~ tta.toString() ~ "'");
 
@@ -311,14 +339,17 @@ class XapianVQL
                                 {
                                     if (tta.R.token_decor == Decor.QUOTED || (indexOf(rs, '*') >= 0 && is_good_token(rs)))
                                     {
-                                        if ((indexOf(rs, '*') >= 0) && (rs[ 0 ] == '+' && !is_good_token (rs)))
+                                        if ((indexOf(rs, '*') >= 0) && (rs[ 0 ] == '+' && !is_good_token(rs)))
                                         {
-                                            rs = rs.removechars("*");
+                                            rs = replaceAll(rs, regex(r"[*]", "g"), "");
                                         }
 
-                                        char[] query_str = to_lower_and_replace_delimeters(rs).dup;
+                                        char[] query_str = rs.dup;
                                         if (rs[ 0 ] == '*')
                                             reverse(query_str);
+
+                                        if (!matchFirst(query_str, r_is_uuid).empty)
+                                            query_str = cast(char[]) to_lower_and_replace_delimeters(cast(string)query_str);
 
                                         xtr = "X" ~ text(slot) ~ "X";
 
@@ -337,6 +368,16 @@ class XapianVQL
 
                                         query = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
                                                                xtr.length, &err);
+
+                                        if (err == XapianQueryParserError)
+                                        {
+                                            log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", query_str, query_str);
+
+                                            query_str = "\"" ~ query_str ~ "\"";
+                                            query     = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
+                                                                       xtr.length, &err);
+                                        }
+
                                         if (err != 0)
                                             throw new XapianError(err,
                                                                   cast(string)("parse_query2('x'=*) query='" ~ query_str ~ "', xtr='" ~ xtr ~ "'"));
@@ -368,13 +409,15 @@ class XapianVQL
                                                 if (el[ 0 ] == '\'' && el.length > 2 && el[ $ - 1 ] == '\'')
                                                     el = el[ 1..$ - 1 ];
 
-                                                Names  subclasses = ctx.get_onto().get_sub_classes(el);
-                                                string query_str  = el;
+                                                string query_str = el;
                                                 xtr = "X" ~ text(slot) ~ "X";
-                                                foreach (classz; subclasses.keys)
-                                                    query_str ~= " OR " ~ classz;
 
-                                                query_str = to_lower_and_replace_delimeters(query_str);
+                                                if (!is_strict_equality && rs.indexOf(':') > 0)
+                                                {
+                                                    Names subclasses = ctx.get_onto().get_sub_classes(el);
+                                                    foreach (classz; subclasses.keys)
+                                                        query_str ~= " OR " ~ classz;
+                                                }
 
                                                 feature_flag flags = feature_flag.FLAG_DEFAULT | feature_flag.FLAG_WILDCARD |
                                                                      feature_flag.FLAG_PHRASE |
@@ -383,12 +426,22 @@ class XapianVQL
                                                 query = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
                                                                        xtr.length, &err);
 
+                                                if (err == XapianQueryParserError)
+                                                {
+                                                    log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", query_str, query_str);
+
+                                                    query_str = "\"" ~ query_str ~ "\"";
+                                                    query     = qp.parse_query(cast(char *)query_str, query_str.length, flags, cast(char *)xtr,
+                                                                               xtr.length, &err);
+                                                }
+
                                                 if (err != 0)
                                                     throw new XapianError(err,
                                                                           cast(string)("parse_query2.1('x'=*) query='" ~ query_str ~ "', xtr='" ~ xtr
                                                                                        ~ "'"));
 
-                                                //log.trace("_transform_vql_to_xapian: query_str=[%s], query=|%s|", query_str, get_query_description(query));
+                                                log.trace("_transform_vql_to_xapian: query_str=[%s], query=|%s|", query_str,
+                                                          get_query_description(query));
                                             }
                                         }
                                         else
@@ -429,8 +482,10 @@ class XapianVQL
                     }
                     else
                     {
-                        xtr = to_lower_and_replace_delimeters(rs);
-                        //writeln("xtr=", xtr);
+                        if (!matchFirst(rs, r_is_uuid).empty)
+                            xtr = to_lower_and_replace_delimeters(rs);
+                        else
+                            xtr = rs.dup;
 
                         if (indexOf(xtr, '*') > 0 && is_good_token(xtr))
                         {
@@ -449,12 +504,29 @@ class XapianVQL
 
                             query = qp.parse_query(cast(char *)xtr, xtr.length, flags, &err);
 
+                            if (err == XapianQueryParserError)
+                            {
+                                log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", xtr, xtr);
+                                xtr   = "\"" ~ xtr ~ "\"";
+                                query = qp.parse_query(cast(char *)xtr, xtr.length, flags, &err);
+                            }
+
                             if (err != 0)
+                            {
                                 throw new XapianError(err, "parse_query4('*'=*) '" ~ xtr ~ "'");
+                            }
                         }
                         else
                         {
                             query = qp.parse_query(cast(char *)xtr, xtr.length, &err);
+
+                            if (err == XapianQueryParserError)
+                            {
+                                log.trace("WARN: The search query has been changed: [%s]->[\"%s\"]", xtr, xtr);
+                                xtr = "\"" ~ xtr ~ "\"";
+                                query
+                                    = qp.parse_query(cast(char *)xtr, xtr.length, &err);
+                            }
                             if (err != 0)
                                 throw new XapianError(err, "parse_query5('*'=x) '" ~ xtr ~ "'");
                         }
@@ -517,7 +589,7 @@ class XapianVQL
                     //writeln("@p c_from=", c_from);
                     //writeln("@p c_to=", c_to);
 
-                    int slot = key2slot.get(token_L, -1);
+                    int slot = get_slot(key2slot, token_L);
 
                     query_r = new_Query_range(xapian_op.OP_VALUE_RANGE, slot, c_from, c_to, &err);
 
@@ -618,7 +690,7 @@ class XapianVQL
         }
     }
 
-    public SearchResult exec_xapian_query_and_queue_authorize(Ticket *ticket,
+    public SearchResult exec_xapian_query_and_queue_authorize(string user_uri,
                                                               XapianEnquire xapian_enquire,
                                                               int from,
                                                               int top,
@@ -628,6 +700,10 @@ class XapianVQL
                                                               void delegate(string uri) prepare_element_event, bool trace, OptAuthorize op_auth
                                                               )
     {
+        dt.StopWatch sw;
+
+        sw.start;
+
         SearchResult sr;
 
         if (top == 0)
@@ -636,18 +712,18 @@ class XapianVQL
         if (limit == 0)
             limit = 10000;
 
-        int       read_count = 0;
-        StopWatch sw;
+        int          read_count = 0;
 
-        if (trace)
-            sw.start;
+        dt.StopWatch sw_az;
 
-        byte err;
+        byte         err;
 
-        if (ticket is null)
+        if (user_uri is null)
         {
-            log.trace("exec_xapian_query_and_queue_authorize:ticket is null");
+            log.trace("exec_xapian_query_and_queue_authorize:user_uri is null");
             sr.result_code = ResultCode.Ticket_not_found;
+            sw.stop;
+            sr.total_time = sw.peek.total !"msecs";
             return sr;
         }
 
@@ -658,9 +734,16 @@ class XapianVQL
         XapianMSet matches = xapian_enquire.get_mset(from, limit, &err);
         if (err < 0)
         {
-            log.trace("exec_xapian_query_and_queue_authorize:get_mset, err=(%d)", err);
-            sr.result_code = ResultCode.Internal_Server_Error;
-//            sr.err         = err;
+            log.trace("exec_xapian_query_and_queue_authorize:get_mset, err=(%s)", get_xapian_err_msg(err));
+
+            if (err == -1)
+                sr.result_code = ResultCode.DatabaseModifiedError;
+            else
+                sr.result_code = ResultCode.Internal_Server_Error;
+
+            //            sr.err         = err;
+            sw.stop;
+            sr.total_time = sw.peek.total !"msecs";
             return sr;
         }
 
@@ -681,9 +764,19 @@ class XapianVQL
             {
                 if (err < 0)
                 {
-                    sr.result_code = ResultCode.Internal_Server_Error;
-                    log.trace("exec_xapian_query_and_queue_authorize:mset:is_next, err=(%d)", err);
+                    if (err == -1)
+                        sr.result_code = ResultCode.DatabaseModifiedError;
+                    else
+                        sr.result_code = ResultCode.Internal_Server_Error;
+
+                    log.trace("exec_xapian_query_and_queue_authorize:mset:is_next, err=(%s), user_uri=%s", get_xapian_err_msg(err), user_uri);
 //                    sr.err = err;
+                    sw.stop;
+                    sr.total_time = sw.peek.total !"msecs";
+
+                    destroy_MSetIterator(it);
+                    destroy_MSet(matches);
+
                     return sr;
                 }
 
@@ -692,9 +785,19 @@ class XapianVQL
                 it.get_document_data(&data_str, &data_len, &err);
                 if (err < 0)
                 {
-                    sr.result_code = ResultCode.Internal_Server_Error;
-                    log.trace("exec_xapian_query_and_queue_authorize:get_document_data, err=(%d)", err);
+                    if (err == -1)
+                        sr.result_code = ResultCode.DatabaseModifiedError;
+                    else
+                        sr.result_code = ResultCode.Internal_Server_Error;
+
+                    log.trace("exec_xapian_query_and_queue_authorize:get_document_data, err=(%s), user_uri=%s", get_xapian_err_msg(err), user_uri);
 //                    sr.err = err;
+                    sw.stop;
+                    sr.total_time = sw.peek.total !"msecs";
+
+                    destroy_MSetIterator(it);
+                    destroy_MSet(matches);
+
                     return sr;
                 }
 
@@ -708,7 +811,16 @@ class XapianVQL
                 if (trace)
                     log.trace("found subject_id:[%s]", subject_id);
 
-                if (op_auth == OptAuthorize.NO || context.authorize(subject_id, ticket, Access.can_read, acl_db_reopen, null, null))
+                bool is_passed = true;
+
+                if (op_auth == OptAuthorize.YES)
+                {
+                    sw_az.start;
+                    is_passed = context.get_storage().authorize(subject_id, user_uri, Access.can_read, acl_db_reopen);
+                    sw_az.stop;
+                }
+
+                if (is_passed)
                 {
                     //log.trace("found subject_id:[%s] authorized", subject_id);
 
@@ -719,19 +831,13 @@ class XapianVQL
                 }
                 else
                 {
-                    log.trace("subject_id:[%s] not authorized, ticket=[%s], user_uri=[%s]", subject_id, ticket.id, ticket.user_uri);
+                    if (trace)
+                        log.trace("subject_id:[%s] not authorized, user_uri=[%s]", subject_id, user_uri);
                 }
 
                 acl_db_reopen = false;
 
                 it.next(&err);
-            }
-
-            if (trace)
-            {
-                sw.stop();
-                long t = cast(long)sw.peek().usecs;
-                log.trace("authorized:%d, total time execute query: %s µs", read_count, text(t));
             }
 
             destroy_MSetIterator(it);
@@ -742,6 +848,10 @@ class XapianVQL
         sr.count       = read_count;
         sr.result_code = ResultCode.OK;
         sr.cursor      = from + processed;
+        sw.stop;
+        sr.total_time     = sw.peek.total !"msecs";
+        sr.authorize_time = sw_az.peek.total !"msecs";
+        sr.query_time     = sr.total_time - sr.authorize_time;
 
         return sr;
     }
@@ -767,9 +877,9 @@ class XapianVQL
 
     bool is_good_token(string str)
     {
-        int  count_alpha = 0;
+        int  count_alpha  = 0;
         int  count_number = 0;
-        long count    = utf.count(str);
+        long count        = utf.count(str);
 
         for (size_t idx; idx < count; idx)
         {
@@ -782,12 +892,12 @@ class XapianVQL
 
         //log.trace ("@get_count_alpha, str=[%s], count_alpha=[%d]", str, count_alpha);
 
-		if (count_alpha + count_number < 3) 
-			return false;	 	
+        if (count_alpha + count_number < 3)
+            return false;
 
-		if (count_alpha + count_number < 4 && count_number == 3) 
-			return false;	 	
-			
-		return true;	
+        if (count_alpha + count_number < 4 && count_number == 3)
+            return false;
+
+        return true;
     }
 }

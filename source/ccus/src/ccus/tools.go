@@ -3,32 +3,9 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
-//	"errors"
-//	"fmt"
 	"reflect"
-//	"strings"
 	"unsafe"
-
-//	"gopkg.in/vmihailenco/msgpack.v2"
 )
-
-// #define MP_SOURCE 1
-// #include "msgpuck.h"
-// import "C"
-
-type CustomDecimal struct {
-	Mantissa int64
-	Exponent int64
-}
-
-func NewCustomDecimal(mantissa int64, exponent int64) CustomDecimal {
-	var res CustomDecimal
-
-	res.Mantissa = mantissa
-	res.Exponent = exponent
-
-	return res
-}
 
 func ulong_to_buff(_buff []uint8, pos int, data uint64) {
 	_buff[pos+0] = uint8((data & 0x00000000000000FF))
@@ -83,4 +60,3 @@ func CopyString(s string) string {
 	h.Cap = len(s)
 	return string(b)
 }
-

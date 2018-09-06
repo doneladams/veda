@@ -4,11 +4,22 @@ import std.stdio, std.path, std.container.array, std.algorithm, std.conv, std.ra
 import veda.gluecode.v8d_header, veda.core.common.context, veda.onto.individual, veda.core.common.log_msg, veda.core.common.know_predicates,
        veda.onto.resource;
 
+interface ScriptVM
+{
+    Script compile(string code);
+}
+
+interface Script
+{
+    void run();
+}
+
 struct ScriptInfo
 {
     string id;
     string str_script;
     bool[ string ] trigger_by_type;
+    bool[ string ] prevent_by_type;
     bool[ string ] trigger_by_uid;
     bool[ string ] dependency;
     Script compiled_script;
@@ -28,6 +39,7 @@ void prepare_script(ScriptsWorkPlace wpl, Individual ss, ScriptVM script_vm, str
 {
     //if (trace)
     //log.trace("prepare_script uri=%s, scripts_order.length=%d", ss.uri, wpl.scripts_order.length);
+    g_event_id = ss.uri;
 
     try
     {
@@ -84,13 +96,15 @@ void prepare_script(ScriptsWorkPlace wpl, Individual ss, ScriptVM script_vm, str
 
             //writeln("scripts_text:", scripts_text);
 
-            Resources trigger_by_type = ss.getResources("v-s:triggerByType");
+            Resources prevent_by_type = ss.getResources("v-s:preventByType");
+            foreach (filter; prevent_by_type)
+                script.prevent_by_type[ filter.uri ] = true;
 
+            Resources trigger_by_type = ss.getResources("v-s:triggerByType");
             foreach (filter; trigger_by_type)
                 script.trigger_by_type[ filter.uri ] = true;
 
             Resources trigger_by_uid = ss.getResources("v-s:triggerByUid");
-
             foreach (filter; trigger_by_uid)
                 script.trigger_by_uid[ filter.uri ] = true;
 
@@ -126,8 +140,8 @@ void prepare_script(ScriptsWorkPlace wpl, Individual ss, ScriptVM script_vm, str
                 if (oo != script.id)
                     new_scripts_order ~= oo;
             }
-			if (inserted == false)
-	            new_scripts_order ~= script.id;			
+            if (inserted == false)
+                new_scripts_order ~= script.id;
 
             wpl.scripts_order = new_scripts_order;
         }

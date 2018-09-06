@@ -44,7 +44,47 @@
   <body>
 
     <!-- Login form -->
-    <div class="hidden credentials"></div>
+    <div class="hidden login-form">
+      <form role="form">
+        <h3>Войдите / Sign in</h3>
+        <fieldset id="enter-login-password">
+          <input class="form-control input-lg" id="login" placeholder="login" type="text" name="login" autofocus="autofocus"/>
+          <input class="form-control input-lg" id="password" placeholder="password" type="password" name="password"/>
+          <br>
+          <button type="submit" id="submit-login-password" class="btn btn-lg btn-primary btn-block">Войти / Sign in</button>
+          <button type="submit" id="forgot-password" class="btn btn-link btn-block btn-sm">Забыли пароль? / Forgot password?</button>
+        </fieldset>
+        <fieldset id="enter-new-password" class="hidden">
+          <input class="form-control input-lg" id="new-password" placeholder="Новый пароль / New password" type="password" name="new-password"/>
+          <!--input class="form-control input-lg" id="retype-new-password" placeholder="retype new password" type="password" name="retype-new-password"/-->
+          <input class="form-control input-lg" id="secret" placeholder="Код из письма / Code from e-mail" type="text" name="secret"/>
+          <br>
+          <button type="submit" id="submit-new-password" class="btn btn-lg btn-primary btn-block">Отправить / Submit</button>
+          <button type="submit" id="request-secret" class="btn btn-link btn-block btn-sm">Запросить новый код / Request new code</button>
+        </fieldset>
+        <br>
+        <div id="login-failed-error" class="hidden alert alert-danger">
+          <p><strong>Ошибка!</strong> Неверное имя пользователя или пароль.</p>
+          <p><strong>Error!</strong> Wrong login or password.</p>
+        </div>
+        <div id="password-expired-error" class="hidden alert alert-danger">
+          <p><strong>Ошибка!</strong> Истекло время действия пароля.</p>
+          <p><strong>Error!</strong> Password expired.</p>
+        </div>
+        <div id="invalid-secret-error" class="hidden alert alert-danger">
+          <p><strong>Ошибка!</strong> Неверный код. Повторите попытку с новым кодом.</p>
+          <p><strong>Error!</strong> Invalid secret code. Try with new secret code.</p>
+        </div>
+        <div id="invalid-password-error" class="hidden alert alert-danger">
+          <p><strong>Ошибка!</strong> Новый пароль не принят. Введите другой пароль.</p>
+          <p><strong>Error!</strong> New password was not accepted. Enter another password.</p>
+        </div>
+        <div id="secret-request-info" class="hidden alert alert-info">
+          <p><strong>Инфо!</strong> Вам выслан новый код для смены пароля.</p>
+          <p><strong>Info!</strong> New secret code sent. Try to change password with new secret code.</p>
+        </div>
+      </form>
+    </div>
 
     <!-- Autocomplete feature -->
     <iframe name="autocomplete-frame" style="display:none" src="about:blank"></iframe>
@@ -70,41 +110,6 @@
       </div>
     </script>
 
-    <!-- Login -->
-    <script type="html/template" id="login-template">
-      <form role="form">
-        <h3>Войдите / Sign in</h3>
-        <input class="form-control input-lg" id="login" required="required" placeholder="login" type="text" name="login" autofocus="autofocus"/>
-        <input class="form-control input-lg" id="password" required="required" placeholder="password" type="password" name="password"/>
-        <br>
-        <button type="submit" id="submit" class="btn btn-lg btn-primary btn-block">Войти / Sign in</button>
-        <button type="button" id="register" class="btn btn-lg btn-default btn-block">Регистрация / Register</button>
-        <br>
-        <div id="login-error" class="hidden">
-          <p><strong class="text-danger">Ошибка!</strong> Неверное имя пользователя или пароль.</p>
-          <p><strong class="text-danger">Error!</strong> Wrong login or password.</p>
-        </div>
-      </form>
-    </script>
-
-    <!-- Individual template -->
-    <script type="html/template" id="individual-template">
-      <span id="individual-label"></span>
-      <div class="container" id="individual-properties"></div>
-      <br/>
-    </script>
-
-    <!-- Individual label template -->
-    <script type="html/template" id="individual-label-template">
-      <a href="#/{uri}"><strong>{label}</strong></a>
-    </script>
-
-    <!-- Individual single property template -->
-    <script type="html/template" id="individual-single-property-template">
-      <span class="text-muted">{label}: </span>
-      <span>{values};</span>
-    </script>
-
     <!-- Drafts template -->
     <script type="html/template" id="drafts-template">
       <div id="drafts" class="container sheet">
@@ -115,129 +120,20 @@
       </div>
     </script>
 
-    <!-- Search template -->
-    <script type="html/template" id="search-template">
-      <div class="container sheet">
-        <div role="tabpanel" id="search-tab-panel-{id}">
-          <!-- Nav tabs -->
-          <ul class="nav nav-pills" role="tablist">
-            <li role="presentation" id="params-pill-{id}" class="active"><a href="#params-{id}" aria-controls="params-{id}" role="tab" data-toggle="tab">Параметры</a></li>
-            <li role="presentation" id="results-pill-{id}"><a href="#results-{id}" id="results-link-{id}" aria-controls="results-{id}" role="tab" data-toggle="tab">Результаты <span class="badge" id="results_count" bound>{results_count}</span></a></li>
-            <li role="presentation" id="timing-pill-{id}" class="disabled">
-              <a id="timing-{id}" style="display: none">
-                <small><small>
-                  <span><strong>timing: </strong>search query time = <span id="query_time" bound>{query_time}</span> ms | get request count = <span id="get_count"></span> | get summary time = <span id="get_summary_time"></span> ms | total render time = <span id="render_time"></span> ms </span>
-                </small></small>
-              </a>
-            </li>
-            <li role="presentation" id="query-pill-{id}" class="disabled">
-              <a id="query-{id}" style="display: none">
-                <small><small>
-                  <span><strong>query: </strong><span id="query-text"></span></span>
-                </small></small>
-              </a>
-            </li>
-          </ul>
-          <br />
-          <!-- Tab panes -->
-          <div class="tab-content">
-            <div role="tabpanel" class="tab-pane active" id="params-{id}">
-              <div id="search">
-                <form role="form" class="form-horizontal">
-                  <div class="input-group">
-                    <input id="q" bound value="{q}" type="text" name="q" class="form-control" autofocus="autofocus"/>
-                    <span class="input-group-btn" id="q-actions">
-                      <button type="submit" id="search-submit" class="btn btn-primary">Найти</button>
-                    </span>
-                  </div>
-                </form>
-              </div>
-              <div class="alert alert-warning not-found" style="display: none">
-                <strong>Пусто!</strong> <span>По вашему запросу ничего не найдено. Пожалуйста, учточните запрос.</span>
-              </div>
-            </div>
-
-            <div role="tabpanel" class="tab-pane" id="results-{id}">
-              <div id="search-results" style="display: none">
-                <div id="search-features" class="form-inline">
-                  <div class="checkbox">
-                    <label>
-                      <input type="checkbox" id="select-all"> <span>Выбрать все</span>
-                    </label>
-                  </div>
-                </div>
-                <hr class="margin-sm"/>
-                <ol id="search-results-list"></ol>
-                <hr/>
-                <div class="text-center">
-                  <ul class="pagination" id="pager"></ul>
-                  <br />
-                </div>
-              </div>
-              <div class="alert alert-warning not-found" style="display: none">
-                <strong>Пусто!</strong> <span>По вашему запросу ничего не найдено. Пожалуйста, учточните запрос.</span>
-              </div>
-              <div id="selected-actions-{id}">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </script>
-
-    <!-- Selected actions -->
-    <script type="html/template" id="selected-actions-template">
-      <div id="selected-actions">
-        <button id="export-ttl" class="btn btn-success">Экспорт в ttl</button>
-        <button id="update" class="btn btn-default">Обновить</button>
-        <button id="delete" class="btn btn-link">Удалить</button>
-      </div>
-    </script>
-
-    <!-- Checkbox for search -->
-    <script type="html/template" id="search-select-template">
-      <label class="checkbox-inline">
-        <input type="checkbox"> &nbsp;
-      </label>
-    </script>
-
-    <!-- Save search button -->
-    <script type="html/template" id="save-search-template">
-      <button class="btn btn-default" type="button" id="save-search">
-        <i class="glyphicon glyphicon-star-empty"></i>
-      </button>
-    </script>
-
-    <!-- Saved search list button -->
-    <script type="html/template" id="saved-search-list-button-template">
-      <button class="btn btn-default" type="button" id="saved-search-list">
-        <i class="glyphicon glyphicon-menu-hamburger"></i>
-      </button>
-    </script>
-
-    <!-- Sort property template -->
-    <script type="html/template" id="sort-property-template">
-      <span class="form-inline" id="sort-property-container">
-        <div class="form-group" style="margin-right:15px"></div>
-        <div class="checkbox">
-          <label>
-            <strong>Упорядочить: </strong>
-          </label>
-        </div>
-        <div class="form-group sort-property">
-          <div class="form-group" style="margin-right:15px"></div>
-          <div class="checkbox">
-            <label>
-              <input type="checkbox" name="order-by">
-              <span class="property-name">имя свойства</span>
-              <a href="" class="direction btn btn-xs disabled glyphicon glyphicon-sort-by-alphabet"></a>
-            </label>
-          </div>
-        </div>
-      </span>
-    </script>
-
     <!-- MODALS -->
+
+    <!-- Minimal modal -->
+    <script type="html/template" id="minimal-modal-template">
+      <div class="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-body">
+               <button type="button" class="close" data-dismiss="modal"><span class="fa fa-times"></span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </script>
 
     <!-- Individual modal -->
     <script type="html/template" id="individual-modal-template">
@@ -276,21 +172,31 @@
 
     <!-- Link control template -->
     <script type="html/template" id="link-control-template">
-      <div class="scrollable-typeahead">
+      <div class="link-control">
         <div class="input-group">
-          <div class="input-group-addon btn btn-default" id="fullsearch">
-            <i class="glyphicon glyphicon-search"></i>
-          </div>
-          <div class="input-group-addon btn btn-default" id="tree">
+          <div class="input-group-addon btn btn-default tree">
             <i class="fa fa-sitemap"></i>
           </div>
-          <input type="text" class="form-control" id="fulltext"/>
-          <div class="input-group-addon btn btn-default" id="dropdown">
+          <textarea rows="1" class="form-control fulltext"></textarea>
+          <div class="input-group-addon btn btn-default dropdown">
             <i class="caret"></i>
           </div>
-          <div class="input-group-addon btn btn-default" id="create">
+          <div class="input-group-addon btn btn-default create">
             <i class="glyphicon glyphicon-plus"></i>
           </div>
+        </div>
+        <div class="fulltext-menu">
+          <div class="header clearfix">
+            <small class="actions pull-left">
+              <span class="select-all"></span>
+              <span class="cancel-selection"></span>
+              <span class="invert-selection"></span>
+            </small>
+            <small class="actions pull-right">
+              <span class="close-menu"></span>
+            </small>
+          </div>
+          <div class="suggestions"></div>
         </div>
       </div>
     </script>
@@ -312,7 +218,7 @@
     <!-- Text control template -->
     <script type="html/template" id="text-control-template">
       <div>
-        <textarea class="form-control" rows="1" autocomplete="on" />
+        <textarea class="form-control" rows="1" />
       </div>
     </script>
 
@@ -331,7 +237,7 @@
       <div>
         <div class="input-group">
           <div class="input-group-addon"><small class="language-tag"></small></div>
-          <textarea class="form-control" lang="" rows="1" autocomplete="on" />
+          <textarea class="form-control" lang="" rows="1" />
         </div>
       </div>
     </script>
@@ -358,10 +264,47 @@
       </div>
     </script>
 
+    <!-- WorkTime control template -->
+    <script type="html/template" id="worktime-control-template">
+      <table>
+        <tbody>
+          <tr>
+            <td width="25%">
+              <div class="input-group">
+                <span class="input-group-addon">DD</span>
+                <input type="text">
+              </div>
+            </td>
+            <td width="25%">
+              <div class="input-group">
+                <span class="input-group-addon">HH</span>
+                <input type="text">
+              </div>
+            </td>
+            <td width="25%">
+              <div class="input-group">
+                <span class="input-group-addon">mm</span>
+                <input type="text">
+              </div>
+            </td>
+            <td>
+              <div class="input-group" style="width:100%">
+                <span class="input-group-addon">&sum;</span>
+                <span id="worktime-summary-text" class="text-right"></span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div>
+        <input type="text" class="form-control" style="display:none"/>
+      </div>
+    </script>
+
     <!-- Numeration control template -->
     <script type="html/template" id="numeration-control-template">
       <div class="input-group">
-        <div class="get-numeration-value input-group-addon btn btn-default" id="fullsearch">
+        <div class="get-numeration-value input-group-addon btn btn-default">
           <i class="glyphicon glyphicon-retweet"></i>
         </div>
         <input type="text" class="form-control" />
@@ -413,31 +356,20 @@
       </div>
     </script>
 
-    <!-- File control template with ajax support -->
-    <script type="html/template" id="file-control-template-ajax">
+    <!-- File control template -->
+    <script type="html/template" id="file-control-template">
       <div>
-        <input id="file" type="file" style="display:none"/>
-        <button id="btn" class="btn btn-default">
+        <input type="file" style="display:none"/>
+        <button class="browse btn btn-default">
           Browse...<strong class="indicator-percentage"></strong><span class="indicator-spinner fa fa-spinner fa-pulse fa-lg fa-fw text-info" style="display:none"></span>
         </button>
-      </div>
-    </script>
-
-    <!-- File control template using iframe -->
-    <script type="html/template" id="file-control-template-iframe">
-      <div>
-        <form action="/files" method="post" enctype="multipart/form-data">
-          <input type="file" id="file" name="file"/>
-          <input type="hidden" id="path" name="path"/>
-          <input type="hidden" id="uri" name="uri"/>
-        </form>
-        <iframe src="#" style="display:none"></iframe>
       </div>
     </script>
 
     <!-- Javascript -->
 
     <!-- Utils & UI -->
+    <script type="text/javascript" src="/js/browser/lib/promise.js"></script>
     <script type="text/javascript" src="/js/browser/lib/jquery.js"></script>
     <script type="text/javascript" src="/js/browser/lib/jquery-ui.min.js"></script>
     <script type="text/javascript" src="/js/browser/lib/bootstrap.min.js"></script>
@@ -446,8 +378,6 @@
     <script type="text/javascript" src="/js/browser/lib/bootstrap-contextmenu.js"></script>
     <script type="text/javascript" src="/js/browser/lib/n3-browser.min.js"></script>
     <script type="text/javascript" src="/js/browser/lib/FileSaver.min.js"></script>
-    <script type="text/javascript" src="/js/browser/lib/typeahead.jquery.min.js"></script>
-    <script type="text/javascript" src="/js/browser/lib/cookie.js"></script>
     <script type="text/javascript" src="/js/browser/lib/autosize.min.js"></script>
     <script type="text/javascript" src="/js/browser/lib/moment-with-locales.min.js"></script>
     <script type="text/javascript" src="/js/browser/lib/bootstrap-datetimepicker.min.js"></script>
@@ -455,6 +385,7 @@
     <script type="text/javascript" src="/js/browser/lib/locale/ru.js"></script>
     <script type="text/javascript" src="/js/browser/lib/jquery.touchSwipe.min.js"></script>
     <script type="text/javascript" src="/js/browser/lib/jszip.min.js"></script>
+    <script type="text/javascript" src="/js/browser/lib/marked.min.js"></script>
 
     <!-- CodeMirror -->
     <script type="text/javascript" src="/js/browser/lib/codemirror/codemirror.js"></script>
@@ -472,37 +403,30 @@
 
     <!-- Veda browser & server -->
     <script type="text/javascript" src="/js/common/lib/riot.js"></script>
-    <script type="text/javascript" src="/js/common/lib/promise.js"></script>
     <script type="text/javascript" src="/js/common/lib/sha256.js"></script>
-    <script type="text/javascript" src="/js/common/util.js"></script>
     <script type="text/javascript" src="/js/common/veda_spa.js"></script>
+    <script type="text/javascript" src="/js/common/util.js"></script>
     <script type="text/javascript" src="/js/common/app_model.js"></script>
     <script type="text/javascript" src="/js/common/individual_model.js"></script>
     <script type="text/javascript" src="/js/common/individual_list_model.js"></script>
-    <script type="text/javascript" src="/js/common/search_result_model.js"></script>
     <script type="text/javascript" src="/js/common/user_model.js"></script>
-    <script type="text/javascript" src="/js/common/search_model.js"></script>
     <script type="text/javascript" src="/js/common/ontology_model.js"></script>
     <script type="text/javascript" src="/js/common/drafts_model.js"></script>
+    <script type="text/javascript" src="/js/common/numerator.js"></script>
 
     <!-- Veda browser only -->
     <script type="text/javascript" src="/js/browser/notify.js"></script>
     <script type="text/javascript" src="/js/browser/backend.js"></script>
     <script type="text/javascript" src="/js/browser/util.js"></script>
     <script type="text/javascript" src="/js/browser/veda_controls.js"></script>
+    <script type="text/javascript" src="/js/browser/table-sortable.js"></script>
     <script type="text/javascript" src="/js/browser/pager.js"></script>
     <script type="text/javascript" src="/js/browser/update_service.js"></script>
-    <script type="text/javascript" src="/js/browser/displayed_services.js"></script>
     <script type="text/javascript" src="/js/browser/individual_presenter.js"></script>
-    <script type="text/javascript" src="/js/browser/saved_search_list.js"></script>
-    <script type="text/javascript" src="/js/browser/save_search.js"></script>
-    <script type="text/javascript" src="/js/browser/search_presenter.js"></script>
-    <script type="text/javascript" src="/js/browser/search_result_presenter.js"></script>
-    <script type="text/javascript" src="/js/browser/search_sort.js"></script>
-    <script type="text/javascript" src="/js/browser/search_selected_actions.js"></script>
     <script type="text/javascript" src="/js/browser/drafts_presenter.js"></script>
-    <script type="text/javascript" src="/js/browser/veda_net_editor.js"></script>
+    <script type="text/javascript" src="/js/browser/veda_workflow_editor.js"></script>
     <script type="text/javascript" src="/js/browser/app_presenter.js"></script>
+    <script type="text/javascript" src="/js/browser/auth.js"></script>
 
     <script type="text/javascript">
       $(function(){

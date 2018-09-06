@@ -1,23 +1,38 @@
 package main
 
+/*
+ #cgo CFLAGS: -I../authorization
+ #cgo LDFLAGS: -L../lib64 -lauthorization
+ #include <authorization.h>
+*/
+import "C"
+
 import (
-	"bytes"
+	"encoding/json"
+	"github.com/op/go-nanomsg"
+	"github.com/tarantool/go-tarantool"
 	"log"
-	"net"
+	"strings"
 	"time"
-
-	"bufio"
-
-	"gopkg.in/vmihailenco/msgpack.v2"
+	"unsafe"
 )
 
 //Connector represents struct for connection to tarantool
 type Connector struct {
-	//Tcp connection to tarantool
-	conn net.Conn
 	//Address of tarantool database
-	addr string
+	tt_addr   string
+	tt_client *tarantool.Connection
+
+	//	lmdb_client *nanomsg.Socket
+
+	db_is_open bool
 }
+
+const (
+	TT   = 1
+	LMDB = 2
+	NONE = 0
+)
 
 //RequestResponse represents structure for tarantool request response
 type RequestResponse struct {
@@ -25,10 +40,120 @@ type RequestResponse struct {
 	CommonRC ResultCode
 	//ResultCode for each uri in request
 	OpRC []ResultCode
-	//Response data
-	Data []string
+
 	//Returned rights for auth requests
 	Rights []uint8
+
+	indv []Individual
+
+	uris        []string
+	data_binobj []string
+	data_obj_tt [][]interface{}
+	src_type    int
+}
+
+func (rr *RequestResponse) SetUris(data []string) {
+	rr.uris = data
+}
+
+func (rr *RequestResponse) AddIndv(data Individual) {
+	rr.src_type = NONE
+	rr.indv = append(rr.indv, data)
+}
+
+func (rr *RequestResponse) AddTTResult(data []interface{}) {
+	rr.src_type = TT
+	rr.data_obj_tt = append(rr.data_obj_tt, data)
+}
+
+func (rr *RequestResponse) AddLMDBResult(data string) {
+	rr.src_type = LMDB
+	rr.data_binobj = append(rr.data_binobj, data)
+}
+
+func (rr *RequestResponse) GetCount() int {
+	if rr.src_type == TT {
+		return len(rr.data_obj_tt)
+	} else if rr.src_type == LMDB {
+		return len(rr.data_binobj)
+	} else {
+		return len(rr.indv)
+	}
+}
+
+func (rr *RequestResponse) GetJson(idx int) string {
+	if rr.src_type == TT {
+
+		if len(rr.indv) == 0 {
+			rr.indv = make([]Individual, len(rr.uris))
+		}
+
+		if rr.indv[idx] == nil {
+			rr.indv[idx] = ttResordToMap(rr.uris[idx], rr.data_obj_tt[idx])
+		}
+
+		individualJSON, err := json.Marshal(rr.indv[idx])
+		if err != nil {
+			log.Println("ERR! GetIndv: #3 ENCODING INDIVIDUAL TO JSON ", err)
+			return ""
+		}
+		return string(individualJSON)
+
+	} else if rr.src_type == LMDB {
+		return rr.data_binobj[idx]
+	}
+
+	return ""
+}
+
+func (rr *RequestResponse) GetIndv(idx int) Individual {
+	if len(rr.indv) == 0 {
+		rr.indv = make([]Individual, len(rr.uris))
+	}
+
+	if rr.indv[idx] != nil {
+		return rr.indv[idx]
+	} else {
+		if rr.src_type == TT {
+			rr.indv[idx] = ttResordToMap(rr.uris[idx], rr.data_obj_tt[idx])
+		} else if rr.src_type == LMDB {
+
+			var jsonObj map[string]interface{}
+			err := json.Unmarshal([]byte(rr.data_binobj[idx]), &jsonObj)
+			if err != nil {
+				log.Printf("ERR! GetIndv: ENCODE JSON: %s %v\n", rr.data_binobj[idx], err)
+				return make(Individual)
+			}
+
+			rr.indv[idx] = jsonObj
+		}
+		return rr.indv[idx]
+	}
+}
+
+func (rr *RequestResponse) GetIndvs() []Individual {
+	if len(rr.indv) == 0 {
+		rr.indv = make([]Individual, len(rr.uris))
+	}
+
+	for idx := 0; idx < len(rr.uris); idx++ {
+		if rr.indv[idx] == nil {
+			if rr.src_type == TT {
+				rr.indv[idx] = ttResordToMap(rr.uris[idx], rr.data_obj_tt[idx])
+			} else if rr.src_type == LMDB {
+				var jsonObj map[string]interface{}
+				err := json.Unmarshal([]byte(rr.data_binobj[idx]), &jsonObj)
+				if err != nil {
+					log.Printf("ERR! GetIndv: ENCODE JSON: %s %v\n", rr.data_binobj[idx], err)
+					return make([]Individual, 0)
+				}
+
+				rr.indv[idx] = jsonObj
+			}
+		}
+	}
+
+	return rr.indv
 }
 
 //MaxPacketSize is critical value for request/response packets,
@@ -52,233 +177,100 @@ const (
 	Remove = 51
 )
 
-//Connect tries to connect to socket in tarantool while connection is not established
-func (conn *Connector) Connect(addr string) {
-	var err error
-	conn.addr = addr
-	conn.conn, err = net.Dial("tcp", addr)
+func (conn *Connector) open_dbs() {
+	if conn.tt_client != nil {
+		resp, err := conn.tt_client.Ping()
 
-	for err != nil {
-		time.Sleep(3000 * time.Millisecond)
-		conn.conn, err = net.Dial("tcp", addr)
-		log.Println("@TRY CONNECT")
-	}
-}
+		if err != nil {
+			conn.db_is_open = false
+			log.Fatal("ERR! open_dbs", err)
+		} else {
+			conn.db_is_open = true
+			log.Println("@ resp.Code=", resp.Code)
+			log.Println("@ resp.Data=", resp.Data)
+		}
 
-//doRequest encodes request  and sends it to tarantool, after that it reading and decoding response
-func doRequest(needAuth bool, userUri string, data []string, trace, traceAuth bool, op uint) (ResultCode, []byte) {
-	var request bytes.Buffer
-	var response []byte
-
-	writer := bufio.NewWriter(&request)
-	encoder := msgpack.NewEncoder(writer)
-
-	//for GetRightsOrigin, Authorize and GetMembership array
-	//for requset size is bigget because of trace param
-	if op == GetRightsOrigin || op == Authorize || op == GetMembership {
-		encoder.EncodeArrayLen(len(data) + 4)
 	} else {
-		encoder.EncodeArrayLen(len(data) + 3)
+
 	}
-	// encoder.EncodeArrayLen(len(data) + 3)
-
-	//Encoding operation code, needAuth flag, trace if needed and userUri
-	encoder.EncodeUint(op)
-	encoder.EncodeBool(needAuth)
-	if op == GetRightsOrigin || op == Authorize || op == GetMembership {
-		encoder.EncodeBool(traceAuth)
-	}
-	encoder.EncodeString(userUri)
-
-	//Encode request data
-	for i := 0; i < len(data); i++ {
-		encoder.EncodeString(data[i])
-	}
-
-	writer.Flush()
-	if trace {
-		log.Println("@CONNECTOR GET DATA SIZE ", request.Len())
-	}
-
-	//Encoding request size for sending via socket
-	requestSize := uint32(request.Len())
-	buf := make([]byte, 4)
-	buf[0] = byte((requestSize >> 24) & 0xFF)
-	buf[1] = byte((requestSize >> 16) & 0xFF)
-	buf[2] = byte((requestSize >> 8) & 0xFF)
-	buf[3] = byte(requestSize & 0xFF)
-	buf = append(buf, request.Bytes()...)
-
-	//Retry sending until not successed
-	//If error occured on some step try to reconnect and restart sending
-	for {
-		var responseSize uint32
-		var n int
-		var err error
-
-		n, err = 0, nil
-		//Writing until whole buffer is sent
-		for n < len(buf) {
-			var sent int
-			sent, err = conn.conn.Write(buf[n:])
-			if err != nil {
-				break
-			}
-			n += sent
-		}
-
-		if err != nil {
-			log.Printf("@ERR ON SEND OP %v: REQUEST %v\n", op, err)
-			time.Sleep(3000 * time.Millisecond)
-			conn.conn, err = net.Dial("tcp", conn.addr)
-			log.Printf("@RECONNECT %v REQUEST\n", op)
-			continue
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR OP %v: SEND %v", op, n)
-		}
-
-		buf = make([]byte, 4)
-		n, err = 0, nil
-		//Reading response size
-		for n < 4 {
-			var read int
-			read, err = conn.conn.Read(buf[n:])
-			if err != nil {
-				break
-			}
-			n += read
-		}
-
-		if err != nil {
-			log.Printf("@ERR OP %v: RECEIVING RESPONSE SIZE BUF %v\n", op, err)
-			time.Sleep(3000 * time.Millisecond)
-			conn.conn, err = net.Dial("tcp", conn.addr)
-			log.Printf("@RECONNECT %v REQUEST\n", op)
-			continue
-		}
-
-		if err != nil {
-			log.Printf("@ERR OP %v: RECEIVING RESPONSE SIZE BUF %v\n", op, err)
-		}
-
-		//decoding response size
-		for i := 0; i < 4; i++ {
-			responseSize = (responseSize << 8) + uint32(buf[i])
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR OP %v: RESPONSE SIZE %v\n", op, responseSize)
-		}
-
-		//If response size is bigger than packet size than return SizeTooLarge to client
-		if responseSize > MaxPacketSize {
-			log.Printf("@ERR OP %v: RESPONSE IS TOO LARGE %v\n", op, data)
-			return SizeTooLarge, nil
-		}
-
-		//Reading response until whole buffer is read
-		response = make([]byte, responseSize)
-		n, err = 0, nil
-		for n < int(responseSize) {
-			var read int
-			read, err = conn.conn.Read(response[n:])
-			if err != nil {
-				break
-			}
-			n += read
-		}
-
-		if err != nil {
-			log.Printf("@ERR ON READING RESPONSE OP %v: %v", op, err)
-			time.Sleep(3000 * time.Millisecond)
-			conn.conn, err = net.Dial("tcp", conn.addr)
-			log.Printf("@RECONNECT %v REQUEST\n", op)
-			continue
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR OP %v: RECEIVE RESPONSE %v\n", op, n)
-		}
-
-		if err != nil {
-			log.Printf("@ERR RECEIVING OP %v: RESPONSE %v\n", op, err)
-		}
-
-		if trace {
-			log.Printf("@CONNECTOR %v RECEIVED RESPONSE %v\n", op, string(response))
-		}
-
-		//If there are no errors than break cycle and return Ok code and response
-		break
-	}
-	return Ok, response
 }
 
-//Put sends put request to tarantool, data here represented with msgpacks of individuals
-func (conn *Connector) Put(needAuth bool, userUri string, individuals []string, trace bool) RequestResponse {
-	var rr RequestResponse
+func (conn *Connector) reopen_individual_db() {
+	//var err error
+	if conn.tt_client != nil {
 
-	//If user uri is too shorth than return not authorized
-	if len(userUri) < 3 {
-		rr.CommonRC = NotAuthorized
-		log.Println("@ERR CONNECTOR PUT: ", individuals)
-		return rr
+	} else {
+
 	}
+}
 
-	//If no individuals passed than return NoContent to client
-	if len(individuals) == 0 {
-		rr.CommonRC = NoContent
-		return rr
+func (conn *Connector) reopen_ticket_db() {
+	//var err error
+
+	if conn.tt_client != nil {
+
+	} else {
 	}
+}
 
-	if trace {
-		log.Printf("@CONNECTOR PUT: PACK PUT REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
-			needAuth, userUri, individuals)
-	}
+//Connect tries to connect to socket in tarantool while connection is not established
+func (conn *Connector) Connect(tt_addr string) {
 
-	//Send request to tarantool
-	rcRequest, response := doRequest(needAuth, userUri, individuals, trace, false, Put)
-	//If failed return fail code
-	if rcRequest != Ok {
-		rr.CommonRC = rcRequest
-		return rr
-	}
+	if tt_addr != "" {
+		opts := tarantool.Opts{User: "guest"}
 
-	//Decoding msgpack response
-	decoder := msgpack.NewDecoder(bytes.NewReader(response))
-	arrLen, _ := decoder.DecodeArrayLen()
-	rc, _ := decoder.DecodeUint()
-	//Decoding common code for request
-	rr.CommonRC = ResultCode(rc)
+		conn.tt_addr = tt_addr
+		tt_client, err := tarantool.Connect(tt_addr, opts)
 
-	if trace {
-		log.Println("@CONNECTOR PUT: COMMON RC ", rr.CommonRC)
-	}
-
-	rr.OpRC = make([]ResultCode, len(individuals))
-
-	//For put request only operation codes returned
-	for i := 1; i < arrLen; i++ {
-		rc, _ = decoder.DecodeUint()
-		rr.OpRC[i-1] = ResultCode(rc)
-		if trace {
-			log.Println("@CONNECTOR PUT: OP CODE ", rr.OpRC[i-1])
+		for err != nil {
+			log.Println("ERR! Creating tarantool connection: err=", err)
+			log.Println("INFO! sleep")
+			time.Sleep(3000 * time.Millisecond)
+			log.Println("INFO! retry connect")
+			tt_client, err = tarantool.Connect(tt_addr, opts)
 		}
-	}
 
-	return rr
+		log.Println("INFO! tarantool connect is ok")
+		conn.tt_client = tt_client
+	}
+	//	 else {
+	//		log.Println("INFO! Connect to lmdb service, start")
+	//		conn.lmdb_client, err = nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REQ)
+	//		if err != nil {
+	//			conn.db_is_open = false
+	//			log.Fatal("ERR! open_dbs: nanomsg.NewSocket")
+	//
+	//		} else {
+	//			conn.db_is_open = true
+	//		}
+
+	//log.Println("use lmdb service url: ", lmdbServiceURL)
+	//		_, err = conn.lmdb_client.Connect(lmdbServiceURL)
+	//		for err != nil {
+	//			log.Println("ERR! Creating lmdb service connection: err=", err)
+	//			log.Println("INFO! sleep")
+	//			time.Sleep(3000 * time.Millisecond)
+	//			log.Println("INFO! retry connect")
+	//			_, err = conn.lmdb_client.Connect(queryServiceURL)
+	//		}
+	//		log.Println("INFO! Connect to lmdb service, socket=", conn.lmdb_client)
+	//	}
 }
 
 //Get sends get request to tarantool, individuals uris passed as data here
-func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool) RequestResponse {
+func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace bool, reopen bool) RequestResponse {
 	var rr RequestResponse
+
+	if conn.db_is_open == false {
+		conn.open_dbs()
+	} else if reopen == true {
+		conn.reopen_individual_db()
+	}
 
 	//If user uri is too short return NotAuthorized to client
 	if len(userUri) < 3 {
 		rr.CommonRC = NotAuthorized
-		log.Println("@ERR CONNECTOR GET: ", uris)
+		log.Println("ERR! CONNECTOR GET: ", uris)
 		return rr
 	}
 
@@ -288,112 +280,285 @@ func (conn *Connector) Get(needAuth bool, userUri string, uris []string, trace b
 		return rr
 	}
 
-	if trace {
-		log.Printf("@CONNECTOR GET: PACK GET REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
-			needAuth, userUri, uris)
-	}
+	rr.OpRC = make([]ResultCode, 0, len(uris))
+	rr.SetUris(uris)
+	//rr.Indv = make([]Individual, 0, len(uris))
 
-	//Send request to tarantool
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, false, Get)
-	if rcRequest != Ok {
-		rr.CommonRC = rcRequest
-		return rr
-	}
+	if conn.tt_client != nil {
 
-	//Decoding request response
-	decoder := msgpack.NewDecoder(bytes.NewReader(response))
-	arrLen, _ := decoder.DecodeArrayLen()
-	rc, _ := decoder.DecodeUint()
-	//Decoding common response code for request
-	rr.CommonRC = ResultCode(rc)
+		for i := 0; i < len(uris); i++ {
 
-	if trace {
-		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
-	}
+			resp, err := conn.tt_client.Select("INDIVIDUALS", "S", 0, 1024, tarantool.IterEq, []interface{}{uris[i]})
 
-	//Decoding response, response represented with request code and string or nil
-	rr.Data = make([]string, 0)
-	rr.OpRC = make([]ResultCode, len(uris))
-	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
-		rc, _ = decoder.DecodeUint()
-		rr.OpRC[j] = ResultCode(rc)
-		if trace {
-			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
+			if err != nil {
+				log.Println("ERR! ", err)
+			} else {
+				if len(resp.Data) == 0 {
+					rr.OpRC = append(rr.OpRC, NotFound)
+					continue
+				} else {
+
+					if needAuth {
+						curi := C.CString(uris[i])
+						defer C.free(unsafe.Pointer(curi))
+						cuser_uri := C.CString(userUri)
+						defer C.free(unsafe.Pointer(cuser_uri))
+						if reopen == true {
+							if C.authorize_r(curi, cuser_uri, 2, true) != 2 {
+								rr.OpRC = append(rr.OpRC, NotAuthorized)
+								continue
+							}
+						} else {
+							if C.authorize_r(curi, cuser_uri, 2, false) != 2 {
+								rr.OpRC = append(rr.OpRC, NotAuthorized)
+								continue
+							}
+						}
+					}
+
+					rr.OpRC = append(rr.OpRC, Ok)
+					rr.AddTTResult(resp.Data)
+				}
+
+			}
 		}
+		rr.CommonRC = Ok
 
-		if rr.OpRC[j] == Ok {
-			tmp, _ := decoder.DecodeString()
-			rr.Data = append(rr.Data, tmp)
-		} else {
-			decoder.DecodeNil()
+	} else {
+		for i := 0; i < len(uris); i++ {
+			request := "I," + uris[i]
+
+			lmdb_client, err := nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REQ)
+			if err != nil {
+				log.Println("ERR! Get: fail open nanomsg socket")
+				rr.CommonRC = InternalServerError
+				return rr
+
+			}
+			_, err = lmdb_client.Connect(lmdbServiceURL)
+			if err != nil {
+				log.Printf("ERR! Get: fail connect to lmdb service %s, err=%s\n", lmdbServiceURL, err)
+				rr.CommonRC = InternalServerError
+				return rr
+			}
+
+			defer lmdb_client.Close()
+
+			_, err = lmdb_client.Send([]byte(request), 0)
+			if err != nil {
+				log.Println("ERR! Get: send to lmdb service, err=", err)
+				rr.CommonRC = InternalServerError
+				return rr
+			}
+
+			responseBuf, err1 := lmdb_client.Recv(0)
+			if err1 != nil {
+				log.Println("ERR! Get: recv from lmdb serGet:vice, err=", err1)
+				rr.CommonRC = InternalServerError
+				return rr
+			}
+
+			val := string(responseBuf)
+			if val == "[]" {
+				rr.OpRC = append(rr.OpRC, NotFound)
+				continue
+			}
+
+			if strings.Index(val, "{ERR:") == 0 {
+				rr.CommonRC = InternalServerError
+				return rr
+			}
+
+			if needAuth {
+				curi := C.CString(uris[i])
+				defer C.free(unsafe.Pointer(curi))
+				cuser_uri := C.CString(userUri)
+				defer C.free(unsafe.Pointer(cuser_uri))
+				if reopen == true {
+					if C.authorize_r(curi, cuser_uri, 2, true) != 2 {
+						rr.OpRC = append(rr.OpRC, NotAuthorized)
+						continue
+					}
+				} else {
+					if C.authorize_r(curi, cuser_uri, 2, false) != 2 {
+						rr.OpRC = append(rr.OpRC, NotAuthorized)
+						continue
+					}
+				}
+			}
+
+			rr.OpRC = append(rr.OpRC, Ok)
+			rr.AddLMDBResult(string(responseBuf))
+
 		}
+		rr.CommonRC = Ok
 	}
 
 	return rr
 }
 
-//Authorize sends authorize, get membership or get rights origin request to tarantool,
+func strRightToByte(strRight string) uint8 {
+	right := uint8(0)
+
+	if strings.Contains(strRight, "C") {
+		right |= AccessCanCreate
+	}
+	if strings.Contains(strRight, "R") {
+		right |= AccessCanRead
+	}
+	if strings.Contains(strRight, "U") {
+		right |= AccessCanUpdate
+	}
+	if strings.Contains(strRight, "D") {
+		right |= AccessCanDelete
+	}
+
+	return right
+}
+
+func trace_acl(str *C.char) {
+
+}
+
+//Authorize sends authorize, get membership or get rights origin request,
 //it depends on parametr operation. Individuals uris passed as data here
-func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, operation uint,
+func (conn *Connector) Authorize(needAuth bool, userUri string, uri string, operation uint,
 	trace, traceAuth bool) RequestResponse {
 	var rr RequestResponse
 
 	//If userUri is too short return NotAuthorized to client
 	if len(userUri) < 3 {
 		rr.CommonRC = NotAuthorized
-		log.Println("@ERR CONNECTOR AUTHORIZE: ", uris)
+		log.Println("ERR! CONNECTOR AUTHORIZE: ", uri)
 		return rr
 	}
 
 	//If no uris passed than NoContent returned to client.
-	if len(uris) == 0 {
+	if len(uri) == 0 {
 		rr.CommonRC = NoContent
 		return rr
 	}
 
 	if trace {
-		log.Printf("@CONNECTOR AUTHORIZE: PACK AUTHORIZE REQUEST need_auth=%v, user_uri=%v, uris=%v \n",
-			needAuth, userUri, uris)
+		log.Printf("@CONNECTOR AUTHORIZE: PACK AUTHORIZE REQUEST need_auth=%v, user_uri=%v, uri=%v \n",
+			needAuth, userUri, uri)
 	}
 
-	//Send request to tarantool
-	rcRequest, response := doRequest(needAuth, userUri, uris, trace, traceAuth, operation)
-	if rcRequest != Ok {
-		rr.CommonRC = rcRequest
-		return rr
+	if operation == Authorize {
+
+		rr.Rights = make([]uint8, 1)
+		rr.OpRC = make([]ResultCode, 1)
+
+		curi := C.CString(uri)
+		defer C.free(unsafe.Pointer(curi))
+
+		cuser_uri := C.CString(userUri)
+		defer C.free(unsafe.Pointer(cuser_uri))
+
+		right := C.authorize_r(curi, cuser_uri, 15, false)
+
+		rr.Rights[0] = uint8(right)
+		rr.OpRC[0] = Ok
+
+		rr.CommonRC = Ok
 	}
 
-	//Decoding msgpack response
-	decoder := msgpack.NewDecoder(bytes.NewReader(response))
-	arrLen, _ := decoder.DecodeArrayLen()
-	//Decoding common request code
-	rc, _ := decoder.DecodeUint()
-	rr.CommonRC = ResultCode(rc)
+	if operation == GetRightsOrigin {
 
-	if trace {
-		log.Println("@CONNECTOR AUTHORIZE: COMMON RC ", rr.CommonRC)
-	}
+		curi := C.CString(uri)
+		defer C.free(unsafe.Pointer(curi))
 
-	//Decoding response data, data represented by operation response code, access rights,
-	//nil for authorize and string data fro GetRightsOrigin and GetMembership.
-	rr.OpRC = make([]ResultCode, len(uris))
-	rr.Rights = make([]uint8, len(uris))
-	if operation == GetMembership || operation == GetRightsOrigin {
-		rr.Data = make([]string, len(uris))
-	}
-	for i, j := 1, 0; i < arrLen; i, j = i+3, j+1 {
-		rc, _ = decoder.DecodeUint()
-		rr.OpRC[j] = ResultCode(rc)
-		if trace {
-			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
+		cuser_uri := C.CString(userUri)
+		defer C.free(unsafe.Pointer(cuser_uri))
+
+		rights_str := C.GoString(C.get_trace(curi, cuser_uri, 15, C.TRACE_ACL, true))
+		//defer C.free(unsafe.Pointer(right))
+
+		rr.Rights = make([]uint8, 1)
+		rr.OpRC = make([]ResultCode, 1)
+
+		statements := strings.Split(rights_str, "\n")
+		//rr.Indv = make([]Individual, 0)
+
+		for j := 0; j < len(statements)-1; j++ {
+
+			parts := strings.Split(statements[j], ";")
+			statementIndiv := Individual{
+				"@": "_",
+				"rdf:type": []interface{}{
+					map[string]interface{}{"type": "Uri", "data": "v-s:PermissionStatement"},
+				},
+				"v-s:permissionSubject": []interface{}{
+					map[string]interface{}{"type": "Uri", "data": parts[1]},
+				},
+				"v-s:permissionObject": []interface{}{
+					map[string]interface{}{"type": "Uri", "data": parts[0]},
+				},
+				parts[2]: []interface{}{
+					map[string]interface{}{"type": "Boolean", "data": true},
+				},
+			}
+			rr.AddIndv(statementIndiv)
+			//rr.Indv = append(rr.Indv, statementIndiv)
 		}
 
-		rr.Rights[j], _ = decoder.DecodeUint8()
-		if operation == GetRightsOrigin || operation == GetMembership {
-			rr.Data[j], _ = decoder.DecodeString()
-		} else {
-			decoder.DecodeNil()
+		//			commentIndiv := map[string]interface{}{
+		//				"@": "_",
+		//				"rdf:type": []interface{}{
+		//					map[string]interface{}{"type": "Uri", "data": "v-s:PermissionStatement"},
+		//				},
+		//				"v-s:permissionSubject": []interface{}{
+		//					map[string]interface{}{"type": "Uri", "data": "?"},
+		//				},
+
+		//				"rdfs:comment": []interface{}{
+		//					map[string]interface{}{"type": "String", "lang": "NONE", "data": rights[i+2]},
+		//				},
+		//			}
+		//			data = append(data, commentIndiv)
+
+		rr.OpRC[0] = Ok
+
+		rr.CommonRC = Ok
+	}
+
+	if operation == GetMembership {
+
+		curi := C.CString(uri)
+		defer C.free(unsafe.Pointer(curi))
+
+		cuser_uri := C.CString(userUri)
+		defer C.free(unsafe.Pointer(cuser_uri))
+
+		info_str := C.GoString(C.get_trace(curi, cuser_uri, 15, C.TRACE_GROUP, true))
+
+		rr.Rights = make([]uint8, 1)
+		//rr.Indv = make([]Individual, 1)
+		rr.OpRC = make([]ResultCode, 1)
+
+		parts := strings.Split(info_str, "\n")
+
+		memberOf := make([]interface{}, len(parts)-1)
+		for k := 0; k < len(parts)-1; k++ {
+			memberOf[k] = map[string]interface{}{"type": "Uri", "data": parts[k]}
 		}
+
+		membershipIndividual := Individual{
+			"@": "_",
+			"rdf:type": []interface{}{
+				map[string]interface{}{"type": "Uri", "data": "v-s:Membership"},
+			},
+			"v-s:resource": []interface{}{
+				map[string]interface{}{"type": "Uri", "data": uri},
+			},
+			"v-s:memberOf": memberOf,
+		}
+
+		//rr.Indv[0] = membershipIndividual
+		rr.AddIndv(membershipIndividual)
+		rr.OpRC[0] = Ok
+
+		rr.CommonRC = Ok
 	}
 
 	return rr
@@ -403,52 +568,111 @@ func (conn *Connector) Authorize(needAuth bool, userUri string, uris []string, o
 func (conn *Connector) GetTicket(ticketIDs []string, trace bool) RequestResponse {
 	var rr RequestResponse
 
+	if conn.db_is_open == false {
+		conn.open_dbs()
+	}
+
 	//If no ticket ids passed than NoContent returned to client.
 	if len(ticketIDs) == 0 {
 		rr.CommonRC = NoContent
 		return rr
 	}
 
-	if trace {
-		log.Printf("@CONNECTOR GET TICKET: PACK GET REQUEST ticket_ids=%v\n", ticketIDs)
-	}
+	rr.OpRC = make([]ResultCode, 0, len(ticketIDs))
+	//rr.Indv = make([]Individual, 0, len(ticketIDs))
+	rr.SetUris(ticketIDs)
 
-	//Send request to tarantool
-	rcRequest, response := doRequest(false, "cfg:VedaSystem", ticketIDs, trace, false, GetTicket)
-	if rcRequest != Ok {
-		rr.CommonRC = rcRequest
-		return rr
-	}
+	if conn.tt_client != nil {
 
-	//Decoding requset response
-	decoder := msgpack.NewDecoder(bytes.NewReader(response))
-	arrLen, _ := decoder.DecodeArrayLen()
-	//Decoding common request response code
-	rc, _ := decoder.DecodeUint()
-	rr.CommonRC = ResultCode(rc)
-
-	if trace {
-		log.Println("@CONNECTOR GET: COMMON RC ", rr.CommonRC)
-	}
-
-	//Decoding request response data, data here represented with operation result code,
-	//and ticket individual msgpack
-	rr.Data = make([]string, 0)
-	rr.OpRC = make([]ResultCode, len(ticketIDs))
-	for i, j := 1, 0; i < arrLen; i, j = i+2, j+1 {
-		rc, _ = decoder.DecodeUint()
-		rr.OpRC[j] = ResultCode(rc)
-		if trace {
-			log.Println("@CONNECTOR GET: OP CODE ", rr.OpRC[j])
+		resp, err := conn.tt_client.Select("TICKETS", "S", 0, 1024, tarantool.IterEq, []interface{}{ticketIDs[0]})
+		if err != nil {
+			log.Println("ERR! ", err)
+			rr.CommonRC = InternalServerError
+			return rr
 		}
-
-		if rr.OpRC[j] == Ok {
-			tmp, _ := decoder.DecodeString()
-			rr.Data = append(rr.Data, tmp)
+		if len(resp.Data) == 0 {
+			log.Println("ERR! webserver.GetTicket: Empty body of Insert")
+			rr.CommonRC = InternalServerError
 		} else {
-			decoder.DecodeNil()
+			rr.OpRC = append(rr.OpRC, Ok)
+
+			rr.AddTTResult(resp.Data)
+			rr.CommonRC = Ok
 		}
+
+	} else {
+		request := "T," + ticketIDs[0]
+
+		lmdb_client, err := nanomsg.NewSocket(nanomsg.AF_SP, nanomsg.REQ)
+		if err != nil {
+			log.Println("ERR! GetTicket: fail open nanomsg socket")
+			rr.CommonRC = InternalServerError
+			return rr
+
+		}
+		_, err = lmdb_client.Connect(lmdbServiceURL)
+		if err != nil {
+			log.Printf("ERR! GetTicket: fail connect to lmdb service %s, err=%s\n", lmdbServiceURL, err)
+			rr.CommonRC = InternalServerError
+			return rr
+		}
+
+		defer lmdb_client.Close()
+
+		_, err = lmdb_client.Send([]byte(request), 0)
+		if err != nil {
+			log.Println("ERR! GetTicket: send to lmdb service, err=", err)
+			rr.CommonRC = InternalServerError
+			return rr
+		}
+
+		responseBuf, err1 := lmdb_client.Recv(0)
+		if err1 != nil {
+			log.Println("ERR! GetTicket: recv from lmdb service, err=", err1)
+			rr.CommonRC = InternalServerError
+			return rr
+		}
+
+		val := string(responseBuf)
+		if val == "[]" {
+			rr.OpRC = append(rr.OpRC, NotFound)
+			return rr
+		}
+
+		if strings.Index(val, "{ERR:") == 0 {
+			rr.CommonRC = InternalServerError
+			return rr
+		}
+
+		rr.OpRC = append(rr.OpRC, Ok)
+		rr.AddLMDBResult(string(responseBuf))
+		rr.CommonRC = Ok
 	}
 
 	return rr
+}
+
+func NmCSend(s *nanomsg.Socket, data []byte, flags int) (int, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ERR! fail send to NN socket")
+			return
+		}
+	}()
+
+	tmp := make([]byte, len(data))
+	copy(tmp, data)
+
+	return s.Send(tmp, flags)
+}
+
+func NmSend(s *nanomsg.Socket, data []byte, flags int) (int, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ERR! fail send to NN socket")
+			return
+		}
+	}()
+
+	return s.Send(data, flags)
 }

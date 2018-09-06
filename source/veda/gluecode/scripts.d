@@ -27,10 +27,9 @@ class ScriptProcess : VedaModule
     {
         super(_subsystem_id, _module_id, log);
 
-        vm_id           = _vm_id;
-        g_vm_id         = vm_id;
-        g_cache_of_indv = cache_of_indv;
-        wpl             = new ScriptsWorkPlace();
+        vm_id   = _vm_id;
+        g_vm_id = vm_id;
+        wpl     = new ScriptsWorkPlace();
     }
 
     long count_sckip = 0;
@@ -118,7 +117,8 @@ class ScriptProcess : VedaModule
 
         foreach (_script_id; wpl.scripts_order)
         {
-            script_id = _script_id;
+            script_id  = _script_id;
+            g_event_id = new_indv.uri ~ '+' ~ script_id;
 
             ScriptInfo script = wpl.scripts[ script_id ];
 
@@ -147,6 +147,8 @@ class ScriptProcess : VedaModule
 
                 try
                 {
+                    tnx.reset();
+
 /*
                                     if (count_sckip == 0)
                                     {
@@ -159,31 +161,28 @@ class ScriptProcess : VedaModule
                                     if (count_sckip > 0)
                                         count_sckip--;
  */
-                    //if (trace_msg[ 300 ] == 1)
-                    log.trace("start: %s %s %s %d %s tnx=%d", script_id, sticket, individual_id, op_id, event_id, transaction_id);
+                    log.trace("start: %s %s %d %s", script_id, individual_id, op_id, event_id);
 
                     //count++;
                     script.compiled_script.run();
+                    tnx.is_autocommit = true;
+                    tnx.id            = transaction_id;
+                    ResultCode res = g_context.commit(&tnx, OptAuthorize.NO);
 
-		            foreach (item; transaction_queue)
-		            {
-		                log.trace ("tnx item: cmd=%s, uri=%s ", item.cmd, item.indv.uri);
-		            }
+                    log.trace("tnx: id=%s, autocommit=%s", tnx.id, tnx.is_autocommit);
+                    foreach (item; tnx.get_queue())
+                    {
+                        log.trace("tnx item: cmd=%s, uri=%s, res=%s", item.cmd, item.new_indv.uri, text(item.rc));
+                    }
 
-                    ResultCode res = commit(transaction_id);
                     if (res != ResultCode.OK)
                     {
                         log.trace("fail exec event script : %s", script_id);
                         return res;
                     }
-                    
-                    //if (trace_msg[ 300 ] == 1)
+
                     log.trace("end: %s", script_id);
-
-
-                    //*(cast(char*)script_vm) = 0;
-                    //log.trace("end: %s", script_id);
-	            }
+                }
                 catch (Throwable ex)
                 {
                     log.trace("WARN! fail execute event script : %s %s %s", script_id, ex.msg, ex.info);
@@ -221,7 +220,7 @@ class ScriptProcess : VedaModule
             ~ "var parent_document_id = get_env_str_var ('$parent_document_id');"
             ~ "var prev_state = get_individual (ticket, '$prev_state');"
             ~ "var super_classes = get_env_str_var ('$super_classes');"
-            ~ "var _event_id = document['@'] + '+' + _script_id;";
+            ~ "var _event_id = '?';";
 
         before_vars =
             "var document = get_individual (ticket, '$document');"
@@ -252,27 +251,30 @@ class ScriptProcess : VedaModule
         //if (trace_msg[ 301 ] == 1)
         log.trace("start load db scripts");
 
-        Ticket       sticket = context.sys_ticket();
+        Ticket sticket = context.sys_ticket();
+        g_ticket.data   = cast(char *)sticket.id;
+        g_ticket.length = cast(int)sticket.id.length;
+
         Individual[] res;
 
-        auto         si = context.get_info(MODULE.subject_manager);
+        auto         si = context.get_storage().get_info(MODULE.subject_manager);
 
         bool         is_ft_busy = true;
         while (is_ft_busy)
         {
-            auto mi = context.get_info(MODULE.fulltext_indexer);
+            auto mi = context.get_storage().get_info(MODULE.fulltext_indexer);
 
-            log.trace("wait for the ft-index to finish subject.op_id=%d ft.committed_op_id=%d ...", si.op_id, mi.committed_op_id);
+            log.trace("wait for the ft-index to finish storage.op_id=%d ft.committed_op_id=%d ...", si.op_id, mi.committed_op_id);
 
             if (mi.committed_op_id >= si.op_id - 1)
                 break;
 
-            core.thread.Thread.sleep(dur!("msecs")(30));
+            core.thread.Thread.sleep(dur!("msecs")(1000));
         }
 
         vql.reopen_db();
 
-        vql.get(&sticket,
+        vql.get(sticket.user_uri,
                 "return { 'v-s:script'} filter { 'rdf:type' === 'v-s:Event'}",
                 res, OptAuthorize.NO, false);
 

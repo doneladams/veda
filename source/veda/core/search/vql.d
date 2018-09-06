@@ -21,7 +21,6 @@ static const int AUTHORIZE = 4;
 static const int SOURCE    = 5;
 
 static const int XAPIAN = 2;
-static const int LMDB   = 3;
 
 class VQL
 {
@@ -46,15 +45,15 @@ class VQL
 
     public bool close_db()
     {
-        return xr.close_db();
+        return xr.close_dbs();
     }
 
     public void reopen_db()
     {
-        xr.reopen_db();
+        xr.reopen_dbs();
     }
 
-    public int get(Ticket *ticket, string filter, string freturn, string sort, int top, int limit,
+    public int get(string user_uri, string filter, string freturn, string sort, int top, int limit,
                    ref Individual[] individuals, OptAuthorize op_auth, bool trace)
     {
         int                       res_count;
@@ -70,33 +69,30 @@ class VQL
 
             Individual individual = Individual();
 
-            string     data = context.get_from_individual_storage(ticket.user_uri, uri);
+            context.get_storage().get_obj_from_individual_storage(uri, individual);
 
-            if (data is null)
+            if (individual.getStatus() == ResultCode.Not_Found)
             {
-                log.trace("ERR! Unable to find the object [%s] it should be, query=[%s]", text(uri), filter);
+                log.trace("ERR! FT:get, unable get from db, the object [%s] it should be, query=[%s], result indv=%s", uri, filter, individual);
+            }
+            else if (individual.getStatus() == ResultCode.OK)
+            {
+                individuals ~= individual;
             }
             else
             {
-                if (individual.deserialize(data) > 0)
-                {
-                    individuals ~= individual;
-                }
-                else
-                {
-                    log.trace("ERR!:invalid individual=%s", uri);
-                }
+                log.trace("ERR!: FT:get invalid individual=%s, status=%s, query=%s", uri, individual.getStatus(), filter);
             }
         }
         dg = &collect_subject;
 
-        SearchResult sr = xr.get(ticket, filter, freturn, sort, 0, top, limit, dg, op_auth, null, trace);
+        SearchResult sr = xr.get(user_uri, filter, freturn, sort, 0, top, limit, dg, op_auth, null, trace);
         res_count = sr.count;
 
         return res_count;
     }
 
-    public SearchResult get(Ticket *ticket, string filter, string freturn, string sort, int from, int top, int limit,
+    public SearchResult get(string user_uri, string filter, string freturn, string sort, int from, int top, int limit,
                             void delegate(string uri) prepare_element_event,
                             OptAuthorize op_auth, bool trace)
     {
@@ -114,7 +110,7 @@ class VQL
         }
         dg = &collect_subject;
 
-        SearchResult sr = xr.get(ticket, filter, freturn, sort, from, top, limit, dg, op_auth, prepare_element_event, trace);
+        SearchResult sr = xr.get(user_uri, filter, freturn, sort, from, top, limit, dg, op_auth, prepare_element_event, trace);
 
         if (sr.result_code == ResultCode.OK)
             sr.result = res;
@@ -122,7 +118,7 @@ class VQL
         return sr;
     }
 
-    public int get(Ticket *ticket, string query_str, ref Individual[] res, OptAuthorize op_auth, bool trace)
+    public int get(string user_uri, string query_str, ref Individual[] res, OptAuthorize op_auth, bool trace)
     {
         split_on_section(query_str);
         int top = 10000;
@@ -162,39 +158,41 @@ class VQL
                     res = res.init;
                     return;
                 }
-                string data = context.get_from_individual_storage(ticket.user_uri, uri);
 
-                if (data is null)
+                Individual ind;
+                context.get_storage().get_obj_from_individual_storage(uri, ind);
+
+                if (ind.getStatus() == ResultCode.Not_Found)
                 {
-                    log.trace("ERR! Unable to find the object [%s] it should be, query=[%s]", text(uri), query_str);
+                    log.trace("ERR! Unable to find the object [%s] it should be, query=[%s]", uri, query_str);
+                }
+                else if (ind.getStatus() == ResultCode.OK)
+                {
+                    res ~= ind;
                 }
                 else
                 {
-                    Individual ind;
+                    context.reopen_ro_individuals_storage_db();
 
-                    if (ind.deserialize(data) > 0)
+                    context.get_storage().get_obj_from_individual_storage(uri, ind);
+
+                    if (ind.getStatus() == ResultCode.OK)
                     {
                         res ~= ind;
                     }
                     else
                     {
-                        //writeln("ERR! invalid individual=", uri);
-                        context.reopen_ro_subject_storage_db();
-                        data = context.get_from_individual_storage(ticket.user_uri, uri);
-                        if (ind.deserialize(data) > 0)
-                        {
-                            res ~= ind;
-                        }
-                        else
-                        {
-                            log.trace("ERR! vql.get attempt 2, invalid individual=%s", uri);
-                        }
+                        log.trace("ERR! FT:get attempt 2, invalid individual=%s", uri);
                     }
                 }
+
+                //                log.trace("ERR!: FT:get invalid individual=%s, status=%s, query=%s", uri, individual.getStatus(), query_str);
             }
+
+
             dg = &collect_subject;
 
-            SearchResult sr = xr.get(ticket, found_sections[ FILTER ], found_sections[ RETURN ], sort, 0, top, limit, dg, op_auth, null, trace);
+            SearchResult sr = xr.get(user_uri, found_sections[ FILTER ], found_sections[ RETURN ], sort, 0, top, limit, dg, op_auth, null, trace);
             res_count = sr.count;
         }
 

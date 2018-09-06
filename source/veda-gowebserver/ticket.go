@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"strconv"
-	"time"
-
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
-
+	//"strings"
 	"github.com/valyala/fasthttp"
+	"time"
 )
 
 //getTicket handles get_ticket request
@@ -28,22 +25,30 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 	}
 
 	//Look for ticket in cache
-	if ticketCache[ticketKey].Id != "" {
+	ticketCacheMutex.RLock()
+	tk := ticketCache[ticketKey]
+	ticketCacheMutex.RUnlock()
+
+	if tk.Id != "" {
 		//If found check expiration time
-		ticket = ticketCache[ticketKey]
+		ticket = tk
 		if time.Now().Unix() > ticket.EndTime {
 			//If expired, delete and return
+			ticketCacheMutex.Lock()
 			delete(ticketCache, ticketKey)
+			ticketCacheMutex.Unlock()
+
 			log.Printf("@TICKET %v FROM USER %v EXPIRED: START %v END %v NOW %v\n", ticket.Id, ticket.UserURI,
 				ticket.StartTime, ticket.EndTime, time.Now().Unix())
 			return TicketExpired, ticket
 		}
 	} else {
-		//If not found, request it from tarantool
+
+		//If not found, request it from storage
 		rr := conn.GetTicket([]string{ticketKey}, false)
 		//If common response code is not Ok return fail code
 		if rr.CommonRC != Ok {
-			log.Println("@ERR ON GET TICKET FROM TARANTOOL")
+			log.Println("ERR! ON GET TICKET")
 			return InternalServerError, ticket
 		}
 
@@ -52,60 +57,47 @@ func getTicket(ticketKey string) (ResultCode, ticket) {
 			return rr.OpRC[0], ticket
 		}
 
-		//Decode ticket individual from msgpack
-		decoder := msgpack.NewDecoder(bytes.NewReader([]byte(rr.Data[0])))
-		decoder.DecodeArrayLen()
+		individual := rr.GetIndv(0)
 
 		var duration int64
 
-		ticket.Id, _ = decoder.DecodeString()
-		resMapI, _ := decoder.DecodeMap()
-		resMap := resMapI.(map[interface{}]interface{})
-		for mapKeyI, mapValI := range resMap {
-			mapKey := mapKeyI.(string)
+		ticket.UserURI, _ = getFirstString(individual, "ticket:accessor")
+		tt, _ := getFirstString(individual, "ticket:when")
+		mask := "2006-01-02T15:04:05.00000000"
+		startTime, _ := time.Parse(mask[0:len(tt)], tt)
+		ticket.StartTime = startTime.Unix()
+		dd, _ := getFirstString(individual, "ticket:duration")
+		duration, _ = strconv.ParseInt(dd, 10, 64)
 
-			switch mapKey {
-			case "ticket:accessor":
-				ticket.UserURI = mapValI.([]interface{})[0].([]interface{})[1].(string)
-
-			case "ticket:when":
-				tt := mapValI.([]interface{})[0].([]interface{})[1].(string)
-				mask := "2006-01-02T15:04:05.00000000"
-				startTime, _ := time.Parse(mask[0:len(tt)], tt)
-				ticket.StartTime = startTime.Unix()
-
-			case "ticket:duration":
-				duration, _ = strconv.ParseInt(mapValI.([]interface{})[0].([]interface{})[1].(string), 10, 64)
-			}
-		}
+		ticket.Id = ticketKey
 		ticket.EndTime = ticket.StartTime + duration
 
-		//Save ticket in the cache
-		ticketCache[ticketKey] = ticket
-	}
-
-	if areExternalUsers {
-		//If external users feature is enabled
-		log.Printf("check external user (%s)\n", ticket.UserURI)
-		//Check if ticket exists
-		_, ok := externalUsersTicketId[ticket.Id]
-		if !ok {
+		if areExternalUsers {
+			//If external users feature is enabled
+			log.Printf("getTicket::check external user (%s)\n", ticket.UserURI)
 			//If ticket not found then get user from tarantool and decode it
-			rr := conn.Get(false, "cfg:VedaSystem", []string{ticket.UserURI}, false)
-			user := MsgpackToMap(rr.Data[0])
+			rr := conn.Get(false, "cfg:VedaSystem", []string{ticket.UserURI}, false, false)
+			user := rr.GetIndv(0)
 			//Check its field v-s:origin
-			data, ok := user["v-s:origin"]
-			if !ok || (ok && !data.(map[string]interface{})["data"].(bool)) {
+
+			origin, ok := getFirstString(user, "v-s:origin")
+			if !ok || (ok && origin != "External User") {
 				//If this field not found or it contains false then return error code
 				log.Printf("ERR! user (%s) is not external\n", ticket.UserURI)
 				ticket.Id = "?"
 				ticket.result = NotAuthorized
-			} else if ok && data.(map[string]interface{})["data"].(bool) {
+			} else if ok && origin == "External User" {
 				//Else store ticket to cache
 				log.Printf("user is external (%s)\n", ticket.UserURI)
-				externalUsersTicketId[ticket.UserURI] = true
 			}
+
 		}
+
+		//Save ticket in the cache
+		ticketCacheMutex.Lock()
+		ticketCache[ticketKey] = ticket
+		ticketCacheMutex.Unlock()
+
 	}
 
 	return Ok, ticket
@@ -153,18 +145,18 @@ func getTicketTrusted(ctx *fasthttp.RequestCtx) {
 	//Marshal json request
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
-		log.Printf("@ERR GET_TICKET_TRUSTED: ENCODE JSON REQUEST: %v\n", err)
+		log.Printf("ERR! GET_TICKET_TRUSTED: ENCODE JSON REQUEST: %v\n", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
 
 	//Send request to veda server and read response
-	socket.Send(jsonRequest, 0)
-	responseBuf, _ := socket.Recv(0)
+	NmCSend(g_mstorage_ch, jsonRequest, 0)
+	responseBuf, _ := g_mstorage_ch.Recv(0)
 	responseJSON := make(map[string]interface{})
-	err = json.Unmarshal(responseBuf[:len(responseBuf)-1], &responseJSON)
+	err = json.Unmarshal(responseBuf, &responseJSON)
 	if err != nil {
-		log.Printf("@ERR GET_TICKET_TRUSTED: DECODE JSON RESPONSE: %v\n", err)
+		log.Printf("ERR! GET_TICKET_TRUSTED: DECODE JSON RESPONSE: %v\n", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
@@ -179,7 +171,7 @@ func getTicketTrusted(ctx *fasthttp.RequestCtx) {
 	//Encoding json response and retiurn to client
 	getTicketResponseBuf, err := json.Marshal(getTicketResponse)
 	if err != nil {
-		log.Printf("@ERR GET_TICKET_TRUSTED: ENCODE JSON RESPONSE: %v\n", err)
+		log.Printf("ERR! GET_TICKET_TRUSTED: ENCODE JSON RESPONSE: %v\n", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}

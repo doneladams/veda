@@ -21,13 +21,13 @@ func setInIndividual(ctx *fasthttp.RequestCtx) {
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(ctx.Request.Body(), &jsonData)
 	if err != nil {
-		log.Println("@ERR PUT_INDIVIDUAL: DECODING JSON REQUEST ", err)
+		log.Println("ERR! PUT_INDIVIDUAL: DECODING JSON REQUEST ", err)
 		ctx.Response.SetStatusCode(int(InternalServerError))
 		return
 	}
 
 	ticketKey = jsonData["ticket"].(string)
-        assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
+	assignedSubsystems = uint64(jsonData["assigned_subsystems"].(float64))
 	eventID = jsonData["event_id"].(string)
 
 	rc, ticket := getTicket(ticketKey)

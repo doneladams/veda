@@ -107,27 +107,13 @@ riot.render = function(tmpl, data, escape_fn) {
   }
 
   /* Change the browser URL or listen to changes on the URL */
-  riot.route = function(to) {
+  riot.route = function(to, prevent) {
     // listen
     if (typeof to === "function") return pops.on("pop", to);
 
     // fire
     if (history.pushState) history.pushState(0, 0, to);
-    pop(to);
-
+    if (!prevent) pop(to);
   };
 })();
-if (typeof exports === 'object') {
-  // CommonJS support
-  module.exports = riot;
-} else if (typeof define === 'function' && define.amd) {
-  // support AMD
-  define(function() { return riot; });
-} else if (typeof window === 'object') {
-  // support browser
-  window.riot = riot;
-} else {
-  // support veda server
-  this.riot = riot;
-}
-})({});
+})( typeof window === 'object' ? window.riot = {} : this.riot = {} );

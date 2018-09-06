@@ -1,79 +1,65 @@
-sudo: required
 dist: trusty
+sudo: required
 
-addons:
-  sauce_connect:
-    username: semanticmachines
-    access_key: 0fdd3d85-3d51-4fd5-89ed-10980baa57a5
-    no_ssl_bump_domains: localhost
+language: node_js
+node_js: "stable"
 
-language: rust
-
-env:
-  global:
-    - secure: PYwCZBpLe87Qg2RXibiGk9LrNrkFMlGuFnf/mp+f5kc4bFoVMo7Pl+Rdl4S1H33kLYK6d3pFggddwWxO7HGH9IyHzQ6Gfu3u9gR9rJXovQYfEp8muDCJDXvLEUoMxRgnRPa202p+BUnrNMwebxYHmwgef0s1dYQpRsewmPWHevk=
-    - secure: s1BV5JjhQIIdasowuMW2OqH5LjvN3tnU+sEGdz4HxWpHufgFUeNBVzu13S85qSxdch55lCyB4ft58PAX3q0wHFPYvBEwkvMlSFny7LeiytW9HZ/fkCG+Dwh6H6OEK1jKQriXZrYLQm4m6gnnAQYsUpDhxP12YejyyBbfaVW73Og=
-    - secure: C4QaKE9icNEBbfPGqusjV+koFOa+Ggj3FtwoopB6WinN3ralCEhPJlcSEPSNSNRyS8fJqLq9J/9YQjLYTxhEal8usfeIe/WUrBXYW1/rSzoP6RSnLHrD99NYWO8aHpXxlhxU5T3QSFHq/wvDLBuhw1hlu0osNH9b1S29dPE8P4w=
-
-# Load all dependencies
 before_install:
-  - mkdir logs    
-  - ./control-install.sh&>logs/install.log    
-#  - ./send-to-chunk-io.sh
-  - npm install selenium-webdriver@2.47.0
+  - stty cols 80
+  - sudo apt-get install nodejs-legacy
   - npm install -g grunt-cli
   - npm install grunt-contrib-qunit --save-dev
   - npm install grunt --save-dev
-#  - npm install coveralls --save-dev
-#  - npm install grunt-coveralls --save-dev
-  - go version    
+
+addons:
+#  firefox: latest
+#  sauce_connect:
+#    username: semanticmachines
+#    access_key: 0fdd3d85-3d51-4fd5-89ed-10980baa57a5
+  apt:
+    sources:
+     - google-chrome
+    packages:
+     - google-chrome-stable fluxbox
 
 # Build
 install:
+  - ./control-install.sh&>install.log 
+  - source $HOME/.cargo/env
+#  - npm install --save-dev testcafe-browser-provider-saucelabs
+  - npm install --save-dev testcafe
+  - go version
+  - dmd --version    
+  - rustc -V          
   - ./build.sh
-  - tarantool --version    
-#  - "export DISPLAY=:99.0"
-#  - "sh -e /etc/init.d/xvfb start"
-#  - sleep 3 # give xvfb some time to start
-  - ./control-start.sh
-  - sleep 120  # give Web server some time to bind to sockets, load startup data, etc
-  - date    
 
-# Run service as daemon and GUI
 before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - fluxbox >/dev/null 2>&1 &
+  - ./control-start.sh
+  - sleep 180
 
-# Run API & integration test
 script:
-  - grunt test --stack --verbose
-# - grunt coveralls
-#  - node ./qa/testAPI.js
-#  - node ./qa/testLogin.js
-  - node ./qa/testDeleteAndRecovery.js
-  - node ./qa/testRights.js
-  - node ./qa/testComment.js
-  - node ./qa/testVersionedDocument.js
-  - node ./qa/testJournal.js
-  - node ./qa/testAttachment.js
-  - node ./qa/testPager.js
-  - node ./qa/testSearchRangeOfDates.js
-  - node ./qa/testAttributiveSearchPerson.js
-  - node ./qa/testCreatingNetInterface.js
-  - travis_wait 20 node ./qa/testInbox.js
-  - travis_wait 20 node ./qa/testRepeatComplexRoute.js
-  - travis_wait 20 node ./qa/testNetComplexRoute.js
-  - node ./qa/testSimpleNet.js
-  - node ./qa/testSimpleNet2.js
-  - node ./qa/testSimpleNet3.js
-  - node ./qa/testSimpleWorkflow.js
-  - node ./qa/testDelegationDocument.js
-  - node ./qa/testDelegationTask.js
+  - travis_wait 20 grunt test --stack --verbose
+  - testcafe chromium qa/testcafe/testLogin.js
+  - testcafe chromium qa/testcafe/testLanguage.js
+  - testcafe chromium qa/testcafe/testAttributiveSearch.js
+  - testcafe chromium qa/testcafe/testComment.js
+  - testcafe chromium qa/testcafe/testCreatingNetInterface.js
+  - testcafe chromium qa/testcafe/testDeleteAndRecovery.js
+  - testcafe chromium qa/testcafe/testJournal.js
+  - testcafe chromium qa/testcafe/testPerson.js
+  - testcafe chromium qa/testcafe/testRights.js
+  - testcafe chromium qa/testcafe/testSearchRangeOfDates.js
+  - testcafe chromium qa/testcafe/testVersionedDocument.js
+  - testcafe chromium qa/testcafe/testSimpleNet.js
+  - testcafe chromium qa/testcafe/testSimpleNet2.js  
+  - testcafe chromium qa/testcafe/testSimpleNet3.js  
 
-# Stop deamon and show log
 after_script:
-  - date    
   - ./control-stop.sh
-#  - grunt coveralls
-  - date    
-   
-after_failure: 
+
+after_failure:
+  - ./control-stop.sh
   - ./send-to-chunk-io.sh

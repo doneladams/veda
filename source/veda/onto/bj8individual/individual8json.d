@@ -1,7 +1,7 @@
 module veda.onto.bj8individual.individual8json;
 
 import std.conv, std.stdio, std.json, std.datetime, std.string;
-import veda.common.type, veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.onto.lang;
+import veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.lang;
 
 static LANG[ string ] Lang;
 static DataType[ string ] Resource_type;
@@ -116,25 +116,34 @@ JSONValue[] individuals_to_json(Individual[] individuals)
 
 Individual json_to_individual(ref JSONValue individual_json)
 {
-    //log.trace ("\nJSON->:%s", individual_json);
     Individual individual = Individual.init;
 
-    foreach (string property_name, property_values; individual_json)
+    try
     {
-//      writeln ("property_name=",property_name);
-        if (property_name == "@")
-        {
-            individual.uri = property_values.str;
-            continue;
-        }
-        Resource[] resources = Resource[].init;
-        foreach (size_t index, property_value; property_values)
-            resources ~= json_to_resource(property_value);
+        //log.trace ("\nJSON->:%s", individual_json);
 
-        if (resources.length > 0)
-            individual.resources[ property_name ] = resources;
+        foreach (string property_name, property_values; individual_json)
+        {
+//      writeln ("property_name=",property_name);
+            if (property_name == "@")
+            {
+                individual.uri = property_values.str;
+                continue;
+            }
+            Resource[] resources = Resource[].init;
+            foreach (size_t index, property_value; property_values)
+                resources ~= json_to_resource(property_value);
+
+            if (resources.length > 0)
+                individual.resources[ property_name ] = resources;
+        }
+        //log.trace ("->INDIVIDUAL:%s", individual);
     }
-    //log.trace ("->INDIVIDUAL:%s", individual);
+    catch (Throwable tr)
+    {
+        stderr.writeln("EX! ", __FILE__, ", line:", __LINE__, ", [", tr.msg, "], in ", individual_json);
+    }
+
     return individual;
 }
 
@@ -270,7 +279,8 @@ Resource json_to_resource(JSONValue resource_json)
     }
     catch (Exception ex)
     {
-        writeln("EX! ", __FILE__, ", line:", __LINE__, ", [", ex.msg, "], in ", resource_json);
+        stderr.writeln("EX! ", __FILE__, ", line:", __LINE__, ", [", ex.msg, "], in ", resource_json);
+        throw ex;
     }
 
     return resource;

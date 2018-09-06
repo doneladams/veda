@@ -5,12 +5,25 @@ module veda.onto.individual;
 
 private
 {
-    import std.stdio, std.typecons, std.conv, std.algorithm, std.exception : assumeUnique;
-    import veda.onto.resource, veda.core.common.context, veda.core.common.know_predicates, veda.core.util.utils;
-    import veda.util.container, veda.common.type, veda.onto.bj8individual.msgpack8individual;
+    import std.stdio, std.typecons, std.conv, std.algorithm, std.digest.crc, std.exception : assumeUnique;
+    import std.algorithm, std.algorithm.mutation                                           : SwapStrategy;
+
+    import veda.onto.resource;
+    import veda.common.type, veda.onto.bj8individual.cbor8individual, veda.onto.bj8individual.msgpack8individual;
+    import veda.util.properd;
 }
 /// Массив индивидуалов
 alias Individual[] Individuals;
+
+public enum BOFormat : ubyte
+{
+    UNKNOWN = 0,
+    CBOR    = 1,
+    MSGPACK = 2
+}
+
+BOFormat binobj_format = BOFormat.UNKNOWN;
+
 
 /// Индивидуал
 public struct Individual
@@ -22,6 +35,7 @@ public struct Individual
     Resources[ string ]    resources;
 
     private ResultCode rc;
+    private CRC32      hash;
 
     /// Вернуть код ошибки
     public ResultCode  getStatus()
@@ -40,15 +54,84 @@ public struct Individual
         resources = _resources;
     }
 
-	int deserialize (string bin)
-	{
-		return msgpack2individual (this, bin);
-	}
+    void reorder(string predicate)
+    {
+        Resources rss;
 
-	string serialize ()
-	{
-		return individual2msgpack (this);
-	}
+        rss = resources.get(predicate, rss);
+
+        if (rss.length == 2)
+        {
+            if (rss[ 0 ].order > rss[ 1 ].order)
+            {
+                auto aa = rss[ 0 ].order;
+                rss[ 0 ].order         = rss[ 1 ].order;
+                rss[ 1 ].order         = aa;
+                resources[ predicate ] = rss;
+            }
+        }
+        else if (rss.length > 2)
+        {
+            auto      rss_sorted = sort!("a.order < b.order", SwapStrategy.stable)(rss);
+
+            Resources new_rss;
+            foreach (rr; rss_sorted)
+            {
+                new_rss ~= rr;
+            }
+            resources[ predicate ] = new_rss;
+        }
+    }
+
+    int deserialize(string bin)
+    {
+        if (bin.length == 0)
+            return -1;
+
+        if ((cast(ubyte[])bin)[ 0 ] == 146)
+        {
+            // this MSGPACK
+            return msgpack2individual(this, bin);
+        }
+        else
+        {
+            return cbor2individual(&this, bin);
+        }
+    }
+
+    string serialize()
+    {
+        if (binobj_format == BOFormat.UNKNOWN)
+        {
+            binobj_format = BOFormat.CBOR;
+            try
+            {
+                string[ string ] properties;
+                properties = readProperties("./veda.properties");
+                string s_binobj_format = properties.as!(string)("binobj_format");
+
+                if (s_binobj_format == "cbor")
+                    binobj_format = BOFormat.CBOR;
+
+                if (s_binobj_format == "msgpack")
+                    binobj_format = BOFormat.MSGPACK;
+            }
+            catch (Throwable ex)
+            {
+                stderr.writefln("ERR! unable read ./veda.properties, ex=%s", ex.msg);
+            }
+
+            stderr.writefln("SET binobj_format=%s", text(binobj_format));
+        }
+
+
+        if (binobj_format == BOFormat.CBOR)
+            return individual2cbor(&this);
+        else if (binobj_format == BOFormat.MSGPACK)
+            return individual2msgpack(this);
+        else
+            return "";
+    }
 
     Individual dup()
     {
@@ -87,6 +170,17 @@ public struct Individual
 
         rss = resources.get(predicate, rss);
         if (rss.length > 0 && rss[ 0 ].type == DataType.Integer)
+            return rss[ 0 ].get!long;
+
+        return default_value;
+    }
+
+    long getFirstDatetime(string predicate, long default_value = 0)
+    {
+        Resources rss;
+
+        rss = resources.get(predicate, rss);
+        if (rss.length > 0 && rss[ 0 ].type == DataType.Datetime)
             return rss[ 0 ].get!long;
 
         return default_value;
@@ -318,23 +412,42 @@ public struct Individual
         }
         return this;
     }
-}
 
-unittest
+    string get_CRC32()
     {
-		import std.datetime;
-		import veda.onto.lang;
-		import veda.util.tests_tools;
-		
-		Individual new_indv_A = generate_new_test_individual ();        
-        string bin = new_indv_A.serialize ();
-        
-		Individual new_indv_B;         
-        new_indv_B.deserialize (bin);
-        
-		assert (new_indv_B.compare(new_indv_A));
-        new_indv_B.setResources("rdfs:label", [Resource(decimal (cast(long)122234, cast(byte)25))]);
-		assert (!new_indv_B.compare(new_indv_A));
-		
-		writeln("unittest [Individual serialize, deserialize] Ok");
-	}
+        string[] predicates = resources.keys;
+
+        predicates.sort();
+
+        hash.start();
+        foreach (pp; predicates)
+        {
+            if (pp != "v-s:hash" && pp != "v-s:updateCounter")
+            {
+                hash.put(cast(ubyte[])pp);
+
+                foreach (rr; resources[ pp ])
+                {
+                    hash.put(rr.type);
+                    hash.put(cast(ubyte[])rr.asString());
+                    hash.put(rr.lang);
+                }
+            }
+        }
+
+        string str_hash = crcHexString(hash.finish());
+
+        return str_hash;
+    }
+
+    public long count_values()
+    {
+        long count;
+
+        foreach (vv; resources.values)
+        {
+            count += vv.length;
+        }
+        return count;
+    }
+}

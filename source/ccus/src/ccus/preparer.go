@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
 	"io"
 	"io/ioutil"
 	"log"
@@ -10,8 +11,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 type ccusConn struct {
@@ -25,14 +24,14 @@ type ccusConn struct {
 }
 
 func (pc *ccusConn) get_counter_4_uid(uid string) int {
-	pc.cc_in <- updateInfo{uid, 0, -1, pc.cc_out}
+	pc.cc_in <- updateInfo{uid, 0, -1, false, pc.cc_out}
 	g_info := <-pc.cc_out
 	//log.Printf("ws[%s]:get_counter_4_uid[%s] %d", pc.ws.RemoteAddr(), uid, g_info.update_counter)
 	return g_info.update_counter
 }
 
 func (pc *ccusConn) get_last_opid() int {
-	pc.cc_in <- updateInfo{"", -1, 0, pc.cc_out}
+	pc.cc_in <- updateInfo{"", -1, 0, false, pc.cc_out}
 	g_info := <-pc.cc_out
 	//log.Printf("ws[%s]:get_last_opid %d", pc.ws.RemoteAddr(), g_info.opid)
 	return g_info.opid
@@ -61,6 +60,7 @@ func (pc *ccusConn) get_list_of_subscribe() string {
 
 func (pc *ccusConn) get_list_of_changes() string {
 	res := ""
+
 	for i_uid, i_count := range pc.count_2_uid {
 
 		g_count := pc.get_counter_4_uid(i_uid)
@@ -76,7 +76,6 @@ func (pc *ccusConn) get_list_of_changes() string {
 			pc.count_2_uid[i_uid] = i_count
 		}
 	}
-	log.Printf("CHANGES RES=%s", res)
 	return res
 }
 
@@ -191,7 +190,7 @@ func (pc *ccusConn) preparer(cc_control chan int, cc_prepare_in chan string, cc_
 					cc_prepare_out <- ""
 					continue
 				}
-				new_info := updateInfo{uid, opid, update_counter, nil}
+				new_info := updateInfo{uid, opid, update_counter, false, nil}
 				//log.Printf("ws[%s] @2 ni=%s", ni)
 				pc.cc_in <- new_info
 				//log.Printf("ws[%s] send #4", pc.ws.RemoteAddr());

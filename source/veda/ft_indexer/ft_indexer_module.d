@@ -4,7 +4,6 @@
 module veda.ft_indexer.ft_indexer_module;
 
 private import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime, std.array, core.sys.posix.signal, core.sys.posix.unistd, core.thread;
-private import backtrace.backtrace, Backtrace = backtrace.backtrace;
 private import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
 private import veda.common.logger, veda.core.impl.thread_context;
 private import veda.bind.xapian_d_header;
@@ -25,7 +24,7 @@ Logger log()
 void main(char[][] args)
 {
     Thread.sleep(dur!("seconds")(1));
-    process_name = "fulltext_indexer";
+    process_name = ft_indexer_queue_name;
 
     auto p_module = new FTIndexerProcess(SUBSYSTEM.FULL_TEXT_INDEXER, MODULE.fulltext_indexer, new Logger("veda-core-fulltext_indexer", "log", ""));
 
@@ -36,15 +35,35 @@ class FTIndexerProcess : VedaModule
 {
     IndexerContext ictx = new IndexerContext;
 
-    long           last_update_time = 0;
+    long           last_update_time  = 0;
+    string         low_priority_user = "";
+
+    int indexer_priority(string user_uri)
+    {
+        if (user_uri == low_priority_user)
+            return 1;
+
+        return 0;
+    }
 
     this(SUBSYSTEM _subsystem_id, MODULE _module_id, Logger log)
     {
         super(_subsystem_id, _module_id, log);
 
-        //priority       = &indexer_priority;
+        priority       = &indexer_priority;
         main_cs.length = 2;
     }
+
+
+
+    /+  override int priority(string user_uri)
+       {
+          // if (user_uri == low_priority_user)
+              // return 1;
+
+          stderr.writefln("special user uri %s", user_uri);
+          return 0;
+       }+/
 
     override Context create_context()
     {
@@ -66,7 +85,7 @@ class FTIndexerProcess : VedaModule
 
         long now = Clock.currTime().stdTime();
 
-        if (now - last_update_time > 1_000_000)
+        if (now - last_update_time > 600_000)
         {
             ictx.commit_all_db();
             last_update_time = now;
@@ -87,9 +106,9 @@ class FTIndexerProcess : VedaModule
             committed_op_id  = op_id;
             //log.trace("commit, op_id=%d", committed_op_id);
         }
-        if (msg == "reindex_all")
+        else if (msg == "reindex_batch")
         {
-            //prepare_all();
+            prepare_batch();
         }
     }
 
@@ -97,6 +116,8 @@ class FTIndexerProcess : VedaModule
     {
         ictx.thread_name = process_name;
         ictx.init(&sticket, context);
+
+        low_priority_user = node.getFirstLiteral("cfg:low_priority_user");
         return true;
     }
 

@@ -4,7 +4,7 @@
 module veda.core.common.define;
 
 import std.concurrency, std.file, std.stdio, core.atomic;
-import veda.core.common.know_predicates, veda.util.container;
+import veda.core.common.know_predicates;
 
 // variable process_name static mirror of g_process_name
 string process_name;
@@ -59,27 +59,27 @@ enum EVENT : byte
     NOT_READY = 6
 }
 
-const string   attachments_db_path = "./data/files";
-const string   docs_onto_path      = "./public/docs/onto";
-const string   dbs_backup          = "./backup";
-const string   dbs_data            = "./data";
-const string   individuals_db_path = "./data/lmdb-individuals";
-const string   tickets_db_path     = "./data/lmdb-tickets";
-const string   acl_indexes_db_path = "./data/acl-indexes";
-const string   uris_db_path        = "./data/uris";
-const string   tmp_path            = "./data/tmp";
-const string   queue_db_path       = "./data/queue";
-const string   onto_path           = "./ontology";
-const string   xapian_info_path    = "./data/xapian-info";
-const string   module_info_path    = "./data/module-info";
-const string   trails_path         = "./data/trails";
-const string   logs_path           = "./logs";
+const string acl_indexes_db_path = "./data/acl-indexes";
+const string   attachments_db_path   = "./data/files";
+const string   docs_onto_path        = "./public/docs/onto";
+const string   dbs_backup            = "./backup";
+const string   dbs_data              = "./data";
+const string   uris_db_path          = "./data/uris";
+const string   tmp_path              = "./data/tmp";
+const string   queue_db_path         = "./data/queue";
+const string   onto_path             = "./ontology";
+const string   xapian_info_path      = "./data/xapian-info";
+const string   module_info_path      = "./data/module-info";
+const string   trails_path           = "./data/trails";
+const string   logs_path             = "./logs";
 
-const string[] paths_list          =
+const string   main_queue_name       = "individuals-flow";
+const string   ft_indexer_queue_name = "fulltext_indexer0";
+
+string[] paths_list            =
 [
-    tmp_path, logs_path, attachments_db_path, docs_onto_path, dbs_backup, dbs_data, individuals_db_path, uris_db_path, tickets_db_path,
-    acl_indexes_db_path, queue_db_path,
-    xapian_info_path, module_info_path, trails_path
+    tmp_path, logs_path, attachments_db_path, docs_onto_path, dbs_backup, dbs_data, uris_db_path, queue_db_path,
+    xapian_info_path, module_info_path, trails_path, acl_indexes_db_path
 ];
 
 private string[ string ] _xapian_search_db_path;

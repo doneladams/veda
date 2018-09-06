@@ -12,7 +12,7 @@ private
     import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
     import veda.common.logger, veda.core.impl.thread_context;
     import veda.core.common.context, veda.util.tools, veda.core.common.log_msg, veda.core.common.know_predicates, veda.onto.onto;
-    import veda.vmodule.vmodule;
+    import veda.vmodule.vmodule, veda.core.common.transaction;
     import veda.core.search.vel, veda.core.search.vql, veda.gluecode.script, veda.gluecode.v8d_header;
 }
 // ////// Logger ///////////////////////////////////////////
@@ -98,9 +98,7 @@ private void ltrs_thread(string parent_url)
 
 //    core.thread.Thread.getThis().name = thread_name;
 
-    Ticket systicket;
-    context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", "", log, systicket, parent_url);
-
+    context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", log, parent_url);
 
     vars_for_codelet_script =
         "var uri = get_env_str_var ('$uri');"
@@ -213,7 +211,7 @@ private void ltrs_thread(string parent_url)
                         {
                             //log.trace("uri=%s", uri);
                             ResultCode rs;
-                            string     data = uri; //context.get_individual_as_binobj(&sticket, uri, rs);
+                            string     data = uri;
                             execute_script(sticket.user_uri, data, task.codelet_id, task.executed_script_binobj);
 
                             bool res = task.consumer.commit_and_next(true);
@@ -280,7 +278,7 @@ ResultCode execute_script(string user_uri, string uri, string script_uri, string
 
     if (script is ScriptInfo.init)
     {
-        Individual codelet = context.get_individual(&sticket, script_uri);
+        Individual codelet = context.get_individual(&sticket, script_uri, OptAuthorize.NO);
         prepare_script(_wpl, codelet, script_vm, "", "", vars_for_codelet_script, "", false);
     }
 
@@ -291,7 +289,10 @@ ResultCode execute_script(string user_uri, string uri, string script_uri, string
             log.trace("start exec ltr-script : %s %s", script.id, uri);
 
             script.compiled_script.run();
-            ResultCode res = commit(-1);
+            tnx.id = -1;
+            ResultCode res = g_context.commit(&tnx);
+            tnx.reset();
+
             if (res != ResultCode.OK)
             {
                 log.trace("fail exec event script : %s", script.id);

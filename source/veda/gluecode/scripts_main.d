@@ -15,7 +15,7 @@ int main(string[] args)
     Logger log = new Logger("veda-core-" ~ process_name, "log", "");
     log.tracec("use VM id=%s", vm_id);
 
-    Thread.sleep(dur!("seconds")(0));
+    Thread.sleep(dur!("seconds")(1));
 
     ScriptProcess p_script = new ScriptProcess(vm_id, SUBSYSTEM.SCRIPTS, MODULE.scripts_main, log);
     p_script.run();

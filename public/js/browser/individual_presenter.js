@@ -1,23 +1,22 @@
 // Individual Presenter
 
-veda.Module(function IndividualPresenter(veda) { "use strict";
+veda.Module(function (veda) { "use strict";
 
-  //var c = 0;
-
-  veda.on("individual:loaded", function (individual, container, template, mode) {
+  veda.IndividualModel.prototype.present = function (container, template, mode, extra) {
 
     try {
 
-      //console.log(individual.id, "presenter count:", ++c);
+      // Defaults
+      container = container || "#main";
+      mode = mode || "view";
 
       if (typeof container === "string") {
         container = $(container).empty();
       }
-      mode = mode || "view";
 
       if (container.prop("id") === "main") { container.hide(); }
 
-      present(individual, container, template, mode);
+      template = present(this, container, template, mode, extra);
 
       if (container.prop("id") === "main") { container.show("fade", 250); }
 
@@ -25,9 +24,10 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       console.log(err);
     }
 
-  });
+    return template;
+  };
 
-  function present(individual, container, template, mode) {
+  function present(individual, container, template, mode, extra) {
 
     var ontology = new veda.OntologyModel();
 
@@ -40,67 +40,146 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     );
 
     if (template) {
-      if (template instanceof veda.IndividualModel) {
-        template = $( template["v-ui:template"][0].toString() );
-      } else if (typeof template === "string") {
+      if (typeof template === "string" && (/^(\w|-)+:.*?$/).test(template) ) {
         template = new veda.IndividualModel(template);
-        template = $( template["v-ui:template"][0].toString() );
+      } else if (typeof template === "string") {
+        var templateString = template;
+        var uri = veda.Util.simpleHash(templateString).toString();
+        template = veda.cache.get(uri) ? veda.cache.get(uri) : new veda.IndividualModel({
+          "@": uri,
+          "v-ui:template": [{data: templateString, type: "String"}]
+        });
+      } else if (template instanceof HTMLElement) {
+        var templateString = template.outerHTML;
+        var uri = veda.Util.simpleHash(templateString).toString();
+        template = veda.cache.get(uri) ? veda.cache.get(uri) : new veda.IndividualModel({
+          "@": uri,
+          "v-ui:template": [{data: templateString, type: "String"}]
+        });
       }
-      renderTemplate(individual, container, template, mode, specs);
+      return renderTemplate(individual, container, template, mode, extra, specs);
     } else {
-      if ( individual.hasValue("v-ui:hasCustomTemplate") ) {
-        template = individual["v-ui:hasCustomTemplate"][0];
-        renderTemplate(individual, container, template, mode, specs);
+      var isClass = individual.hasValue("rdf:type", "owl:Class") || individual.hasValue("rdf:type", "rdfs:Class");
+      if ( individual.hasValue("v-ui:hasTemplate") && !isClass ) {
+        template = individual["v-ui:hasTemplate"][0];
+        return renderTemplate(individual, container, template, mode, extra, specs);
       } else {
-        individual["rdf:type"].map(function (type) {
+        return individual["rdf:type"].reduce(function (acc, type) {
           if ( type.hasValue("v-ui:hasTemplate") ) {
             template = type["v-ui:hasTemplate"][0];
           } else {
             template = new veda.IndividualModel("v-ui:generic");
           }
-          template = $( template["v-ui:template"][0].toString() );
-          renderTemplate(individual, container, template, mode, specs);
-        });
+          var renderedTemplate = renderTemplate(individual, container, template, mode, extra, specs);
+          return acc.add(renderedTemplate);
+        }, $());
       }
     }
   }
 
-  function renderTemplate(individual, container, template, mode, specs) {
-    var pre_render_src,
-        pre_render,
-        post_render_src,
-        post_render;
+  function renderTemplate(individual, container, template, mode, extra, specs) {
 
-    template = template.filter(function () { return this.nodeType === 1 });
+    var templateString, preScript, postScript;
 
-    if (template.first().is("script")) {
-      pre_render_src = template.first().text();
-      pre_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + pre_render_src);
+    if ( template.preprocessed ) {
+      preScript = template.preScript;
+      templateString = template.templateString;
+      postScript = template.postScript;
+    } else {
+      templateString = template["v-ui:template"][0].toString().trim();
+      var match,
+          preScript_src,
+          preScript,
+          postScript_src,
+          postScript;
+
+      // Extract pre script, template and post script
+      // match = template.match(/^(?:<script[^>]*>([\s\S]*?)<\/script>)?([\s\S]*?)(?:<script[^>]*>(?![\s\S]*<script[^>]*>)([\s\S]*)<\/script>)?$/i);
+      match = preProcess(templateString);
+      preScript_src = match[1];
+      templateString = match[2];
+      postScript_src = match[3];
+
+      if (preScript_src) {
+        preScript = new Function("veda", "individual", "container", "template", "mode", "extra", "\"use strict\";" + preScript_src);
+        template.preScript = preScript;
+      }
+
+      template.templateString = templateString;
+
+      if (postScript_src) {
+        postScript = new Function("veda", "individual", "container", "template", "mode", "extra", "\"use strict\";" + postScript_src);
+        template.postScript = postScript;
+      }
+
+      template.preprocessed = true;
     }
-    if (template.last().is("script")) {
-      post_render_src = template.last().text();
-      post_render = new Function("veda", "individual", "container", "template", "mode", "specs", "\"use strict\";" + post_render_src);
-    }
-    template = template.filter("*:not(script)");
 
-    if (pre_render) {
-      pre_render.call(individual, veda, individual, container, template, mode, specs);
+    var renderedTemplate = $(templateString);
+
+    if (preScript) {
+      preScript.call(individual, veda, individual, container, renderedTemplate, mode, extra);
     }
 
-    template = processTemplate (individual, container, template, mode, specs);
-    container.append(template);
-    individual.trigger("individual:templateReady", template);
+    renderedTemplate = processTemplate (individual, container, renderedTemplate, mode, extra, specs);
+    container.append(renderedTemplate);
 
     // Timeout to wait all related individuals to render
     setTimeout(function () {
-      template.trigger(mode);
-      if (post_render) {
-        post_render.call(individual, veda, individual, container, template, mode, specs);
+      renderedTemplate.trigger(mode);
+      if (postScript) {
+        postScript.call(individual, veda, individual, container, renderedTemplate, mode, extra);
       }
     }, 0);
+
+    // Watch individual updates on server
+    var updateService = new veda.UpdateService();
+    updateService.subscribe(individual.id);
+    renderedTemplate.one("remove", function () {
+      updateService.unsubscribe(individual.id);
+    });
+
+    // Watch language change
+    veda.on("language:changed", localizeIndividual);
+    renderedTemplate.one("remove", function () {
+      veda.off("language:changed", localizeIndividual);
+    });
+
+    function localizeIndividual () {
+      for (var property_uri in individual.properties) {
+        if (property_uri === "@") { continue; }
+        if ( individual.hasValue(property_uri) && individual.properties[property_uri][0].type === "String" ) {
+          individual.trigger("propertyModified", property_uri, individual.get(property_uri));
+          individual.trigger(property_uri, individual.get(property_uri));
+        }
+      }
+    }
+
+    return renderedTemplate;
   }
 
-  function processTemplate (individual, container, template, mode, specs) {
+  function preProcess(templateString) {
+    var pre,
+        preStart = templateString.indexOf("<script>") + 8,
+        preEnd = templateString.indexOf("</script>"),
+        hasPre = preStart === 8;
+    if (hasPre) {
+      pre = templateString.substring(preStart, preEnd);
+      templateString = templateString.substring(preEnd + 9);
+    }
+    var post,
+        postStart = templateString.lastIndexOf("<script>") + 8,
+        postEnd = templateString.lastIndexOf("</script>"),
+        hasPost = postEnd === templateString.length - 9;
+    if (hasPost) {
+      post = templateString.substring(postStart, postEnd);
+      templateString = templateString.substring(0, postStart - 8);
+    }
+    // Compatible with regexp
+    return [undefined, pre, templateString, post];
+  }
+
+  function processTemplate (individual, container, template, mode, extra, specs) {
 
     template.attr({
       "resource": individual.id,
@@ -134,7 +213,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     var embedded = [];
 
     // Trigger same events for embedded templates
-    function syncEmbedded (e, parent) {
+    function syncEmbedded (e) {
       embedded.map(function (item) {
         item.trigger(e.type, individual.id);
       });
@@ -161,24 +240,14 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     }
     template.on("draft", draftHandler);
 
-    function showRightsHandler (e) {
-      individual.trigger("showRights");
-      e.stopPropagation();
-    }
-    template.on("showRights", showRightsHandler);
-
     function cancelHandler (e, parent) {
-      template.trigger("view");
       if (parent !== individual.id) {
         individual.reset()
-          .then( function () {
-            if (container.prop("id") === "main") {
-              window.history.back();
-            }
-          }, function () {
-            if (container.prop("id") === "main") {
-              window.history.back();
-            }
+          .then(function () {
+            template.trigger("view");
+          })
+          .catch(function () {
+            template.trigger("view");
           });
       }
       e.stopPropagation();
@@ -192,8 +261,10 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           var alert = new veda.IndividualModel("v-s:DeletedAlert")["rdfs:label"].join(" ");
           var recover = new veda.IndividualModel("v-s:Recover")["rdfs:label"].join(" ");
           var deletedAlert = $(
-            '<div id="deleted-alert" class="alert alert-warning no-margin clearfix" role="alert">\
-              <p id="deleted-alert-msg">' + alert + '  <button id="deleted-alert-recover" class="btn btn-primary btn-xs recover pull-right">' + recover + '</button></p>\
+            '<div id="deleted-alert" class="container sheet margin-lg">\
+              <div class="alert alert-warning no-margin clearfix" role="alert">\
+                <p id="deleted-alert-msg">' + alert + '  <button id="deleted-alert-recover" class="btn btn-primary btn-xs recover pull-right">' + recover + '</button></p>\
+              </div>\
             </div>'
           );
           template.prepend(deletedAlert);
@@ -223,6 +294,21 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     }
     template.on("delete", deleteHandler);
 
+    function destroyHandler (e, parent) {
+      if (parent !== individual.id) {
+        try {
+          individual.remove();
+          var notify = veda.Notify ? new veda.Notify() : function () {};
+          notify("success", {name: "Success", message: "Object removed"});
+        } catch (error) {
+          var notify = veda.Notify ? new veda.Notify() : function () {};
+          notify("danger", {message: error});
+        }
+      }
+      e.stopPropagation();
+    }
+    template.on("destroy", destroyHandler);
+
     function recoverHandler (e, parent) {
       if (parent !== individual.id) {
         individual.recover();
@@ -231,230 +317,72 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     }
     template.on("recover", recoverHandler);
 
-    function destroyHandler (e, parent) {
-      if (parent !== individual.id) {
-        individual.remove();
+    // Valid alert
+    function validHandler () {
+      if ( this.hasValue("v-s:valid", false) && mode === "view" ) {
+        if ( container.prop("id") === "main" && !template.hasClass("invalid") ) {
+          var alert = new veda.IndividualModel("v-s:InvalidAlert")["rdfs:label"].join(" ");
+          var invalidAlert = $(
+            '<div id="invalid-alert" class="container sheet margin-lg">\
+              <div class="alert alert-warning no-margin clearfix" role="alert">\
+                <p id="invalid-alert-msg">' + alert + '</p>\
+              </div>\
+            </div>'
+          );
+          template.prepend(invalidAlert);
+        }
+        template.addClass("invalid");
+      } else {
+        template.removeClass("invalid");
+        if ( container.prop("id") === "main" ) {
+          $("#invalid-alert", template).remove();
+        }
       }
-      if (container.prop("id") === "main") {
-        window.history.back();
-      }
-      e.stopPropagation();
     }
-    template.on("destroy", destroyHandler);
-
-    // Actions
-    var $edit = $("#edit.action", wrapper),
-        $save = $("#save.action", wrapper),
-        $draft = $("#draft.action", wrapper),
-        $showRights = $("#rightsOrigin.action", wrapper),
-        $cancel = $("#cancel.action", wrapper),
-        $delete = $("#delete.action", wrapper),
-        $destroy = $("#destroy.action", wrapper);
-
-    // Check rights to manage buttons
-    // Update
-    if ($edit.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $edit.remove();
-    if ($save.length   && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $save.remove();
-    if ($draft.length  && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $draft.remove();
-    if ($cancel.length && !(individual.rights && individual.rights.hasValue("v-s:canUpdate", true)) ) $cancel.remove();
-    // Delete
-    if ($delete.length && ( !(individual.rights && individual.rights.hasValue("v-s:canDelete", true)) || individual.isNew() ) ) { $delete.remove(), $destroy.remove() };
-
-    // Buttons handlers
-    // Edit
-    $edit.on("click", function (e) {
-      e.preventDefault();
-      template.trigger("edit");
+    individual.on("v-s:valid", validHandler);
+    template.one("remove", function () {
+      individual.off("v-s:valid", validHandler);
     });
+    validHandler.call(individual);
 
-    // Save
-    $save.on("click", function (e) {
-      template.trigger("save");
-    });
+    // Draft label
+    var draftable, showLabel;
 
-    // Draft
-    $draft.on("click", function (e) {
-      e.preventDefault();
-      template.trigger("draft");
-    });
-
-    // Show rights
-    $showRights.on("click", function (e) {
-      e.preventDefault();
-      template.trigger("showRights");
-    });
-
-    // Cancel
-    $cancel.on("click", function (e) {
-      e.preventDefault();
-      template.trigger("cancel");
-    });
-
-    // Delete
-    $delete.on("click", function (e) {
-      e.preventDefault();
-      var warn = new veda.IndividualModel("v-s:AreYouSure")["rdfs:label"].join(" ");
-      if ( confirm(warn) ) {
-        template.trigger("delete");
+    function isDraftHandler() {
+      if ( mode === "edit" && draftable && !individual.isSync() ) {
+        individual.draft();
       }
-    });
-    if ( individual.hasValue("v-s:deleted", true) ) { $delete.hide(); }
-
-    // Destroy
-    $destroy.on("click", function (e) {
-      e.preventDefault();
-      var warn = new veda.IndividualModel("v-s:AreYouSure")["rdfs:label"].join(" ");
-      if ( confirm(warn) ) {
-        template.trigger("destroy");
-      }
-    });
-
-    // Standart buttons labels change for drafts
-    var Edit = (new veda.IndividualModel("v-s:Edit"))["rdfs:label"].join(" ");
-    var ContinueEdit = (new veda.IndividualModel("v-s:ContinueEdit"))["rdfs:label"].join(" ");
-    var DeleteDraft = (new veda.IndividualModel("v-s:DeleteDraft"))["rdfs:label"].join(" ");
-    var Cancel = (new veda.IndividualModel("v-s:Cancel"))["rdfs:label"].join(" ");
-
-    var Draft = (new veda.IndividualModel("v-s:Draft"))["rdfs:comment"].join(" ");
-    var draftLabel = null;
-    function isDraftHandler(property_uri) {
-      if (property_uri === "v-s:isDraft") {
-        // If individual is draft
-        if ( individual.hasValue("v-s:isDraft", true) ) {
-          if ( !template.parent().closest("[resource='" + individual.id + "']").length && !draftLabel ) {
-            draftLabel = $("<div class='label label-default label-draft'></div>").text(Draft);
-            if (template.css("display") === "table-row" || template.prop("tagName") === "TR") {
-              var cell = template.children().first();
-              cell.css("position", "relative").append(draftLabel);
-            } else {
-              template.css("position", "relative");
-              // It is important to append buttons skipping script element in template!
-              template.not("script").append(draftLabel);
-            }
-            //Rename "Edit" -> "Continue edit"
-            $edit.text(ContinueEdit);
-            //Rename "Cancel" -> "Delete draft"
-            $cancel.text(DeleteDraft);
-          }
+      // If individual is draft
+      if ( individual.isDraft() && showLabel ) {
+        if ( template.children(".sheet").length ) {
+          template.children(".sheet").addClass("is-draft");
         } else {
-          if (draftLabel) {
-            draftLabel.remove();
-            draftLabel = null;
-          }
-          //Rename "Continue edit" -> Edit"
-          $edit.text(Edit);
-          //Rename "Delete draft" -> "Cancel"
-          $cancel.text(Cancel);
+          template.addClass("is-draft");
         }
       } else {
-        if ( mode === "edit" && individual.is("v-s:UserThing") ) {
-          individual.draft();
+        if ( template.children(".sheet").length ) {
+          template.children(".sheet").removeClass("is-draft");
+        } else {
+          template.removeClass("is-draft");
         }
       }
     }
-    individual.on("propertyModified", isDraftHandler);
+    individual.on("propertyModified afterSave afterReset", isDraftHandler);
     template.one("remove", function () {
       individual.off("propertyModified", isDraftHandler);
-      draftLabel = null;
+      individual.off("afterSave", isDraftHandler);
+      individual.off("afterReset", isDraftHandler);
     });
 
     setTimeout( function () {
-      isDraftHandler("v-s:isDraft");
+      draftable = individual.is("v-s:UserThing");
+      if (draftable) {
+        showLabel = !template.parent().closest("[resource='" + individual.id + "']").length;
+        if (showLabel) {
+          isDraftHandler();
+        }
+      }
     }, 100);
-
-    // Additional actions buttons
-    var $send = $("#send.action", wrapper);
-    var $sendButtons = $(".sendbutton", wrapper);
-    var $createReport = $("#createReport.action", wrapper);
-    var $createReportButtons = $(".create-report-button", wrapper);
-    var $showRights = $("#rightsOrigin.action", wrapper);
-    var $journal = $("#journal.action", wrapper);
-    var $journalDMS = $("#journal-dms.action", wrapper);
-
-    $send.on("click", function () {veda.Util.send(individual, template);});
-    $createReport.on("click", function () {veda.Util.createReport(individual);});
-    $showRights.on("click", function () {veda.Util.showRights(individual);});
-    $journal.on("click", function() {
-      var journal_uri = individual.id + "j",
-          journal = new veda.IndividualModel(journal_uri);
-      if (journal.hasValue("rdf:type") && journal["rdf:type"][0].id !== "rdfs:Resource") {
-        riot.route("#/" + journal_uri);
-      } else {
-        alert("Журнал отсутсвует / Journal empty");
-      }
-    });
-    $journalDMS.on("click", function() {
-      var uri = individual.id.substring(2,100);
-      var journalDMS_url = (new veda.IndividualModel("cfg:JournalDMSUrl"))["rdf:value"][0];
-      if (journalDMS_url) {
-        //window.location = journalDMS_url + uri;
-        window.open(journalDMS_url + uri, "journal-dms");
-      }
-    });
-
-    // standard tasks
-    $('ul#standard-tasks', template).each(function() {
-      var stask = $(this);
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:questionRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Question')['rdfs:label'].join(" "))+'</a>'
-      }));
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:signRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Sign')['rdfs:label'].join(" "))+'</a>'
-      }));
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:instructionRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Instruction')['rdfs:label'].join(" "))+'</a>'
-      }));
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:taskRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Introduction')['rdfs:label'].join(" "))+'</a>'
-      }));
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:distributionRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Distribution')['rdfs:label'].join(" "))+'</a>'
-      }));
-      stask.append($('<li/>', {
-        style:'cursor:pointer',
-        click: function() {veda.Util.send(individual, template, 'v-wf:coordinationRouteStartForm', true)},
-        html: '<a>'+(new veda.IndividualModel('v-s:Coordination')['rdfs:label'].join(" "))+'</a>'
-      }));
-    });
-
-    // Version alert
-    function versionHandler () {
-      if ( this.is("v-s:Version") ) {
-        if ( container.prop("id") === "main" && !template.hasClass("version") ) {
-          var alert = new veda.IndividualModel("v-s:VersionAlert")["rdfs:label"].join(" ");
-          var actual = new veda.IndividualModel("v-s:actualVersion")["rdfs:label"].join(" ");
-          var versionAlert = $(
-            '<div id="version-alert" class="alert alert-info no-margin clearfix" role="alert">\
-              <p>' + alert + ' <a href="#/' + individual["v-s:actualVersion"][0].id + '" class="btn btn-xs btn-primary pull-right">' + actual + '</a></p>\
-            </div>'
-          );
-          $(".btn", template).attr("disabled", true);
-          template.prepend(versionAlert);
-          template.addClass("version");
-        }
-      } else {
-        $(".btn", template).removeAttr("disabled");
-        template.removeClass("version");
-        if ( container.prop("id") === "main" ) {
-          $("#version-alert", template).remove();
-        }
-      }
-    }
-    individual.on("rdf:type", versionHandler);
-    template.one("remove", function () {
-      individual.off("rdf:type", versionHandler);
-    });
-    versionHandler.call(individual);
 
     // Process RDFa compliant template
 
@@ -520,7 +448,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     var abouts = [];
     $("[about]:not([rel] *):not([about] *)", wrapper).map( function () {
       var about_uri = $(this).attr("about");
-      if (about_uri !== "@" && !veda.cache[about_uri] ) {
+      if (about_uri !== "@" && !veda.cache.get(about_uri) ) {
         abouts.push(about_uri);
       }
     });
@@ -529,6 +457,18 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
         var about = new veda.IndividualModel(item);
       });
     }
+
+    // Max displayed values
+    template.on("click", ".more", function (e) {
+      e.stopPropagation();
+      var $this = $(this),
+          resource_uri = $this.closest("[resource]").attr("resource"),
+          resource = new veda.IndividualModel(resource_uri),
+          relContainer = $this.closest("[rel]"),
+          rel_uri = relContainer.attr("rel");
+      resource.trigger(rel_uri, resource.get(rel_uri), Infinity);
+      $this.remove();
+    });
 
     // Related resources & about resources
     rels.map( function () {
@@ -540,6 +480,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           spec = specs[rel_uri] ? new veda.IndividualModel( specs[rel_uri] ) : undefined,
           rel_inline_template = relContainer.html().trim(),
           rel_template_uri = relContainer.attr("data-template"),
+          limit = relContainer.attr("data-limit") || Infinity,
           relTemplate,
           isAbout;
 
@@ -571,11 +512,11 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       }
 
       if ( rel_template_uri ) {
-        var templateIndividual = new veda.IndividualModel( rel_template_uri );
-        relTemplate = templateIndividual["v-ui:template"][0].toString();
+        relTemplate = new veda.IndividualModel( rel_template_uri );
       } else if ( rel_inline_template.length ) {
         relTemplate = rel_inline_template;
       }
+      relContainer.empty();
 
       template.on("view edit search", function (e) {
         if (e.type === "view") {
@@ -606,14 +547,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
 
       var values = about.get(rel_uri), rendered = {}, counter = 0;
 
-      relContainer.empty();
-
-      propertyModifiedHandler(values);
-      about.on(rel_uri, propertyModifiedHandler);
-      template.one("remove", function () {
-        about.off(rel_uri, propertyModifiedHandler);
-      });
-
       if (isEmbedded) {
         embeddedHandler(values);
         about.on(rel_uri, embeddedHandler);
@@ -622,21 +555,31 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
         });
       }
 
+      propertyModifiedHandler(values, limit);
+      about.on(rel_uri, propertyModifiedHandler);
+      template.one("remove", function () {
+        about.off(rel_uri, propertyModifiedHandler);
+      });
+
       // Re-render link property if its' values were changed
-      function propertyModifiedHandler (values) {
+      function propertyModifiedHandler (values, limit_param) {
+        limit = limit_param || limit;
         ++counter;
         try {
           if (values.length) {
-            values.map(function (value) {
+            for (var i = 0, value; i < limit && i < values.length; i++) {
+              value = values[i];
               if (value.id in rendered) {
                 rendered[value.id].cnt = counter;
-                return;
+                continue;
               }
-              setTimeout (function () {
-                var renderedTmpl = renderRelationValue (about, rel_uri, value, relContainer, relTemplate, isEmbedded, embedded, isAbout, template, mode);
-                rendered[value.id] = {tmpl: renderedTmpl, cnt: counter};
-              }, 0);
-            });
+              var renderedTmpl = renderRelationValue (about, rel_uri, value, relContainer, relTemplate, isEmbedded, embedded, isAbout, template, mode);
+              rendered[value.id] = {tmpl: renderedTmpl, cnt: counter};
+            }
+            relContainer.children(".more").remove();
+            if (limit < values.length) {
+              relContainer.append( "<a class='more badge'>&darr; " + (values.length - limit) + "</a>" );
+            }
           } else {
             relContainer.empty();
           }
@@ -671,29 +614,26 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
     });
 
     // About resource
-    $("[about]:not([rel]):not([property])", wrapper).map( function () {
+    $("[about]:not([rel] *):not([about] *):not([rel]):not([property])", wrapper).map( function () {
       var aboutContainer = $(this),
           about_template_uri = aboutContainer.attr("data-template"),
-          about_inline_template = aboutContainer.children(),
+          about_inline_template = aboutContainer.html().trim(),
           isEmbedded = aboutContainer.attr("data-embedded") === "true",
           about, aboutTemplate;
       if ( about_template_uri ) {
-        var templateIndividual = new veda.IndividualModel( about_template_uri );
-        aboutTemplate = $( templateIndividual["v-ui:template"][0].toString() );
+        aboutTemplate = new veda.IndividualModel( about_template_uri );
+      } else if ( about_inline_template.length ) {
+        aboutTemplate = about_inline_template;
       }
-      if ( about_inline_template.length ) {
-        aboutTemplate = about_inline_template.remove();
-      }
+      aboutContainer.empty();
       if (aboutContainer.attr("about") === "@") {
         about = individual;
         aboutContainer.attr("about", about.id);
       } else {
         about = new veda.IndividualModel(aboutContainer.attr("about"));
       }
-      aboutContainer.empty();
-      about.present(aboutContainer, aboutTemplate);
+      aboutTemplate = about.present(aboutContainer, aboutTemplate);
       if (isEmbedded) {
-        aboutTemplate = $("[resource='" + about.id + "']", aboutContainer);
         aboutTemplate.data("isEmbedded", true);
         embedded.push(aboutTemplate);
       }
@@ -769,11 +709,11 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           if (property_uri === "state") { return acc; }
           return acc && validation[property_uri].state;
         }, true);
-        validation.state = validation.state && embedded.reduce(function (acc, template) {
-              var embeddedValidation = template.data("validation");
-              return embeddedValidation ? acc && embeddedValidation.state : acc;
-            }, true);
-        template.trigger("internal-validated");
+        validation.state = validation.state && embedded.reduce(function (acc, embeddedTemplate) {
+          var embeddedValidation = embeddedTemplate.data("validation");
+          return embeddedValidation ? acc && embeddedValidation.state : acc;
+        }, true);
+        template.trigger("internal-validated", [validation]);
       }
       // "validate" event should bubble up to be handled by parent template only if current template is embedded
       if ( !template.data("isEmbedded") ) {
@@ -809,22 +749,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       }
     });
 
-    template.on("internal-validated", function (e) {
-      if (validation.state) {
-        $save.removeAttr("disabled");
-        $send.removeAttr("disabled");
-        $sendButtons.removeAttr("disabled");
-        $createReport.removeAttr("disabled");
-        $createReportButtons.removeAttr("disabled");
-      } else {
-        $save.attr("disabled", "disabled");
-        $send.attr("disabled", "disabled");
-        $sendButtons.attr("disabled", "disabled");
-        $createReport.attr("disabled", "disabled");
-        $createReportButtons.attr("disabled", "disabled");
-      }
-      e.stopPropagation();
-    });
 
     // Property control
     $("veda-control[property]:not([rel] *):not([about] *)", wrapper).map( function () {
@@ -840,7 +764,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       // Initial validation state
       validation[property_uri] = {state: true, cause: []};
 
-      function validatedHandler(e) {
+      function validatedHandler(e, validation) {
         if ( validation.state || !validation[property_uri] || validation[property_uri].state === true ) {
           control.removeClass("has-error");
           control.popover("destroy");
@@ -897,7 +821,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       var control = $(this),
           rel_uri = control.attr("rel"),
           spec = specs[rel_uri] ? new veda.IndividualModel( specs[rel_uri] ) : undefined,
-          rel = new veda.IndividualModel(rel_uri),
           type = control.attr("data-type") || "link",
           controlType = $.fn["veda_" + type];
 
@@ -906,7 +829,7 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       // Initial validation state
       validation[rel_uri] = {state: true, cause: []};
 
-      function validatedHandler(e) {
+      function validatedHandler(e, validation) {
         if ( validation.state || !validation[rel_uri] || validation[rel_uri].state === true) {
           control.removeClass("has-error");
           control.popover("destroy");
@@ -1002,21 +925,13 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       }).mouseleave(function () {
         valueHolder.removeClass("blue-outline");
       });
-      //valueHolder.after( wrapper );
       valueHolder.append( wrapper );
     });
   }
 
   function renderRelationValue(individual, rel_uri, value, relContainer, relTemplate, isEmbedded, embedded, isAbout, template, mode) {
-    var valTemplate;
+    var valTemplate = value.present(relContainer, relTemplate, isEmbedded ? mode : "view");
     if (isEmbedded) {
-      if (relTemplate) {
-        valTemplate = $(relTemplate);
-        value.present(relContainer, valTemplate, mode);
-      } else {
-        value.present(relContainer, undefined, mode);
-      }
-      valTemplate = $("[resource='" + value.id + "']", relContainer).first();
       valTemplate.data("isEmbedded", true);
       embedded.push(valTemplate);
       valTemplate.one("remove", function () {
@@ -1025,14 +940,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
           if ( index >= 0 ) embedded.splice(index, 1);
         }
       });
-    } else {
-      if (relTemplate) {
-        valTemplate = $(relTemplate);
-        value.present(relContainer, valTemplate);
-      } else {
-        value.present(relContainer);
-      }
-      valTemplate = $("[resource='" + value.id + "']", relContainer).first();
     }
     if (!isAbout) {
       var wrapper = $("<div id='rel-actions' class='btn-group btn-group-xs -view edit search' role='group'></div>");
@@ -1047,7 +954,6 @@ veda.Module(function IndividualPresenter(veda) { "use strict";
       if (mode === "view") { wrapper.hide(); }
 
       btnRemove.click(function (e) {
-        e.stopPropagation();
         e.preventDefault();
         valTemplate.remove();
         individual.set( rel_uri, individual.get(rel_uri).filter(function (item) { return item.id !== value.id; }) );

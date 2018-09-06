@@ -15,10 +15,11 @@ protected byte err;
 // /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface SearchReader
 {
-    public SearchResult get(Ticket *ticket, string str_query, string str_sort, string db_names, int from, int top, int limit,
-                            void delegate(string uri) add_out_element, OptAuthorize op_auth, void delegate(string uri) prepare_element_event, bool trace);
+    public SearchResult get(string user_uri, string str_query, string str_sort, string db_names, int from, int top, int limit,
+                            void delegate(string uri) add_out_element, OptAuthorize op_auth, void delegate(string uri) prepare_element_event,
+                            bool trace);
 
-    public void reopen_db();
+    public void reopen_dbs();
 }
 
 class Database_QueryParser
@@ -56,7 +57,7 @@ class XapianReader : SearchReader
     {
         if (mdif is null)
         {
-            mdif = new ModuleInfoFile(text(P_MODULE.fulltext_indexer), log, OPEN_MODE.READER);
+            mdif = new ModuleInfoFile(text(MODULE.fulltext_indexer), log, OPEN_MODE.READER);
         }
         MInfo info = mdif.get_info();
         return info;
@@ -89,13 +90,63 @@ class XapianReader : SearchReader
         return tta.op;
     }
 
+    private File   *ff_key2slot_r = null;
+    private long   last_size_key2slot;
+    private int[ string ] old_key2slot;
+    private string file_name_key2slot;
 
-    public SearchResult get(Ticket *ticket, string str_query, string str_sort, string _db_names, int from, int top, int limit,
-                            void delegate(string uri) add_out_element, OptAuthorize op_auth, void delegate(string uri) prepare_element_event, bool trace)
+    private int[ string ] read_key2slot()
+    {
+        int[ string ] key2slot;
+
+        if (ff_key2slot_r is null)
+        {
+            file_name_key2slot = xapian_info_path ~ "/key2slot";
+            try
+            {
+                ff_key2slot_r = new File(file_name_key2slot, "r");
+            }
+            catch (Exception ex) {}
+        }
+
+        if (ff_key2slot_r !is null)
+        {
+            long cur_size = getSize(file_name_key2slot);
+
+            if (cur_size > last_size_key2slot)
+            {
+                last_size_key2slot = cur_size;
+                ff_key2slot_r.seek(0);
+                auto       buf = ff_key2slot_r.rawRead(new char[ cur_size + 128 ]);
+                ResultCode rc;
+                key2slot     = deserialize_key2slot(cast(string)buf, rc);
+                old_key2slot = key2slot;
+            }
+            else
+            {
+                return old_key2slot;
+            }
+//            writeln("@context:read_key2slot:key2slot", key2slot);
+        }
+        return key2slot;
+    }
+
+    public SearchResult get(string user_uri, string str_query, string str_sort, string _db_names, int from, int top, int limit,
+                            void delegate(string uri) add_out_element, OptAuthorize op_auth, void delegate(string uri) prepare_element_event,
+                            bool trace)
     {
         SearchResult sr;
 
-        int[ string ] key2slot = context.get_key2slot();
+        if (str_query.length > 0)
+        {
+            if (str_query[ 0 ] == '@')
+            {
+                str_query = str_query[ 0..$ ];
+                trace     = true;
+            }
+        }
+
+        int[ string ] key2slot = read_key2slot();
 
         if (key2slot == (int[ string ]).init)
             return sr;
@@ -110,6 +161,23 @@ class XapianReader : SearchReader
             log.trace("fail parse query (phase 1) [%s], tta is null", str_query);
             sr.result_code = ResultCode.Bad_Request;
             return sr;
+        }
+
+        if (tta.L !is null && tta.L.op == "emulateError" && tta.R !is null && tta.R.op !is null)
+        {
+            try
+            {
+                int errcode = to!int (tta.R.op);
+
+                sr.result_code = cast(ResultCode)errcode;
+
+                log.trace("WARN! request emulate error code = [%s]", text(sr.result_code));
+
+                return sr;
+            }
+            catch (Exception ex)
+            {
+            }
         }
 
         string[] db_names;
@@ -136,7 +204,7 @@ class XapianReader : SearchReader
             int idx = 0;
             foreach (el; db_names)
             {
-                if (el[ 0 ] == ' ' || el[ $ ] == ' ')
+                if (el[ 0 ] == ' ' || el[ $ - 1 ] == ' ')
                     db_names[ idx ] = strip(el);
                 idx++;
             }
@@ -146,7 +214,10 @@ class XapianReader : SearchReader
             db_names = [ "base" ];
 
         if (trace)
-            log.trace("[Q:%X] query [%s]", cast(void *)str_query, str_query);
+            log.trace("[Q:%X] user_uri=[%s] query=[%s] str_sort=[%s], db_names=[%s], from=[%d], top=[%d], limit=[%d]", cast(void *)str_query,
+                      user_uri, str_query,
+                      str_sort, _db_names, from, top,
+                      limit);
 
         if (trace)
             log.trace("[Q:%X] TTA [%s]", cast(void *)str_query, tta.toString());
@@ -154,12 +225,12 @@ class XapianReader : SearchReader
         long cur_committed_op_id = get_info().committed_op_id;
         if (cur_committed_op_id > committed_op_id)
         {
-            log.trace("reopen_db: cur_committed_op_id(%d) > committed_op_id(%d)", cur_committed_op_id, committed_op_id);
-            reopen_db();
+            //log.trace("search:reopen_db: cur_committed_op_id(%d) > committed_op_id(%d)", cur_committed_op_id, committed_op_id);
+            reopen_dbs();
         }
         else
         {
-            //log.trace ("cur_committed_op_id=%d, committed_op_id=%d", cur_committed_op_id, committed_op_id);
+            //log.trace ("search:check reopen_db: cur_committed_op_id=%d, committed_op_id=%d", cur_committed_op_id, committed_op_id);
         }
 
         Database_QueryParser db_qp = get_dbqp(db_names);
@@ -189,13 +260,14 @@ class XapianReader : SearchReader
             if (state < 0)
             {
                 attempt_count++;
-                if (attempt_count > 10)
+                if (attempt_count > 2)
                 {
                     query = null;
+
                     break;
                 }
 
-                reopen_db();
+                reopen_dbs();
                 log.trace("[Q:%X] transform_vql_to_xapian, attempt=%d",
                           cast(void *)str_query,
                           attempt_count);
@@ -234,30 +306,26 @@ class XapianReader : SearchReader
             if (prepare_element_event !is null)
                 prepare_element_event("");
 
-            while (sr.result_code != ResultCode.OK)
-            {
-                sr = xpnvql.exec_xapian_query_and_queue_authorize(ticket, xapian_enquire, from, top, limit, add_out_element,
-                                                                  context, prepare_element_event, trace, op_auth);
-                if (sr.result_code != ResultCode.OK)
-                {
-                    add_out_element(null); // reset previous collected data
-                    attempt_count++;
-                    if (attempt_count > 10)
-                        break;
-
-                    reopen_db();
-                    log.trace("WARN! [%s] exec_xapian_query_and_queue_authorize, res=%d, attempt=%d",
-                              str_query, state, attempt_count);
-                }
-            }
-
-            if (sr.result_code != ResultCode.OK)
-                log.trace("ERR! [Q:%X] exec_xapian_query_and_queue_authorize, attempt=%d, query=[%s]",
-                          cast(void *)str_query, attempt_count, str_query);
+            sr = xpnvql.exec_xapian_query_and_queue_authorize(user_uri, xapian_enquire, from, top, limit, add_out_element,
+                                                              context, prepare_element_event, trace, op_auth);
 
             destroy_Enquire(xapian_enquire);
             destroy_Query(query);
             destroy_MultiValueKeyMaker(sorter);
+
+            if (sr.total_time > 10_000)
+            {
+                log.trace("WARN! xapian::get, total_time > 10 sec, query=%s, sr=%s", str_query, sr);
+            }
+
+            if (sr.result_code == ResultCode.DatabaseModifiedError)
+                reopen_dbs();
+            else
+            {
+                if (sr.result_code != ResultCode.OK)
+                    log.trace("ERR! [Q:%X] exec_xapian_query_and_queue_authorize, query=[%s], err=[%s]", cast(void *)str_query, str_query,
+                              sr.result_code);
+            }
         }
         else
         {
@@ -265,8 +333,12 @@ class XapianReader : SearchReader
             log.trace("invalid query [%s]", str_query);
         }
 
+        //log.trace("[Q:%X] query [%s], result.count=%d, result.processed=%d", cast(void *)str_query, str_query, sr.count, sr.processed);
+
         return sr;
     }
+
+    int max_wildcard_expansion = 20_000;
 
 ////////////////////////////////////////////////////////
     long committed_op_id;
@@ -296,6 +368,10 @@ class XapianReader : SearchReader
             dbqp.qp = new_QueryParser(&err);
             if (err != 0)
                 log.trace("xapian_reader:new_QueryParser:err=%s", get_xapian_err_msg(err));
+
+            dbqp.qp.set_max_wildcard_expansion(max_wildcard_expansion, &err);
+            if (err != 0)
+                log.trace("xapian_reader:set_max_wildcard_expansion:err=%s", get_xapian_err_msg(err));
 
             xapian_stemmer = new_Stem(cast(char *)xapian_lang, cast(uint)xapian_lang.length, &err);
             dbqp.qp.set_stemmer(xapian_stemmer, &err);
@@ -344,16 +420,14 @@ class XapianReader : SearchReader
         return db;
     }
 
-    public void reopen_db()
+    public void reopen_dbs()
     {
         long cur_committed_op_id = get_info().committed_op_id;
 
-        //log.trace("reopen_db, prev committed_op_id=%d, now committed_op_id=%d", committed_op_id, cur_committed_op_id);
+        log.trace("reopen_db, prev committed_op_id=%d, now committed_op_id=%d", committed_op_id, cur_committed_op_id);
 
         foreach (el; using_dbqp.values)
         {
-        	log.trace ("reopen_db %s", el);
-        	
             el.db.reopen(&err);
             if (err != 0)
                 log.trace("ERR! xapian_reader:reopen_db:err=%s", get_xapian_err_msg(err));
@@ -361,8 +435,6 @@ class XapianReader : SearchReader
             el.qp.set_database(el.db, &err);
             if (err != 0)
                 log.trace("ERR! xapian_reader:set_database:err=%s", get_xapian_err_msg(err));
-
-        	log.trace ("reopen_db ok");
         }
 //        foreach (db; opened_db.values)
 //        {
@@ -374,7 +446,7 @@ class XapianReader : SearchReader
         committed_op_id = cur_committed_op_id;
     }
 
-    public bool close_db()
+    public bool close_dbs()
     {
         foreach (el; using_dbqp.values)
         {

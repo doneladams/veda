@@ -1,32 +1,15 @@
 #!/bin/bash
+# скрипт устанавливает среду для последующей компиляции, берет исходники зависимостей из github, но не собирает
 
-# устанавливает среду для последующей компиляции, берет новые исходники зависимостей из github, но не собирает
-
-DMD_VER=2.073.2
-DUB_VER=1.2.0
-GO_VER=go1.9
-
-TARANTOOL_VER=1.7.5
+DMD_VER=2.080.0
+DUB_VER=1.5.0
+GO_VER=go1.11
 MSGPUCK_VER=2.0
+TARANTOOL_VER=2.0
+#    TTC=213ed9f4ef8cc343ae46744d30ff2a063a8272e5
+TTC=22367d19d8603e58403114a35443f2f2f066db81
 
-SMD=$PWD
-
-# Get right version of DMD
-if ! dmd --version | grep $DMD_VER ; then    
-    wget -q http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
-    sudo dpkg -i dmd_$DMD_VER-0_amd64.deb
-    rm dmd_$DMD_VER-0_amd64.deb
-    rm -r ~/.dub
-fi
-
-# Get right version of DUB
-if ! dub --version | grep $DUB_VER ; then
-    wget -q http://code.dlang.org/files/dub-$DUB_VER-linux-x86_64.tar.gz
-    tar -xvzf dub-$DUB_VER-linux-x86_64.tar.gz    
-    sudo cp ./dub /usr/bin/dub
-    rm dub-$DUB_VER-linux-x86_64.tar.gz
-    rm dub
-fi
+INSTALL_PATH=$PWD
 
 # Get other dependencies
 LIB_NAME[1]="libevent-pthreads-2.0-5"
@@ -44,39 +27,7 @@ LIB_NAME[12]="curl"
 LIB_OK="Status: install ok installed"
 F_UL=0
 
-# install golang and dependency
-#if ! go version | grep $GO_VER ; then
-#sudo add-apt-repository -y ppa:longsleep/golang-backports
-#sudo apt-get update
-#sudo apt-get install -y golang-go
- 
-    mkdir tmp
-    cd tmp
-    wget -q https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
-    tar -xf $GO_VER.linux-amd64.tar.gz
-
-    if env | grep -q ^GOROOT=
-    then
-	sudo rm -rf $GOROOT
-    else
-	export GOROOT=/usr/local/go
-	export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-	echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
-	echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
-    fi
-
-    export GOPATH=$HOME/go
-    echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
-    source ~/.bashrc
-
-#    sudo rm -rf /usr/local/go
-#    sudo rm -rf /usr/bin/go
-#    sudo rm -rf /usr/bin/gofmt
-    sudo mv go $GOROOT
-    
-    go version
-    cd ..
-#fi
+### LIBS FROM APT ###
 
 for i in "${LIB_NAME[@]}"; do
 
@@ -84,53 +35,147 @@ for i in "${LIB_NAME[@]}"; do
 
     if  [ "$L1" != "$LIB_OK" ]; then
 
-	if [ $F_UL == 0 ]; then
-	    sudo apt-get update
-	    F_UL=1
-	fi 
+      if [ $F_UL == 0 ]; then
+          sudo apt-get update
+          F_UL=1
+      fi
 
         sudo apt-get install -y $i
     fi
 
 done
 
+sudo apt-get install build-essential
+
+### RUST LANG ###
+
 if ! rustc -V; then
+    echo "--- INSTALL RUST ---"
     curl https://sh.rustup.rs -sSf | sh -s -- -y
+    source $HOME/.cargo/env
 else
+    echo "--- UPDATE RUST ---"
     rustup update stable
 fi
 
+whereis rustc
 rustc -V
 cargo -V
 
-if ! ldconfig -p | grep libwebsockets; then
+### D LANG ###
 
-    # make libwebsockets dependency
-    mkdir tmp
-    wget https://github.com/warmcat/libwebsockets/archive/v2.0.3.tar.gz -P tmp
-    cd tmp
-    tar -xvzf v2.0.3.tar.gz
-    cd libwebsockets-2.0.3
-    mkdir build
-    cd build
-    cmake ..
-    make
-    sudo make install
-    sudo ldconfig
-    cd ..
-    cd ..
-    cd ..
-
+# Get right version of DMD
+if ! dmd --version | grep $DMD_VER ; then
+    echo "--- INSTALL DMD ---"
+    wget -w 10 http://downloads.dlang.org/releases/2.x/$DMD_VER/dmd_$DMD_VER-0_amd64.deb
+    sudo dpkg -i dmd_$DMD_VER-0_amd64.deb
+    rm dmd_$DMD_VER-0_amd64.deb
+    rm -r ~/.dub
+else
+    echo "--- DMD INSTALLED ---"
 fi
 
-if ! ldconfig -p | grep libnanomsg; then
+# Get right version of DUB
+if ! dub --version | grep $DUB_VER ; then
+    echo "--- INSTALL DUB ---"
+    wget https://github.com/dlang/dub/releases/download/v$DUB_VER/dub-$DUB_VER-linux-x86_64.tar.gz
+    tar -xvzf dub-$DUB_VER-linux-x86_64.tar.gz
+    sudo cp ./dub /usr/bin/dub
+    rm dub-$DUB_VER-linux-x86_64.tar.gz
+    rm dub
+else
+    echo "--- DUB INSTALLED ---"
+fi
 
+### GO LANG ###
+if ! go version | grep $GO_VER ; then
+    echo "--- INSTALL GOLANG ---"
+    mkdir tmp
+    cd tmp
+    wget https://storage.googleapis.com/golang/$GO_VER.linux-amd64.tar.gz
+    tar -xf $GO_VER.linux-amd64.tar.gz
+
+    if env | grep -q ^GOROOT=
+    then
+        sudo rm -rf $GOROOT
+    else
+        export GOROOT=/usr/local/go
+        export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
+        echo 'export GOROOT=/usr/local/go'  >> $HOME/.profile
+        echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin'  >> $HOME/.profile
+    fi
+
+    export GOPATH=$HOME/go
+    echo 'export GOPATH=$HOME/go'  >> $HOME/.bashrc
+    source ~/.bashrc
+
+    sudo rm -rf /usr/local/go
+    sudo rm -rf /usr/bin/go
+    sudo rm -rf /usr/bin/gofmt
+    sudo mv go $GOROOT
+
+    go version
+    cd ..
+else
+    echo "--- GOLANG INSTALLED ---"
+fi
+
+#lmdb-go
+#go get -v github.com/muller95/lmdb-go/lmdb
+go get github.com/itiu/lmdb-go/lmdb
+
+#fasthttp
+go get -v github.com/valyala/fasthttp
+
+#go-nanomsg
+go get -v github.com/op/go-nanomsg
+
+go get github.com/tarantool/go-tarantool
+go get github.com/gorilla/websocket
+go get github.com/divan/expvarmon
+go get -v gopkg.in/vmihailenco/msgpack.v2
+cp -a ./source/golang-third-party/cbor $GOPATH/src
+ls $HOME/go
+
+### TARANTOOL SERVER ###
+
+if ! tarantool -V | grep $TARANTOOL_VER; then
+echo "--- INSTALL TARANTOOL ---"
+curl http://download.tarantool.org/tarantool/2.0/gpgkey | sudo apt-key add -
+release=`lsb_release -c -s`
+
+# install https download transport for APT
+sudo apt-get -y install apt-transport-https
+
+# append two lines to a list of source repositories
+sudo rm -f /etc/apt/sources.list.d/*tarantool*.list
+sudo tee /etc/apt/sources.list.d/tarantool_2_0.list <<- EOF
+deb http://download.tarantool.org/tarantool/2.0/ubuntu/ $release main
+deb-src http://download.tarantool.org/tarantool/2.0/ubuntu/ $release main
+EOF
+
+# install
+sudo apt-get update
+sudo apt-get remove tarantool
+sudo apt-get remove tarantool-dev
+sudo apt-get -y install tarantool
+sudo apt-get -y install tarantool-dev
+
+tarantool -V
+
+else
+    echo "--- TARANTOOL INSTALLED ---"
+fi
+
+### LIB NANOMSG ###
+
+if ! ldconfig -p | grep libnanomsg; then
     # make nanomsg dependency
     mkdir tmp
-    wget https://github.com/nanomsg/nanomsg/archive/1.0.0.tar.gz -P tmp
+    wget https://github.com/nanomsg/nanomsg/archive/1.1.4.tar.gz -P tmp
     cd tmp
-    tar -xvzf 1.0.0.tar.gz
-    cd nanomsg-1.0.0
+    tar -xvzf 1.1.4.tar.gz
+    cd nanomsg-1.1.4
     mkdir build
     cd build
     cmake ..
@@ -147,38 +192,12 @@ if ! ldconfig -p | grep libnanomsg; then
 
 fi
 
-if ! ldconfig -p | grep libtraildb; then
-
-    sudo apt-get install -y libarchive-dev pkg-config
-    sudo apt-get remove -y libjudydebian1
-    sudo apt-get remove -y libjudy-dev
-
-    mkdir tmp
-    cd tmp
-
-    wget https://mirrors.kernel.org/ubuntu/pool/universe/j/judy/libjudy-dev_1.0.5-5_amd64.deb \
-     https://mirrors.kernel.org/ubuntu/pool/universe/j/judy/libjudydebian1_1.0.5-5_amd64.deb
-    sudo dpkg -i libjudy-dev_1.0.5-5_amd64.deb libjudydebian1_1.0.5-5_amd64.deb
-
-
-    wget https://github.com/traildb/traildb/archive/0.5.tar.gz -P tmp
-    cd tmp
-    tar -xvzf 0.5.tar.gz
-
-    cd traildb-0.5
-    ./waf configure
-    ./waf build
-    sudo ./waf install
-    sudo ldconfig
-    cd ..
-    cd ..
-    cd ..
-fi
+### LIB RAPTOR ###
 
 sudo apt-get remove -y libraptor2-0
 ldconfig -p | grep libraptor2
 if ! ldconfig -p | grep libraptor2; then
-
+    echo "--- INSTALL LIB RAPTOR ---"
     sudo apt-get install -y gtk-doc-tools
     sudo apt-get install -y libxml2-dev
     sudo apt-get install -y flex
@@ -191,128 +210,52 @@ if ! ldconfig -p | grep libraptor2; then
     tar -xvzf raptor2_2_0_15.tar.gz
 
     cd raptor-raptor2_2_0_15
-    #autoreconf -i
+    autoreconf -i
     ./autogen.sh
-    make
+    ./make
     sudo make install
     sudo ldconfig
     cd ..
     cd ..
     cd ..
 
+else
+    echo "--- LIB RAPTOR INSTALLED ---"
 fi
 
-if ! tarantool -V | grep $TARANTOOL_VER; then
+if ! ldconfig -p | grep libtarantool; then
+    echo "--- INSTALL LIBTARANTOOL ---"
 
-curl http://download.tarantool.org/tarantool/1.7/gpgkey | sudo apt-key add -
-release=`lsb_release -c -s`
+    mkdir tmp
+    cd tmp
 
-# install https download transport for APT
-sudo apt-get -y install apt-transport-https
+    wget https://github.com/tarantool/tarantool-c/archive/$TTC.tar.gz -P .
+    tar -xvzf $TTC.tar.gz
 
-# append two lines to a list of source repositories
-sudo rm -f /etc/apt/sources.list.d/*tarantool*.list
-sudo tee /etc/apt/sources.list.d/tarantool_1_7.list <<- EOF
-deb http://download.tarantool.org/tarantool/1.7/ubuntu/ $release main
-deb-src http://download.tarantool.org/tarantool/1.7/ubuntu/ $release main
-EOF
+    wget https://github.com/tarantool/msgpuck/archive/$MSGPUCK_VER.tar.gz -P third_party/msgpuck -P .
+    tar -xvzf $MSGPUCK_VER.tar.gz
 
-# install
-sudo apt-get update
-sudo apt-get -y install tarantool
-sudo apt-get -y install tarantool-dev
+    cp msgpuck-$MSGPUCK_VER/* tarantool-c-$TTC/third_party/msgpuck
+    cd tarantool-c-$TTC
 
-tarantool -V
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+    sudo ldconfig
 
+    cd ..
+    cd ..
+
+else
+    echo "--- LIBTARANTOOL INSTALLED ---"
 fi
 
-#if ! ldconfig -p | grep libtarantool; then
-#
-#    TTC=213ed9f4ef8cc343ae46744d30ff2a063a8272e5
-#
-#    mkdir tmp
-#    cd tmp
-#
-#    wget https://github.com/tarantool/tarantool-c/archive/$TTC.tar.gz -P .
-#    tar -xvzf $TTC.tar.gz
-#
-#    wget https://github.com/tarantool/msgpuck/archive/1.1.tar.gz -P third_party/msgpuck -P .
-#    tar -xvzf 1.1.tar.gz
-#
-#    cp msgpuck-1.1/* tarantool-c-$TTC/third_party/msgpuck 
-#    cd tarantool-c-$TTC
-#
-#    mkdir build
-#    cd build
-#    cmake ..
-#    make
-#    sudo make install
-#    sudo ldconfig
-#
-#    cd ..
-#    cd ..
-#
-#fi
-
-#lmdb-go
-go get -v github.com/muller95/lmdb-go/lmdb
-   
-#fasthttp
-go get -v github.com/valyala/fasthttp
-
-#go-nanomsg
-go get -v github.com/op/go-nanomsg
-
-#traildb-go
-go get github.com/traildb/traildb-go
-
-go get -v github.com/gorilla/websocket
-go get -v github.com/divan/expvarmon
-go get -v gopkg.in/vmihailenco/msgpack.v2
-
-go get github.com/google/uuid
-
-echo $GOPATH
-ls $GOPATH
-
-echo $GOPATH/src 
-ls $GOPATH/src 
-
-echo $GOPATH/src/github.com
-ls $GOPATH/src/github.com 
-
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib   
-
-
-cd $SMD
-mkdir tmp
-cd tmp
-
-wget https://github.com/tarantool/msgpuck/archive/2.0.tar.gz -P third_party/msgpuck -P .
-tar -xvzf 2.0.tar.gz
-
-cd msgpuck-2.0    
-
-mkdir build
-cd build
-cmake ..
-make
-
-ls $SMD
-
-cp $SMD/tmp/msgpuck-2.0/build/libmsgpuck.a $SMD/source/lib64
-
-mkdir tmp
-cd tmp
-wget https://github.com/msgpack/msgpack-c/releases/download/cpp-2.1.1/msgpack-2.1.1.tar.gz
-tar -xvzf msgpack-2.1.1.tar.gz
-cd msgpack-2.1.1
-cmake .
-make
-sudo make install 
-cd ..
-cd ..
-rm -rf tmp
-
-cd $SMD/source/lib64/ext-lib-bind-src/v8_d
-make    
+    cd $INSTALL_PATH
+    cd source/authorization
+    cargo build --release
+    cd ..
+    cd ..
+    sudo cp ./source/lib64/libauthorization.so /usr/local/lib
+    sudo ldconfig

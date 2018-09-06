@@ -1,10 +1,10 @@
 // Veda HTTP server functions
-veda.Module(function Backend(veda) { "use strict";
+veda.Module(function (veda) { "use strict";
 
   $.ajaxSetup ({
     dataType: "json",
     cache: false,
-    timeout: 30000,
+    timeout: 120000,
     async: false
   });
 
@@ -43,6 +43,11 @@ veda.Module(function Backend(veda) { "use strict";
        404: "Not found",
        422: "Unprocessable entity",
        429: "Too many requests",
+       465: "Empty password",
+       466: "New password is equal to old",
+       467: "Invalid password",
+       468: "Invalid secret",
+       469: "Password expired",
        470: "Ticket not found",
        471: "Ticket expired",
        472: "Not authorized",
@@ -55,6 +60,7 @@ veda.Module(function Backend(veda) { "use strict";
        501: "Not implemented",
        503: "Service unavailable",
        904: "Invalid identifier",
+       999: "Database modified error",
       1021: "Disk full",
       1022: "Duplicate key",
       1118: "Size too large",
@@ -89,7 +95,7 @@ veda.Module(function Backend(veda) { "use strict";
           res.responseText,
           function (key, value) {
             return key === "data" && this.type === "Datetime" ? new Date(value) :
-                   key === "data" && (this.type === "Decimal" || this.type === _Decimal) ? parseFloat(value) : value;
+                   key === "data" && (this.type === "Decimal" || this.type === "Decimal") ? parseFloat(value) : value;
           }
         );
       } catch (err) {
@@ -122,7 +128,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_rights = function (ticket, uri) {
     var arg = arguments[0];
@@ -137,7 +143,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_rights_origin = function (ticket, uri) {
     var arg = arguments[0];
@@ -152,7 +158,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_membership = function (ticket, uri) {
     var arg = arguments[0];
@@ -167,9 +173,12 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
-  window.authenticate = function (login, password) {
+  window.authenticate = function (login, password, secret) {
+    // TODO: Remove
+    if (login == "VedaNTLMFilter")
+        login = "cfg:Guest";
     var arg = arguments[0];
     var isObj = typeof arg === "object";
     var params = {
@@ -178,11 +187,12 @@ veda.Module(function Backend(veda) { "use strict";
       async: isObj ? arg.async : false,
       data: {
         "login": isObj ? arg.login : login,
-        "password": isObj ? arg.password : password
+        "password": isObj ? arg.password : password,
+        "secret": isObj ? arg.secret : secret
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_ticket_trusted = function (ticket, login) {
     var arg = arguments[0];
@@ -197,7 +207,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.is_ticket_valid = function (ticket) {
     var arg = arguments[0];
@@ -211,7 +221,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_operation_state = function (module_id, wait_op_id) {
     var arg = arguments[0];
@@ -226,21 +236,19 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
-  window.wait_module = function (module_id, op_id) {
+  window.wait_module = function (module_id, in_op_id) {
     var timeout = 1;
-    if (module_id == m_acl)
-    return;
     var op_id_from_module;
     for (var i = 0; i < 100; i++) {
-      op_id_from_module = get_operation_state (module_id, op_id);
-      if (op_id_from_module >= op_id) { break; }
+      op_id_from_module = get_operation_state (module_id, in_op_id);
+      if (op_id_from_module >= in_op_id) { break; }
       var endtime = new Date().getTime() + timeout;
       while (new Date().getTime() < endtime);
-      timeout += 1;
+      timeout += 2;
     }
-  }
+  };
 
   window.restart = function (ticket) {
     var arg = arguments[0];
@@ -254,7 +262,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.backup = function (to_binlog) {
     var arg = arguments[0];
@@ -268,7 +276,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.count_individuals = function () {
     var arg = arguments[0];
@@ -280,7 +288,7 @@ veda.Module(function Backend(veda) { "use strict";
       data: {}
     };
     return call_server(params);
-  }
+  };
 
   window.set_trace = function (idx, state) {
     var arg = arguments[0];
@@ -295,15 +303,18 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.query = function (ticket, query, sort, databases, reopen, top, limit, from) {
-    var arg = arguments[0];
+    var that = this;
+    var args = arguments;
+    var arg = args[0];
     var isObj = typeof arg === "object";
+    var async = isObj ? arg.async : false;
     var params = {
       type: "GET",
       url: "query",
-      async: isObj ? arg.async : false,
+      async: async,
       data: {
         "ticket": isObj ? arg.ticket : ticket,
         "query": isObj ? arg.query : query,
@@ -311,12 +322,28 @@ veda.Module(function Backend(veda) { "use strict";
         "databases" : (isObj ? arg.databases : databases) || null,
         "reopen" : (isObj ? arg.reopen : reopen) || false,
         "top" : (isObj ? arg.top : top) || 0,
-        "limit" : (isObj ? arg.limit : limit) || 1000,
+        "limit" : (isObj ? arg.limit : limit) || 100000,
         "from"  : (isObj ? arg.from : from) || 0
       }
     };
-    return call_server(params);
-  }
+    if (async) {
+      return call_server(params).catch(handleError);
+    } else {
+      try {
+        return call_server(params);
+      } catch (backendError) {
+        handleError(backendError);
+      }
+    }
+    function handleError(backendError) {
+      if (backendError.code === 999) {
+        console.log("DB modified during query. Retry.");
+        return window.query.apply(that, args);
+      } else {
+        throw backendError;
+      }
+    }
+  };
 
   window.get_individual = function (ticket, uri, reopen) {
     var arg = arguments[0];
@@ -332,7 +359,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.get_individuals = function (ticket, uris) {
     var arg = arguments[0];
@@ -348,7 +375,7 @@ veda.Module(function Backend(veda) { "use strict";
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
 //////////////////////////
 
@@ -363,13 +390,14 @@ veda.Module(function Backend(veda) { "use strict";
         "ticket": isObj ? arg.ticket : ticket,
         "uri": isObj ? arg.uri : uri,
         "assigned_subsystems": (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+        "prepare_events": true,
         "event_id": (isObj ? arg.event_id : event_id) || "",
         "transaction_id": (isObj ? arg.transaction_id : transaction_id) || ""
       }),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
   window.put_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
@@ -383,17 +411,18 @@ veda.Module(function Backend(veda) { "use strict";
           "ticket": isObj ? arg.ticket : ticket,
           "individual": isObj ? arg.individual : individual,
           "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+          "prepare_events": true,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
         },
         function (key, value) {
-          return key === "data" && (this.type === "Decimal" || this.type === _Decimal) ? value.toString() : value;
+          return key === "data" && (this.type === "Decimal" || this.type === "Decimal") ? value.toString() : value;
         }
       ),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
   window.add_to_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
@@ -406,13 +435,14 @@ veda.Module(function Backend(veda) { "use strict";
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
         "assigned_subsystems": (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+        "prepare_events": true,
         "event_id": (isObj ? arg.event_id : event_id) || "",
         "transaction_id": (isObj ? arg.transaction_id : transaction_id) || ""
       }),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
   window.set_in_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
@@ -425,13 +455,14 @@ veda.Module(function Backend(veda) { "use strict";
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
         "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+        "prepare_events": true,
         "event_id" : (isObj ? arg.event_id : event_id) || "",
         "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
       }),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
   window.remove_from_individual = function (ticket, individual, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
@@ -444,13 +475,14 @@ veda.Module(function Backend(veda) { "use strict";
         "ticket": isObj ? arg.ticket : ticket,
         "individual": isObj ? arg.individual : individual,
         "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+        "prepare_events": true,
         "event_id" : (isObj ? arg.event_id : event_id) || "",
         "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
       }),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
   window.put_individuals = function (ticket, individuals, assigned_subsystems, event_id, transaction_id) {
     var arg = arguments[0];
@@ -464,17 +496,18 @@ veda.Module(function Backend(veda) { "use strict";
           "ticket": isObj ? arg.ticket : ticket,
           "individuals": isObj ? arg.individuals : individuals,
           "assigned_subsystems" : (isObj ? arg.assigned_subsystems : assigned_subsystems) || 0,
+          "prepare_events": true,
           "event_id" : (isObj ? arg.event_id : event_id) || "",
           "transaction_id" : (isObj ? arg.transaction_id : transaction_id) || ""
         },
         function (key, value) {
-          return key === "data" && (this.type === "Decimal" || this.type === _Decimal) ? value.toString() : value;
+          return key === "data" && (this.type === "Decimal" || this.type === "Decimal") ? value.toString() : value;
         }
       ),
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
 /////////////////////////////////////////
 
@@ -492,7 +525,7 @@ veda.Module(function Backend(veda) { "use strict";
       }
     };
     return call_server(params);
-  }
+  };
 
   window.execute_script = function (script) {
     var arg = arguments[0];
@@ -507,6 +540,6 @@ veda.Module(function Backend(veda) { "use strict";
       contentType: "application/json"
     };
     return call_server(params);
-  }
+  };
 
 });
