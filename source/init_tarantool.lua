@@ -3,6 +3,8 @@ log = require('log')
 
 memtx = false
 
+box.schema.sequence.create('G1',{min=1, start=1})
+
 if box.space.INDIVIDUALS == nil then
     if memtx then
         space = box.schema.space.create('INDIVIDUALS')
@@ -12,7 +14,7 @@ if box.space.INDIVIDUALS == nil then
 
     print ('space.individuals:', space.id, '\n')
 
-    box.space.INDIVIDUALS:create_index('primary', {parts={1, 'string'}})
+    box.space.INDIVIDUALS:create_index('primary', {parts={1, 'unsigned'}, sequence='G1'})
     box.space.INDIVIDUALS:create_index('S', {type = 'tree', unique = false, parts = {2, 'string'}})
     box.space.INDIVIDUALS:create_index('P', {type = 'tree', unique = false, parts = {3, 'string'}})
     box.space.INDIVIDUALS:create_index('O', {type = 'tree', unique = false, parts = {4, 'string'}})
@@ -22,7 +24,7 @@ if box.space.INDIVIDUALS == nil then
     box.schema.user.grant('guest', 'read,write', 'space', 'INDIVIDUALS')
     box.schema.user.grant('guest', 'read,write', 'universe')
 
-    box.schema.user.create('veda6', {password = '8b8nfeAj'}, {if_not_exists = false})
+    box.schema.user.create('veda6', {password = '123456'}, {if_not_exists = false})
     box.schema.user.grant('veda6', 'read,write,execute', 'universe')
 end
 
@@ -35,7 +37,7 @@ if box.space.TICKETS == nil then
 
     print ('space.tickets:', space.id, '\n')
 
-    box.space.TICKETS:create_index('primary', {parts={1, 'string'}})
+    box.space.TICKETS:create_index('primary', {parts={1, 'unsigned'}, sequence='G1'})
     box.space.TICKETS:create_index('S', {type = 'tree', unique = false, parts = {2, 'string'}})
     box.space.TICKETS:create_index('P', {type = 'tree', unique = false, parts = {3, 'string'}})
     box.space.TICKETS:create_index('O', {type = 'tree', unique = false, parts = {4, 'string'}})
