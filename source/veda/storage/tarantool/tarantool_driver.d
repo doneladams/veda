@@ -246,15 +246,13 @@ public class TarantoolDriver : KeyValueDB
 
         tnt_object_add_array(tuple, 7);
 
-        //auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
-        //auto   row_hash     = digest!MD5(row);
-        //string str_row_hash = toHexString(row_hash).dup;
-        //log.trace("update row: %s %s", row_hash, row);
-        //tnt_object_add_str(tuple, str_row_hash.ptr, cast(uint)str_row_hash.length);
-        tnt_object_add_nil(tuple);
+        auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
+        auto   row_hash     = digest!MD5(row);
+        string str_row_hash = toHexString(row_hash).dup;
+        tnt_object_add_str(tuple, cast(const(char)*)str_row_hash, cast(uint)str_row_hash.length);
 
-        tnt_object_add_str(tuple, subject.ptr, cast(uint)subject.length);
-        tnt_object_add_str(tuple, predicate.ptr, cast(uint)predicate.length);
+        tnt_object_add_str(tuple, cast(const(char)*)subject, cast(uint)subject.length);
+        tnt_object_add_str(tuple, cast(const(char)*)predicate, cast(uint)predicate.length);
 
         if (object == "")
         {
@@ -262,7 +260,7 @@ public class TarantoolDriver : KeyValueDB
         }
         else
         {
-            tnt_object_add_str(tuple, object.ptr, cast(uint)object.length);
+            tnt_object_add_str(tuple, cast(const(char)*)object, cast(uint)object.length);
         }
         tnt_object_add_int(tuple, type);
         tnt_object_add_int(tuple, lang);
@@ -277,7 +275,6 @@ public class TarantoolDriver : KeyValueDB
         tnt.read_reply(tnt, &reply);
         if (reply.code != 0)
         {
-    	    auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
             log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
             tnt_reply_free(&reply);
             tnt_stream_free(tuple);
