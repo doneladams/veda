@@ -3,7 +3,7 @@
  */
 module veda.storage.tarantool.tarantool_driver;
 
-import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch;
+import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch, std.uuid;
 import veda.bind.tarantool.tnt_stream, veda.bind.tarantool.tnt_net, veda.bind.tarantool.tnt_opt, veda.bind.tarantool.tnt_ping;
 import veda.bind.tarantool.tnt_reply, veda.bind.tarantool.tnt_insert, veda.bind.tarantool.tnt_delete, veda.bind.tarantool.tnt_object,
        veda.bind.tarantool.tnt_select;
@@ -30,10 +30,10 @@ bool       db_is_opened = false;
 
 public class TarantoolDriver : KeyValueDB
 {
-    Logger     log;
-    string     db_uri;
-    string     space_name;
-    int        space_id;
+    Logger log;
+    string db_uri;
+    string space_name;
+    int    space_id;
 
     this(Logger _log, string _space_name, int _space_id)
     {
@@ -143,9 +143,9 @@ public class TarantoolDriver : KeyValueDB
                 string predicate;
                 string str_object;
                 long   num_object;
-                long   type = 0;
-                long   lang = 0;
-                int   order = 0;
+                long   type  = 0;
+                long   lang  = 0;
+                int    order = 0;
 
                 //log.trace("  field count=%d\n", field_count);
                 for (int fidx = 0; fidx < field_count; ++fidx)
@@ -206,16 +206,16 @@ public class TarantoolDriver : KeyValueDB
 
                 if (type == DataType.Uri || type == DataType.String)
                 {
-					Resource rr = Resource(cast(DataType)type, str_object, cast(LANG)lang);
-					rr.order = order;
+                    Resource rr = Resource(cast(DataType)type, str_object, cast(LANG)lang);
+                    rr.order = order;
                     indv.addResource(predicate, rr);
-				}
+                }
                 else
                 {
-					Resource rr = Resource(cast(DataType)type, str_object);
-					rr.order = order;
+                    Resource rr = Resource(cast(DataType)type, str_object);
+                    rr.order = order;
                     indv.addResource(predicate, rr);
-				}
+                }
             }
 
             foreach (predicate; indv.resources.keys)
@@ -246,10 +246,18 @@ public class TarantoolDriver : KeyValueDB
 
         tnt_object_add_array(tuple, 7);
 
-        auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
-        auto   row_hash     = digest!MD5(row);
-        string str_row_hash = toHexString(row_hash).dup;
-        tnt_object_add_str(tuple, cast(const(char)*)str_row_hash, cast(uint)str_row_hash.length);
+        //auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
+        //auto   row_hash     = digest!MD5(row);
+        //string str_row_hash = toHexString(row_hash).dup;
+
+        //auto uuid = sha1UUID("veda").toString();
+        //auto uuid = text(MonoTime.currTime.ticks());
+        //tnt_object_add_str(tuple, cast(const(char)*)uuid, cast(uint)uuid.length);
+
+        //auto uuid = MonoTime.currTime.ticks();
+        //tnt_object_add_int(tuple, uuid);
+
+        tnt_object_add_nil(tuple);
 
         tnt_object_add_str(tuple, cast(const(char)*)subject, cast(uint)subject.length);
         tnt_object_add_str(tuple, cast(const(char)*)predicate, cast(uint)predicate.length);
@@ -275,6 +283,7 @@ public class TarantoolDriver : KeyValueDB
         tnt.read_reply(tnt, &reply);
         if (reply.code != 0)
         {
+            auto row = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
             log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
             tnt_reply_free(&reply);
             tnt_stream_free(tuple);
@@ -525,7 +534,7 @@ public class TarantoolDriver : KeyValueDB
                 return ResultCode.Connect_Error;
         }
 
-        string[] deleted_ids;
+        long[] deleted_ids;
 
         //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
 
@@ -587,16 +596,20 @@ public class TarantoolDriver : KeyValueDB
                     field_type = mp_typeof(*reply.data);
                     if (field_type == mp_type.MP_UINT)
                     {
-                        mp_decode_uint(&reply.data);
+                        auto uid = mp_decode_uint(&reply.data);
+
+                        if (fidx == cast(int)TTFIELD.HASH)
+                            deleted_ids ~= uid;
                     }
                     else if (field_type == mp_type.MP_STR)
                     {
                         char *str_value;
                         uint str_value_length;
-                        str_value = mp_decode_str(&reply.data, &str_value_length);
+                        //str_value = 
+                        mp_decode_str(&reply.data, &str_value_length);
 
-                        if (fidx == cast(int)TTFIELD.HASH)
-                            deleted_ids ~= cast(string)str_value[ 0..str_value_length ].dup;
+                        //if (fidx == cast(int)TTFIELD.HASH)
+                        //    deleted_ids ~= cast(string)str_value[ 0..str_value_length ].dup;
                     }
                     else
                     {
@@ -621,7 +634,8 @@ public class TarantoolDriver : KeyValueDB
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
 
-            tnt_object_add_str(tuple, cast(const(char)*)id, cast(uint)id.length);
+            //tnt_object_add_str(tuple, cast(const(char)*)id, cast(uint)id.length);
+            tnt_object_add_int(tuple, id);
 
             tnt_delete(tnt, space_id, 0, tuple);
             tnt_flush(tnt);
@@ -665,28 +679,28 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-                    tnt_reply_init(reply);
+//                    tnt_reply_init(reply);
 
-                    tnt_stream *tuple = tnt_object(null);
+//                    tnt_stream *tuple = tnt_object(null);
 
-                    tnt_object_add_array(tuple, 1);
-                    tnt_object_add_str(tuple, "?", 1);
+//                    tnt_object_add_array(tuple, 1);
+//                    tnt_object_add_str(tuple, "?", 1);
 
-                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
-                    tnt_flush(tnt);
-                    tnt_stream_free(tuple);
+//                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
+//                    tnt_flush(tnt);
+//                    tnt_stream_free(tuple);
 
-                    tnt.read_reply(tnt, reply);
-                    if (reply.code == 36)
-                    {
-                        tnt_reply_free(reply);
-                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
-                        log.trace("SLEEP AND REPEAT");
-                        core.thread.Thread.sleep(dur!("seconds")(1));
-                        return open();
-                    }
-                    else
-                        tnt_reply_free(reply);
+//                    tnt.read_reply(tnt, reply);
+//                    if (reply.code == 36)
+//                    {
+//                        tnt_reply_free(reply);
+//                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
+//                        log.trace("SLEEP AND REPEAT");
+//                        core.thread.Thread.sleep(dur!("seconds")(1));
+//                        return open();
+//                    }
+//                    else
+//                        tnt_reply_free(reply);
 
 
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
