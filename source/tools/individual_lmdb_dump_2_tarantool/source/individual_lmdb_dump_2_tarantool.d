@@ -141,7 +141,7 @@ public long convert(LmdbDriver src, KeyValueDB dest)
                 else
                 {
                     string new_bin = indv.serialize();
-                    dest.put(OptAuthorize.NO, null, str_key, new_bin, -1);
+                    dest.store(str_key, new_bin, -1);
                     log.trace("OK, %d KEY=[%s]", count, str_key);
                 }
 
