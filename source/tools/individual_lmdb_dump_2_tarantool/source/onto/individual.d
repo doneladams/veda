@@ -6,8 +6,10 @@ module veda.onto.individual;
 private
 {
     import std.stdio, std.typecons, std.conv, std.algorithm, std.digest.crc, std.exception : assumeUnique;
+    import std.algorithm, std.algorithm.mutation                                           : SwapStrategy;
+
     import veda.onto.resource;
-    import veda.util.container, veda.common.type, veda.onto.bj8individual.cbor8individual, veda.onto.bj8individual.msgpack8individual;
+    import veda.common.type, veda.onto.bj8individual.cbor8individual, veda.onto.bj8individual.msgpack8individual;
     import veda.util.properd;
 }
 /// Массив индивидуалов
@@ -52,12 +54,41 @@ public struct Individual
         resources = _resources;
     }
 
+    void reorder(string predicate)
+    {
+        Resources rss;
+
+        rss = resources.get(predicate, rss);
+
+        if (rss.length == 2)
+        {
+            if (rss[ 0 ].order > rss[ 1 ].order)
+            {
+                auto aa = rss[ 0 ].order;
+                rss[ 0 ].order         = rss[ 1 ].order;
+                rss[ 1 ].order         = aa;
+                resources[ predicate ] = rss;
+            }
+        }
+        else if (rss.length > 2)
+        {
+            auto      rss_sorted = sort!("a.order < b.order", SwapStrategy.stable)(rss);
+
+            Resources new_rss;
+            foreach (rr; rss_sorted)
+            {
+                new_rss ~= rr;
+            }
+            resources[ predicate ] = new_rss;
+        }
+    }
+
     int deserialize(string bin)
     {
         if (bin.length == 0)
             return -1;
 
-        if ((cast(ubyte[])bin)[ 0 ] == 0xFF)
+        if ((cast(ubyte[])bin)[ 0 ] == 146)
         {
             // this MSGPACK
             return msgpack2individual(this, bin);
@@ -139,6 +170,17 @@ public struct Individual
 
         rss = resources.get(predicate, rss);
         if (rss.length > 0 && rss[ 0 ].type == DataType.Integer)
+            return rss[ 0 ].get!long;
+
+        return default_value;
+    }
+
+    long getFirstDatetime(string predicate, long default_value = 0)
+    {
+        Resources rss;
+
+        rss = resources.get(predicate, rss);
+        if (rss.length > 0 && rss[ 0 ].type == DataType.Datetime)
             return rss[ 0 ].get!long;
 
         return default_value;
@@ -396,5 +438,16 @@ public struct Individual
         string str_hash = crcHexString(hash.finish());
 
         return str_hash;
+    }
+
+    public long count_values()
+    {
+        long count;
+
+        foreach (vv; resources.values)
+        {
+            count += vv.length;
+        }
+        return count;
     }
 }

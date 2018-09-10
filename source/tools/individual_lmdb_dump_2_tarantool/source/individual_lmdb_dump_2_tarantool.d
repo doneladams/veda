@@ -24,20 +24,20 @@ void main(string[] args)
     properties = readProperties("./veda.properties");
     string tarantool_url = properties.as!(string)("tarantool_url");
 
-	log.trace ("connect to tarantool");
+    log.trace("connect to tarantool");
     if (tarantool_url !is null)
     {
-        individual_tt_storage = new TarantoolDriver(log, "individuals", 512);
-        ticket_tt_storage     = new TarantoolDriver(log, "tickets", 513);
+        individual_tt_storage = new TarantoolDriver(log, "INDIVIDUALS", 512);
+        ticket_tt_storage     = new TarantoolDriver(log, "TICKETS", 513);
     }
-    
-	log.trace ("connect to lmdb");
+
+    log.trace("connect to lmdb");
 
     const string individuals_db_path = "./data/lmdb-individuals";
     const string tickets_db_path     = "./data/lmdb-tickets";
 
-	log.trace ("migrate individuals");
-    LmdbDriver   individual_lmdb_driver = new LmdbDriver(individuals_db_path, DBMode.R, "cnv", log);
+    log.trace("migrate individuals");
+    LmdbDriver individual_lmdb_driver = new LmdbDriver(individuals_db_path, DBMode.R, "cnv", log);
 
     convert(individual_lmdb_driver, individual_tt_storage);
 }
