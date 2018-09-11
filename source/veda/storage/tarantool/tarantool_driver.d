@@ -706,7 +706,7 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("FAIL CONNECT TO TARANTOOL %s err=%s", db_uri, to!string(tnt_strerror(tnt)));
                 log.trace("SLEEP AND REPEAT");
-                core.thread.Thread.sleep(dur!("seconds")(1));
+                core.thread.Thread.sleep(dur!("seconds")(2));
                 return open();
             }
         }
