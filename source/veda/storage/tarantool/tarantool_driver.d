@@ -154,7 +154,19 @@ public class TarantoolDriver : KeyValueDB
                     string value;
 
                     field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_UINT)
+                    if (field_type == mp_type.MP_BOOL)
+                    {
+                        num_value = mp_decode_bool(&reply.data);
+                        if (fidx == TTFIELD.OBJECT)
+                            num_object = num_value;
+                    }
+                    else if (field_type == mp_type.MP_INT)
+                    {
+                        num_value = mp_decode_int(&reply.data);
+                        if (fidx == TTFIELD.OBJECT)
+                            num_object = num_value;
+                    }
+                    else if (field_type == mp_type.MP_UINT)
                     {
                         num_value = mp_decode_uint(&reply.data);
                         //log.trace("fidx=%d,    num value=%d\n", fidx, num_value);
@@ -210,9 +222,15 @@ public class TarantoolDriver : KeyValueDB
                     rr.order = order;
                     indv.addResource(predicate, rr);
                 }
-                else
+                else if (type == DataType.Decimal)
                 {
                     Resource rr = Resource(cast(DataType)type, str_object);
+                    rr.order = order;
+                    indv.addResource(predicate, rr);
+                }
+                else
+                {
+                    Resource rr = Resource(cast(DataType)type, num_object);
                     rr.order = order;
                     indv.addResource(predicate, rr);
                 }
@@ -238,38 +256,53 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    private void update_row(string subject, string predicate, string object, DataType type, LANG lang, int order, ref tnt_stream *[] tuples)
+    private void update_row(string subject, string predicate, Value object, DataType type, LANG lang, int order, ref tnt_stream *[] tuples,
+                            decimal num)
     {
         tnt_stream *tuple = tnt_object(null);
 
-//        tuples ~= tuple;
-
         tnt_object_add_array(tuple, 7);
-
-        //auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
-        //auto   row_hash     = digest!MD5(row);
-        //string str_row_hash = toHexString(row_hash).dup;
-
-        //auto uuid = sha1UUID("veda").toString();
-        //auto uuid = text(MonoTime.currTime.ticks());
-        //tnt_object_add_str(tuple, cast(const(char)*)uuid, cast(uint)uuid.length);
-
-        //auto uuid = MonoTime.currTime.ticks();
-        //tnt_object_add_int(tuple, uuid);
 
         tnt_object_add_nil(tuple);
 
         tnt_object_add_str(tuple, cast(const(char)*)subject, cast(uint)subject.length);
         tnt_object_add_str(tuple, cast(const(char)*)predicate, cast(uint)predicate.length);
 
-        if (object == "")
+        if (type == DataType.Datetime || type == DataType.Integer)
         {
-            tnt_object_add_nil(tuple);
+            if (object.type == Value.Type.unsigned)
+                tnt_object_add_int(tuple, object.via.uinteger);
+            else
+                tnt_object_add_int(tuple, object.via.integer);
+        }
+        else if (type == DataType.Uri || type == DataType.String)
+        {
+            if (object.type == Value.type.nil)
+            {
+//            tnt_object_add_nil(tuple);
+                tnt_object_add_str(tuple, cast(const(char)*)"", 0);
+            }
+            else
+            {
+                string str_obj = (cast(string)object.via.raw).dup;
+                tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
+            }
+        }
+        else if (type == DataType.Boolean)
+        {
+            tnt_object_add_bool(tuple, object.via.boolean);
+        }
+        else if (type == DataType.Decimal)
+        {
+            string str_obj = num.asString();
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
         }
         else
         {
-            tnt_object_add_str(tuple, cast(const(char)*)object, cast(uint)object.length);
+            log.trace("ERR! update triple, unknown type %s", type);
         }
+
+
         tnt_object_add_int(tuple, type);
         tnt_object_add_int(tuple, lang);
         tnt_object_add_int(tuple, order);
@@ -375,55 +408,7 @@ public class TarantoolDriver : KeyValueDB
                                         {
                                             long type = arr[ 0 ].via.uinteger;
 
-                                            if (type == DataType.Datetime)
-                                            {
-                                                if (arr[ 1 ].type == Value.Type.unsigned)
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.uinteger), DataType.Datetime, LANG.NONE,
-                                                               i, tuples);
-                                                else
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.integer), DataType.Datetime, LANG.NONE,
-                                                               i, tuples);
-                                            }
-                                            else if (type == DataType.String)
-                                            {
-                                                if (arr[ 1 ].type == Value.type.raw)
-                                                    update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.String, LANG.NONE,
-                                                               i, tuples);
-                                                else if (arr[ 1 ].type == Value.type.nil)
-                                                    update_row(subject, predicate, "", DataType.String, LANG.NONE, i, tuples);
-                                            }
-                                            else if (type == DataType.Uri)
-                                            {
-                                                if (arr[ 1 ].type == Value.type.raw)
-                                                    update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.Uri, LANG.NONE,
-                                                               i, tuples);
-                                                else if (arr[ 1 ].type == Value.type.nil)
-                                                    update_row(subject, predicate, "", DataType.Uri, LANG.NONE, i, tuples);
-                                            }
-                                            else if (type == DataType.Integer)
-                                            {
-                                                if (arr[ 1 ].type == Value.Type.unsigned)
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.uinteger), DataType.Integer, LANG.NONE,
-                                                               i, tuples);
-                                                else
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.integer), DataType.Integer, LANG.NONE,
-                                                               i, tuples);
-                                            }
-                                            else if (type == DataType.Boolean)
-                                            {
-                                                update_row(subject, predicate, to!string(
-                                                                                         arr[ 1 ].via.boolean), DataType.Boolean, LANG.NONE, i,
-                                                           tuples);
-                                            }
-                                            else
-                                            {
-                                                log.trace("ERR! msgpack2individual: [0][1] unknown type [%d]", type);
-                                                return ResultCode.Internal_Server_Error;
-                                            }
+                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init);
                                         }
                                         else if (arr.length == 3)
                                         {
@@ -443,15 +428,14 @@ public class TarantoolDriver : KeyValueDB
                                                 else
                                                     exponent = arr[ 2 ].via.integer;
 
-                                                update_row(subject, predicate, decimal(mantissa,
-                                                                                       cast(byte)exponent).asString(), DataType.Decimal, LANG.NONE,
-                                                           i, tuples);
+                                                update_row(subject, predicate, Value.init, cast(DataType)type, LANG.NONE,
+                                                           i, tuples, decimal(mantissa, cast(byte)exponent));
                                             }
                                             else if (type == DataType.String)
                                             {
                                                 long lang = arr[ 2 ].via.uinteger;
-                                                update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.String, cast(LANG)lang,
-                                                           i, tuples);
+                                                update_row(subject, predicate, arr[ 1 ], cast(DataType)type, cast(LANG)lang,
+                                                           i, tuples, decimal.init);
                                             }
                                             else
                                             {
@@ -594,7 +578,15 @@ public class TarantoolDriver : KeyValueDB
                 for (int fidx = 0; fidx < field_count; ++fidx)
                 {
                     field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_UINT)
+                    if (field_type == mp_type.MP_BOOL)
+                    {
+                        mp_decode_bool(&reply.data);
+                    }
+                    else if (field_type == mp_type.MP_INT)
+                    {
+                        mp_decode_int(&reply.data);
+                    }
+                    else if (field_type == mp_type.MP_UINT)
                     {
                         auto uid = mp_decode_uint(&reply.data);
 
@@ -605,7 +597,7 @@ public class TarantoolDriver : KeyValueDB
                     {
                         char *str_value;
                         uint str_value_length;
-                        //str_value = 
+                        //str_value =
                         mp_decode_str(&reply.data, &str_value_length);
 
                         //if (fidx == cast(int)TTFIELD.HASH)

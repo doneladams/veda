@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
-	"sort"
 )
 
 type Individual map[string]interface{}
@@ -139,7 +139,8 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 		var subject string
 		var predicate string
 		var str_object string
-		//var num_object int64
+		var num_object int64
+		var bool_object bool
 		var _type DataType
 		var _lang Lang
 		var order int64 = -1
@@ -164,16 +165,21 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 				//log.Printf("@vval =%v\n", vval)
 
 				switch vval.(type) {
+				case bool:
+					bb := vval.(bool)
+					if irow == _OBJECT {
+						bool_object = bb
+					}
 				case uint64:
 					nval = int64(vval.(uint64))
-					//if irow == _OBJECT {
-					//	num_object = nval
-					//}
+					if irow == _OBJECT {
+						num_object = nval
+					}
 				case int64:
 					nval = vval.(int64)
-					//if irow == _OBJECT {
-					//	num_object = nval
-					//}
+					if irow == _OBJECT {
+						num_object = nval
+					}
 				case string:
 					sval = vval.(string)
 					if irow == _OBJECT {
@@ -228,20 +234,13 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 				resource["data"] = str_object
 				resource["lang"] = langToString(_lang)
 			} else if _type == Integer {
-				nn, _ := strconv.Atoi(str_object)
-				resource["data"] = nn
+				resource["data"] = num_object
 			} else if _type == Datetime {
-				nn, _ := strconv.Atoi(str_object)
-				resource["data"] = time.Unix(int64(nn), 0).UTC().Format("2006-01-02T15:04:05Z")
+				resource["data"] = time.Unix(int64(num_object), 0).UTC().Format("2006-01-02T15:04:05Z")
 			} else if _type == Decimal {
 				resource["data"] = str_object
 			} else if _type == Boolean {
-
-				if str_object == "true" {
-					resource["data"] = true
-				} else {
-					resource["data"] = false
-				}
+				resource["data"] = bool_object
 			}
 
 			resources = append(resources, resource)
@@ -273,7 +272,7 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 					resources[1] = a
 				}
 			} else if pcount > 2 {
-				sort.Sort (Resources (resources))
+				sort.Sort(Resources(resources))
 			}
 
 			for irow := 0; irow < pcount; irow++ {
