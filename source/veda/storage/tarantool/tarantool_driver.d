@@ -106,7 +106,10 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", uri, reply.code, to!string(reply.error));
-                indv.setStatus(ResultCode.Unprocessable_Entity);
+                if (reply.code == 36)
+	                indv.setStatus(ResultCode.Not_Ready);
+                else
+	                indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
 
