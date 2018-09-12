@@ -17,6 +17,17 @@ Logger log()
 
 void main(string[] args)
 {
+    if (args.length < 3)
+    {
+        stderr.writeln("use individual_lmdb_dump_2_tarantool start_pos end_pos");
+        return;
+    }
+
+    long start_pos = to!long (args[ 1 ]);
+    long end_pos   = to!long (args[ 2 ]);
+
+    log.trace("start: %d, end: %d", start_pos, end_pos);
+
     KeyValueDB individual_tt_storage;
     KeyValueDB ticket_tt_storage;
 
@@ -39,11 +50,11 @@ void main(string[] args)
     log.trace("migrate individuals");
     LmdbDriver individual_lmdb_driver = new LmdbDriver(individuals_db_path, DBMode.R, "cnv", log);
 
-    convert(individual_lmdb_driver, individual_tt_storage);
+    convert(individual_lmdb_driver, individual_tt_storage, start_pos, end_pos);
 }
 
 
-public long convert(LmdbDriver src, KeyValueDB dest)
+public long convert(LmdbDriver src, KeyValueDB dest, long start_pos, long end_pos)
 {
     src.open();
 
@@ -114,6 +125,8 @@ public long convert(LmdbDriver src, KeyValueDB dest)
             return -1;
         }
 
+        log.trace("total count=[%d]", src.count_entries());
+
         MDB_val key;
         MDB_val data;
 
@@ -123,29 +136,42 @@ public long convert(LmdbDriver src, KeyValueDB dest)
 
             if (rc == 0)
             {
-                string new_hash;
-                string str_key = cast(string)(key.mv_data[ 0..key.mv_size ]).dup;
-                if (str_key == xapian_metadata_doc_id || str_key == src.summ_hash_this_db_id || str_key.length == 0)
-                    continue;
-
-                string value = cast(string)(data.mv_data[ 0..data.mv_size ]).dup;
-
-                if (value.length == 0)
-                    continue;
-
-                Individual indv;
-                if (indv.deserialize(value) < 0)
+                if (count >= start_pos && count < end_pos)
                 {
-                    log.trace("ERR! %d KEY=[%s]", count, key);
-                }
-                else
-                {
-                    string new_bin = indv.serialize();
-                    dest.store(str_key, new_bin, -1);
-                    log.trace("OK, %d KEY=[%s]", count, str_key);
-                }
+                    string new_hash;
+                    string str_key = cast(string)(key.mv_data[ 0..key.mv_size ]).dup;
+                    if (str_key == xapian_metadata_doc_id || str_key == src.summ_hash_this_db_id || str_key.length == 0)
+                        continue;
 
+                    string value = cast(string)(data.mv_data[ 0..data.mv_size ]).dup;
+
+                    if (value.length == 0)
+                        continue;
+
+                    Individual indv;
+                    if (indv.deserialize(value) < 0)
+                    {
+                        log.trace("ERR! %d KEY=[%s]", count, key);
+                    }
+                    else
+                    {
+                        string new_bin = indv.serialize();
+                        dest.store(str_key, new_bin, -1);
+                        log.trace("OK, %d KEY=[%s]", count, str_key);
+                    }
+                }
                 count++;
+
+                if (count > end_pos)
+                {
+                    log.trace("stop");
+                    return 0;
+                }
+            }
+            else
+            {
+                log.trace("ERR! stop read of cursor, err=%d", rc);
+                return -1;
             }
         }
     }catch (Exception ex)
