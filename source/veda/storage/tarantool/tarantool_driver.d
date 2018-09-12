@@ -674,28 +674,29 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-//                    tnt_reply_init(reply);
+                	// CHECK EXISTS SPACE
+                    tnt_reply_init(reply);
 
-//                    tnt_stream *tuple = tnt_object(null);
+                    tnt_stream *tuple = tnt_object(null);
 
-//                    tnt_object_add_array(tuple, 1);
-//                    tnt_object_add_str(tuple, "?", 1);
+                    tnt_object_add_array(tuple, 1);
+                    tnt_object_add_int(tuple, 0);
 
-//                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
-//                    tnt_flush(tnt);
-//                    tnt_stream_free(tuple);
+                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
+                    tnt_flush(tnt);
+                    tnt_stream_free(tuple);
 
-//                    tnt.read_reply(tnt, reply);
-//                    if (reply.code == 36)
-//                    {
-//                        tnt_reply_free(reply);
-//                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
-//                        log.trace("SLEEP AND REPEAT");
-//                        core.thread.Thread.sleep(dur!("seconds")(1));
-//                        return open();
-//                    }
-//                    else
-//                        tnt_reply_free(reply);
+                    tnt.read_reply(tnt, reply);
+                    if (reply.code == 36)
+                    {
+                        tnt_reply_free(reply);
+                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
+                        log.trace("SLEEP AND REPEAT");
+                        core.thread.Thread.sleep(dur!("seconds")(1));
+                        return open();
+                    }
+                    else
+                        tnt_reply_free(reply);
 
 
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
@@ -706,7 +707,7 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("FAIL CONNECT TO TARANTOOL %s err=%s", db_uri, to!string(tnt_strerror(tnt)));
                 log.trace("SLEEP AND REPEAT");
-                core.thread.Thread.sleep(dur!("seconds")(2));
+                core.thread.Thread.sleep(dur!("seconds")(1));
                 return open();
             }
         }
