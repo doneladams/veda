@@ -39,6 +39,7 @@ before_script:
   - fluxbox >/dev/null 2>&1 &
   - ./control-start.sh
   - sleep 180
+  - ./send-to-chunk-io.sh
 
 script:
   - travis_wait 20 grunt test --stack --verbose
