@@ -132,11 +132,11 @@ public long convert(LmdbDriver src, KeyValueDB dest, long start_pos, long end_po
 
         while (rc == 0)
         {
-            rc = mdb_cursor_get(cursor, &key, &data, MDB_cursor_op.MDB_NEXT);
-
-            if (rc == 0)
+            if (count >= start_pos && count < end_pos)
             {
-                if (count >= start_pos && count < end_pos)
+                rc = mdb_cursor_get(cursor, &key, &data, MDB_cursor_op.MDB_NEXT);
+
+                if (rc == 0)
                 {
                     string new_hash;
                     string str_key = cast(string)(key.mv_data[ 0..key.mv_size ]).dup;
@@ -160,21 +160,31 @@ public long convert(LmdbDriver src, KeyValueDB dest, long start_pos, long end_po
                         log.trace("OK, %d KEY=[%s]", count, str_key);
                     }
                 }
-                count++;
-
-                if (count > end_pos)
+                else
                 {
-                    log.trace("stop");
-                    return 0;
+                    log.trace("ERR! stop read of cursor, err=%d", rc);
+                    return -1;
                 }
             }
             else
             {
-                log.trace("ERR! stop read of cursor, err=%d", rc);
-                return -1;
+                rc = mdb_cursor_next1(cursor, &key, &data, MDB_cursor_op.MDB_NEXT);
+            }
+
+	    if (count % 1000 == 0)
+        	log.trace("count=%d", count);
+
+
+            count++;
+
+            if (count > end_pos)
+            {
+                log.trace("stop");
+                return 0;
             }
         }
-    }catch (Exception ex)
+    }
+    catch (Exception ex)
     {
         log.trace_log_and_console(__FUNCTION__ ~ ":" ~ text(__LINE__) ~ "(%s) ERR:%s", src._path, ex.msg);
         return -1;

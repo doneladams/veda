@@ -15,7 +15,7 @@
 	    "source/onto"
 	],
         "sourceFiles":[
-            "../../lib64/liblmdb.a"
+            "lib64/liblmdb.a"
 	],
 	"configurations": [
 	{

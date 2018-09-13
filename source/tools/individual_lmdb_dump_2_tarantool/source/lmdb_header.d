@@ -373,6 +373,9 @@ MDB_dbi mdb_cursor_dbi(MDB_cursor *cursor);
 ///-
 int mdb_cursor_get(MDB_cursor *cursor, MDB_val *key, MDB_val *data, MDB_cursor_op op);
 
+
+int mdb_cursor_next1(MDB_cursor *cursor, MDB_val *key, MDB_val *data, MDB_cursor_op op);
+
 ///-
 int mdb_cursor_put(MDB_cursor *cursor, MDB_val *key, MDB_val *data, uint flags);
 
