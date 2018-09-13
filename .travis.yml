@@ -39,7 +39,8 @@ before_script:
   - fluxbox >/dev/null 2>&1 &
   - ./control-start.sh
   - sleep 180
-  - wget http://localhost:8080/tests?coverage=true&lcovReport=&noglobals=true
+  - wget --output-file=tests.log  http://localhost:8080/tests?coverage=true&lcovReport=&noglobals=true
+  - cat tests.log
 
 script:
   - travis_wait 20 grunt test --stack --verbose
