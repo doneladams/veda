@@ -125,7 +125,7 @@ fi
 go get github.com/itiu/lmdb-go/lmdb
 
 #fasthttp
-go get -v github.com/valyala/fasthttp
+go get -v github.com/itiu/fasthttp
 
 #go-nanomsg
 go get -v github.com/op/go-nanomsg
