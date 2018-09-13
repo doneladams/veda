@@ -3,7 +3,7 @@
  */
 module veda.storage.tarantool.tarantool_driver;
 
-import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch, std.uuid;
+import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch, std.uuid, std.variant;
 import veda.bind.tarantool.tnt_stream, veda.bind.tarantool.tnt_net, veda.bind.tarantool.tnt_opt, veda.bind.tarantool.tnt_ping;
 import veda.bind.tarantool.tnt_reply, veda.bind.tarantool.tnt_insert, veda.bind.tarantool.tnt_delete, veda.bind.tarantool.tnt_object,
        veda.bind.tarantool.tnt_select;
@@ -23,6 +23,17 @@ public enum TTFIELD : ubyte
     TYPE      = 4,
     LANG      = 5,
     ORDER     = 6
+}
+
+struct TripleRow
+{
+    long     id;
+    string   subject;
+    string   predicate;
+    Variant  object;
+    DataType type;
+    LANG     lang;
+    int      order;
 }
 
 tnt_stream *tnt         = null;
@@ -107,9 +118,9 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", uri, reply.code, to!string(reply.error));
                 if (reply.code == 36)
-	                indv.setStatus(ResultCode.Not_Ready);
+                    indv.setStatus(ResultCode.Not_Ready);
                 else
-	                indv.setStatus(ResultCode.Unprocessable_Entity);
+                    indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
 
@@ -512,21 +523,12 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    public ResultCode remove(string in_key)
+    private TripleRow[] get_individual_as_triple(string in_key)
     {
-        if (db_is_opened != true)
-        {
-            open();
-            if (db_is_opened != true)
-                return ResultCode.Connect_Error;
-        }
+        TripleRow[] res;
 
-        long[] deleted_ids;
-
-        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
-
-        tnt_reply_ reply;
-        tnt_stream *tuple;
+        tnt_reply_  reply;
+        tnt_stream  *tuple;
 
         try
         {
@@ -546,7 +548,7 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", in_key, reply.code, to!string(reply.error));
-                return ResultCode.OK;
+                return res;
             }
 
             mp_type field_type = mp_typeof(*reply.data);
@@ -554,14 +556,14 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("VALUE CONTENT INVALID FORMAT [], KEY=%s, field_type=%s", in_key, field_type);
 
-                return ResultCode.OK;
+                return res;
             }
 
             uint tuple_count = mp_decode_array(&reply.data);
             if (tuple_count == 0)
             {
                 //log.trace("ERR! remove individual, not found ! request uri=%s", in_key);
-                return ResultCode.OK;
+                return res;
             }
             //log.trace("@remove individual, @8 tuple_count=%d", tuple_count);
 
@@ -573,7 +575,7 @@ public class TarantoolDriver : KeyValueDB
                 if (field_type != mp_type.MP_ARRAY)
                 {
                     log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", in_key, field_type);
-                    return ResultCode.OK;
+                    return res;
                 }
 
                 int field_count = mp_decode_array(&reply.data);
@@ -594,7 +596,11 @@ public class TarantoolDriver : KeyValueDB
                         auto uid = mp_decode_uint(&reply.data);
 
                         if (fidx == cast(int)TTFIELD.HASH)
-                            deleted_ids ~= uid;
+                        {
+                            TripleRow tr;
+                            tr.id = uid;
+                            res ~= tr;
+                        }
                     }
                     else if (field_type == mp_type.MP_STR)
                     {
@@ -613,6 +619,7 @@ public class TarantoolDriver : KeyValueDB
                     }
                 }
             }
+            return res;
         }
         finally
         {
@@ -621,16 +628,37 @@ public class TarantoolDriver : KeyValueDB
             if (tuple !is null)
                 tnt_stream_free(tuple);
         }
+    }
 
-        //log.trace("deleted_ids=%s", deleted_ids);
-
-        foreach (id; deleted_ids)
+    public ResultCode remove(string in_key)
+    {
+        if (db_is_opened != true)
         {
+            open();
+            if (db_is_opened != true)
+                return ResultCode.Connect_Error;
+        }
+
+        //TripleRow[] deleted_ids;
+
+        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
+        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        if (deleted_rows.length == 0)
+            return ResultCode.OK;
+
+        //log.trace("deleted_rows=%s", deleted_rows);
+
+        foreach (row; deleted_rows)
+        {
+            tnt_stream *tuple;
+            tnt_reply_ reply;
+
+            //log.trace("row=%s", row);
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
 
             //tnt_object_add_str(tuple, cast(const(char)*)id, cast(uint)id.length);
-            tnt_object_add_int(tuple, id);
+            tnt_object_add_int(tuple, row.id);
 
             tnt_delete(tnt, space_id, 0, tuple);
             tnt_flush(tnt);
@@ -640,9 +668,13 @@ public class TarantoolDriver : KeyValueDB
             tnt.read_reply(tnt, &reply);
             if (reply.code != 0)
             {
-                log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, id, reply.code, to!string(reply.error));
+                log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
                 //tnt_reply_free(&reply);
                 //return ResultCode.Internal_Server_Error;
+            }
+            else
+            {
+                //log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
             }
 
             tnt_reply_free(&reply);
@@ -674,7 +706,7 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-                	// CHECK EXISTS SPACE
+                    // CHECK EXISTS SPACE
                     tnt_reply_init(reply);
 
                     tnt_stream *tuple = tnt_object(null);
