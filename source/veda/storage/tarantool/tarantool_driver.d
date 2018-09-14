@@ -630,25 +630,9 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    public ResultCode remove(string in_key)
+    private void remove_triple_rows(TripleRow[] rows, string in_key)
     {
-        if (db_is_opened != true)
-        {
-            open();
-            if (db_is_opened != true)
-                return ResultCode.Connect_Error;
-        }
-
-        //TripleRow[] deleted_ids;
-
-        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
-        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
-        if (deleted_rows.length == 0)
-            return ResultCode.OK;
-
-        //log.trace("deleted_rows=%s", deleted_rows);
-
-        foreach (row; deleted_rows)
+        foreach (row; rows)
         {
             tnt_stream *tuple;
             tnt_reply_ reply;
@@ -679,6 +663,24 @@ public class TarantoolDriver : KeyValueDB
 
             tnt_reply_free(&reply);
         }
+    }
+
+    public ResultCode remove(string in_key)
+    {
+        if (db_is_opened != true)
+        {
+            open();
+            if (db_is_opened != true)
+                return ResultCode.Connect_Error;
+        }
+
+        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
+        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        if (deleted_rows.length == 0)
+            return ResultCode.OK;
+
+        remove_triple_rows(deleted_rows, in_key);
+        //log.trace("deleted_rows=%s", deleted_rows);
 
         return ResultCode.OK;
     }
