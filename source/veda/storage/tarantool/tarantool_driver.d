@@ -30,11 +30,16 @@ struct TripleRow
     long     id;
     string   subject;
     string   predicate;
-    Variant  object;
+
+    string   str_obj;
+    bool     bool_obj;
+    long     num_obj;
+
     DataType type;
     LANG     lang;
     int      order;
     bool     is_deleted;
+    bool     is_tested;
 }
 
 tnt_stream *tnt         = null;
@@ -73,6 +78,82 @@ public class TarantoolDriver : KeyValueDB
             //log.trace("@ get_binobj, uri=%s, indv=%s", uri, indv);
         }
         return res;
+    }
+
+    private ResultCode reply_to_triple_row(tnt_reply_ *reply, ref TripleRow row, string uri)
+    {
+        mp_type field_type = mp_typeof(*reply.data);
+
+        if (field_type != mp_type.MP_ARRAY)
+        {
+            log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", uri, field_type);
+            return ResultCode.Unprocessable_Entity;
+        }
+
+        int field_count = mp_decode_array(&reply.data);
+
+        for (int fidx = 0; fidx < field_count; ++fidx)
+        {
+            long   num_value;
+            string value;
+
+            field_type = mp_typeof(*reply.data);
+            if (field_type == mp_type.MP_BOOL)
+            {
+                bool obj = mp_decode_bool(&reply.data);
+                if (fidx == TTFIELD.OBJECT)
+                    row.bool_obj = obj;
+            }
+            else if (field_type == mp_type.MP_INT)
+            {
+                num_value = mp_decode_int(&reply.data);
+                if (fidx == TTFIELD.OBJECT)
+                    row.num_obj = num_value;
+                else if (fidx == TTFIELD.ID)
+                    row.id = num_value;
+            }
+            else if (field_type == mp_type.MP_UINT)
+            {
+                num_value = mp_decode_uint(&reply.data);
+                //log.trace("fidx=%d,    num value=%d\n", fidx, num_value);
+                if (fidx == TTFIELD.OBJECT)
+                    row.num_obj = num_value;
+                else if (fidx == TTFIELD.ORDER)
+                    row.order = cast(int)num_value;
+                else if (fidx == TTFIELD.ID)
+                    row.id = num_value;
+            }
+            else if (field_type == mp_type.MP_STR)
+            {
+                char *str_value;
+                uint str_value_length;
+                str_value = mp_decode_str(&reply.data, &str_value_length);
+                value     = cast(string)str_value[ 0..str_value_length ].dup;
+                //log.trace("fidx=%d,    str value=%s\n", fidx, cast(string)str_value[ 0..str_value_length ]);
+
+                if (fidx == cast(int)TTFIELD.OBJECT)
+                    row.str_obj = value;
+            }
+            else
+            {
+                log.trace("wrong field type\n");
+                //exit(1);
+            }
+
+            if (fidx == TTFIELD.SUBJECT && row.subject is null)
+                row.subject = value;
+
+            if (fidx == TTFIELD.PREDICATE && row.predicate is null)
+                row.predicate = value;
+
+            if (fidx == TTFIELD.TYPE)
+                row.type = cast(DataType)num_value;
+
+            if (fidx == TTFIELD.LANG)
+                row.lang = cast(LANG)num_value;
+        }
+
+        return ResultCode.OK;
     }
 
     public void get_individual(string uri, ref Individual indv)
@@ -142,112 +223,45 @@ public class TarantoolDriver : KeyValueDB
             }
             //log.trace ("@get individual @8 tuple_count=%d", tuple_count);
 
-            string subject;
-
             for (int irow = 0; irow < tuple_count; ++irow)
             {
-                field_type = mp_typeof(*reply.data);
-                if (field_type != mp_type.MP_ARRAY)
+                TripleRow  row;
+                ResultCode rc = reply_to_triple_row(&reply, row, uri);
+                if (rc != ResultCode.OK)
                 {
-                    log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", uri, field_type);
-                    indv.setStatus(ResultCode.Unprocessable_Entity);
+                    indv.setStatus(rc);
                     return;
                 }
 
-                int    field_count = mp_decode_array(&reply.data);
-                string predicate;
-                string str_object;
-                long   num_object;
-                long   type  = 0;
-                long   lang  = 0;
-                int    order = 0;
-
                 //log.trace("  field count=%d\n", field_count);
-                for (int fidx = 0; fidx < field_count; ++fidx)
+
+                if (uri != row.subject)
                 {
-                    long   num_value;
-                    string value;
-
-                    field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_BOOL)
-                    {
-                        num_value = mp_decode_bool(&reply.data);
-                        if (fidx == TTFIELD.OBJECT)
-                            num_object = num_value;
-                    }
-                    else if (field_type == mp_type.MP_INT)
-                    {
-                        num_value = mp_decode_int(&reply.data);
-                        if (fidx == TTFIELD.OBJECT)
-                            num_object = num_value;
-                    }
-                    else if (field_type == mp_type.MP_UINT)
-                    {
-                        num_value = mp_decode_uint(&reply.data);
-                        //log.trace("fidx=%d,    num value=%d\n", fidx, num_value);
-                        if (fidx == TTFIELD.OBJECT)
-                            num_object = num_value;
-                        if (fidx == TTFIELD.ORDER)
-                            order = cast(int)num_value;
-                    }
-                    else if (field_type == mp_type.MP_STR)
-                    {
-                        char *str_value;
-                        uint str_value_length;
-                        str_value = mp_decode_str(&reply.data, &str_value_length);
-                        value     = cast(string)str_value[ 0..str_value_length ].dup;
-                        //log.trace("fidx=%d,    str value=%s\n", fidx, cast(string)str_value[ 0..str_value_length ]);
-
-                        if (fidx == cast(int)TTFIELD.OBJECT && str_object is null)
-                            str_object = value;
-                    }
-                    else
-                    {
-                        log.trace("wrong field type\n");
-                        //exit(1);
-                    }
-
-                    if (fidx == TTFIELD.SUBJECT && subject is null)
-                    {
-                        subject = value;
-
-                        if (uri != subject)
-                        {
-                            log.trace("ERR! not found ?, request uri=%s, get uri=%s", uri, subject);
-                            indv.setStatus(ResultCode.Not_Found);
-                            return;
-                        }
-
-                        indv.uri = subject;
-                    }
-
-                    if (fidx == TTFIELD.PREDICATE && predicate is null)
-                        predicate = value;
-
-                    if (fidx == TTFIELD.TYPE && type == 0)
-                        type = num_value;
-
-                    if (fidx == TTFIELD.LANG && lang == 0)
-                        lang = num_value;
+                    log.trace("ERR! not found ?, request uri=%s, get uri=%s", uri, row.subject);
+                    indv.setStatus(ResultCode.Not_Found);
+                    return;
                 }
 
-                if (type == DataType.Uri || type == DataType.String)
+                if (indv.uri is null)
+                    indv.uri = row.subject;
+
+                if (row.type == DataType.Uri || row.type == DataType.String || row.type == DataType.Decimal)
                 {
-                    Resource rr = Resource(cast(DataType)type, str_object, cast(LANG)lang);
-                    rr.order = order;
-                    indv.addResource(predicate, rr);
+                    Resource rr = Resource(row.type, row.str_obj, row.lang);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
                 }
-                else if (type == DataType.Decimal)
+                else if (row.type == DataType.Boolean)
                 {
-                    Resource rr = Resource(cast(DataType)type, str_object);
-                    rr.order = order;
-                    indv.addResource(predicate, rr);
+                    Resource rr = Resource(row.bool_obj);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
                 }
                 else
                 {
-                    Resource rr = Resource(cast(DataType)type, num_object);
-                    rr.order = order;
-                    indv.addResource(predicate, rr);
+                    Resource rr = Resource(row.type, row.num_obj);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
                 }
             }
 
@@ -339,7 +353,7 @@ public class TarantoolDriver : KeyValueDB
             log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
             tnt_reply_free(&reply);
             tnt_stream_free(tuple);
-            return;        // ResultCode.Internal_Server_Error;
+            return;
         }
 
         tnt_reply_free(&reply);
@@ -347,27 +361,39 @@ public class TarantoolDriver : KeyValueDB
 
         foreach (row; prev_rows)
         {
-            if (row.is_deleted == false)
+            if (row.is_deleted == false && row.is_tested == false)
             {
-                if (subject == row.subject && predicate == row.predicate && type == row.type && lang == row.lang)
+                //log.trace("#2 [subject=%s, row.subject=%s], [predicate=%s, row.predicate=%s], [type=%d, row.type=%d], [lang=%d, row.lang=%d]", subject, row.subject,
+                //          predicate, row.predicate, type, row.type, lang,
+                //          row.lang);
+                if (subject == row.subject && predicate == row.predicate)
                 {
-                    if (type == DataType.Datetime || type == DataType.Integer)
+                    if (type == row.type && lang == row.lang)
                     {
-                        if (str_obj == row.object)
-                            row.is_deleted = true;
+                        row.is_deleted = true;
+                        if (type == DataType.Datetime || type == DataType.Integer)
+                        {
+                            if (num_obj == row.num_obj)
+                                row.is_deleted = false;
+                        }
+                        else if (type == DataType.Uri || type == DataType.String || type == DataType.Decimal)
+                        {
+                            if (str_obj == row.str_obj)
+                                row.is_deleted = false;
+                        }
+                        else if (type == DataType.Boolean)
+                        {
+                            //log.trace("#3 bool_obj=%s", text (bool_obj));
+                            if (bool_obj == row.bool_obj)
+                                row.is_deleted = false;
+                        }
                     }
-                    else if (type == DataType.Uri || type == DataType.String || type == DataType.Decimal)
-                    {
-                        if (num_obj == row.object)
-                            row.is_deleted = true;
-                    }
-                    else if (type == DataType.Boolean)
-                    {
-                        if (bool_obj == row.object)
-                            row.is_deleted = true;
-                    }
+                    row.is_tested = true;
                 }
             }
+
+            //if (row.is_deleted == true)
+            //    log.trace("row candidate for delete: %s", row);
         }
     }
 
@@ -603,53 +629,10 @@ public class TarantoolDriver : KeyValueDB
 
             for (int irow = 0; irow < tuple_count; ++irow)
             {
-                field_type = mp_typeof(*reply.data);
-                if (field_type != mp_type.MP_ARRAY)
-                {
-                    log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", in_key, field_type);
-                    return res;
-                }
-
-                int field_count = mp_decode_array(&reply.data);
-
-                for (int fidx = 0; fidx < field_count; ++fidx)
-                {
-                    field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_BOOL)
-                    {
-                        mp_decode_bool(&reply.data);
-                    }
-                    else if (field_type == mp_type.MP_INT)
-                    {
-                        mp_decode_int(&reply.data);
-                    }
-                    else if (field_type == mp_type.MP_UINT)
-                    {
-                        auto uid = mp_decode_uint(&reply.data);
-
-                        if (fidx == cast(int)TTFIELD.ID)
-                        {
-                            TripleRow tr;
-                            tr.id = uid;
-                            res ~= tr;
-                        }
-                    }
-                    else if (field_type == mp_type.MP_STR)
-                    {
-                        char *str_value;
-                        uint str_value_length;
-                        //str_value =
-                        mp_decode_str(&reply.data, &str_value_length);
-
-                        //if (fidx == cast(int)TTFIELD.ID)
-                        //    deleted_ids ~= cast(string)str_value[ 0..str_value_length ].dup;
-                    }
-                    else
-                    {
-                        log.trace("wrong field type\n");
-                        //exit(1);
-                    }
-                }
+                TripleRow  row;
+                ResultCode rc = reply_to_triple_row(&reply, row, in_key);
+                if (rc == ResultCode.OK)
+                    res ~= row;
             }
             return res;
         }
