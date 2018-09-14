@@ -374,7 +374,9 @@ public class TarantoolDriver : KeyValueDB
             return ResultCode.Internal_Server_Error;
         }
 
-        remove(in_key);
+        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        if (deleted_rows.length > 0)
+            remove_triple_rows(deleted_rows, in_key);
 
         try
         {
@@ -632,6 +634,8 @@ public class TarantoolDriver : KeyValueDB
 
     private void remove_triple_rows(TripleRow[] rows, string in_key)
     {
+        //log.trace("deleted_rows=%s", rows);
+
         foreach (row; rows)
         {
             tnt_stream *tuple;
@@ -654,12 +658,12 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
                 //tnt_reply_free(&reply);
-                //return ResultCode.Internal_Server_Error;
+                //return;
             }
-            else
-            {
-                //log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
-            }
+            //else
+            //{
+            //log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
+            //}
 
             tnt_reply_free(&reply);
         }
@@ -675,12 +679,10 @@ public class TarantoolDriver : KeyValueDB
         }
 
         //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
-        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
-        if (deleted_rows.length == 0)
-            return ResultCode.OK;
 
-        remove_triple_rows(deleted_rows, in_key);
-        //log.trace("deleted_rows=%s", deleted_rows);
+        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        if (deleted_rows.length > 0)
+            remove_triple_rows(deleted_rows, in_key);
 
         return ResultCode.OK;
     }
@@ -749,17 +751,17 @@ public class TarantoolDriver : KeyValueDB
 
     public void reopen()
     {
-        //close();
-        //open();
+//close();
+//open();
     }
 
     public void close()
     {
-        //               if (db_is_opened == true) {
+//if (db_is_opened == true) {
 //		tnt_close(tnt);
-//    tnt_stream_free(tnt);
-//                db_is_opened = false;
-//			}
+//      tnt_stream_free(tnt);
+//      db_is_opened = false;
+//	}
     }
 
     public long count_entries()
