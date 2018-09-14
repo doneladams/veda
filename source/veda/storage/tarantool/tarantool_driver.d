@@ -16,7 +16,7 @@ import std.digest.ripemd, std.digest.md;
 
 public enum TTFIELD : ubyte
 {
-    HASH      = 0,
+    ID        = 0,
     SUBJECT   = 1,
     PREDICATE = 2,
     OBJECT    = 3,
@@ -34,6 +34,7 @@ struct TripleRow
     DataType type;
     LANG     lang;
     int      order;
+    bool     is_deleted;
 }
 
 tnt_stream *tnt         = null;
@@ -343,6 +344,31 @@ public class TarantoolDriver : KeyValueDB
 
         tnt_reply_free(&reply);
         tnt_stream_free(tuple);
+
+        foreach (row; prev_rows)
+        {
+            if (row.is_deleted == false)
+            {
+                if (subject == row.subject && predicate == row.predicate && type == row.type && lang == row.lang)
+                {
+                    if (type == DataType.Datetime || type == DataType.Integer)
+                    {
+                        if (str_obj == row.object)
+                            row.is_deleted = true;
+                    }
+                    else if (type == DataType.Uri || type == DataType.String || type == DataType.Decimal)
+                    {
+                        if (num_obj == row.object)
+                            row.is_deleted = true;
+                    }
+                    else if (type == DataType.Boolean)
+                    {
+                        if (bool_obj == row.object)
+                            row.is_deleted = true;
+                    }
+                }
+            }
+        }
     }
 
     ubyte magic_header = 146;
@@ -601,7 +627,7 @@ public class TarantoolDriver : KeyValueDB
                     {
                         auto uid = mp_decode_uint(&reply.data);
 
-                        if (fidx == cast(int)TTFIELD.HASH)
+                        if (fidx == cast(int)TTFIELD.ID)
                         {
                             TripleRow tr;
                             tr.id = uid;
@@ -615,7 +641,7 @@ public class TarantoolDriver : KeyValueDB
                         //str_value =
                         mp_decode_str(&reply.data, &str_value_length);
 
-                        //if (fidx == cast(int)TTFIELD.HASH)
+                        //if (fidx == cast(int)TTFIELD.ID)
                         //    deleted_ids ~= cast(string)str_value[ 0..str_value_length ].dup;
                     }
                     else
