@@ -271,7 +271,7 @@ public class TarantoolDriver : KeyValueDB
     }
 
     private void update_row(string subject, string predicate, Value object, DataType type, LANG lang, int order, ref tnt_stream *[] tuples,
-                            decimal num)
+                            decimal num, ref TripleRow[] prev_rows)
     {
         tnt_stream *tuple = tnt_object(null);
 
@@ -282,40 +282,44 @@ public class TarantoolDriver : KeyValueDB
         tnt_object_add_str(tuple, cast(const(char)*)subject, cast(uint)subject.length);
         tnt_object_add_str(tuple, cast(const(char)*)predicate, cast(uint)predicate.length);
 
+        string str_obj;
+        long   num_obj;
+        bool   bool_obj;
+
         if (type == DataType.Datetime || type == DataType.Integer)
         {
             if (object.type == Value.Type.unsigned)
-                tnt_object_add_int(tuple, object.via.uinteger);
+                num_obj = object.via.uinteger;
             else
-                tnt_object_add_int(tuple, object.via.integer);
+                num_obj = object.via.integer;
+
+            tnt_object_add_int(tuple, num_obj);
         }
         else if (type == DataType.Uri || type == DataType.String)
         {
             if (object.type == Value.type.nil)
-            {
-//            tnt_object_add_nil(tuple);
-                tnt_object_add_str(tuple, cast(const(char)*)"", 0);
-            }
+                str_obj = "";
             else
-            {
-                string str_obj = (cast(string)object.via.raw).dup;
-                tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
-            }
+                str_obj = (cast(string)object.via.raw).dup;
+
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
         }
         else if (type == DataType.Boolean)
         {
-            tnt_object_add_bool(tuple, object.via.boolean);
+            bool_obj = object.via.boolean;
+            tnt_object_add_bool(tuple, bool_obj);
         }
         else if (type == DataType.Decimal)
         {
-            string str_obj = num.asString();
+            str_obj = num.asString();
             tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
         }
         else
         {
+            str_obj = "";
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
             log.trace("ERR! update triple, unknown type %s", type);
         }
-
 
         tnt_object_add_int(tuple, type);
         tnt_object_add_int(tuple, lang);
@@ -374,9 +378,9 @@ public class TarantoolDriver : KeyValueDB
             return ResultCode.Internal_Server_Error;
         }
 
-        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
-        if (deleted_rows.length > 0)
-            remove_triple_rows(deleted_rows, in_key);
+        TripleRow[] prev_rows = get_individual_as_triple(in_key);
+        if (prev_rows.length > 0)
+            remove_triple_rows(prev_rows, in_key);
 
         try
         {
@@ -424,7 +428,7 @@ public class TarantoolDriver : KeyValueDB
                                         {
                                             long type = arr[ 0 ].via.uinteger;
 
-                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init);
+                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init, prev_rows);
                                         }
                                         else if (arr.length == 3)
                                         {
@@ -445,13 +449,13 @@ public class TarantoolDriver : KeyValueDB
                                                     exponent = arr[ 2 ].via.integer;
 
                                                 update_row(subject, predicate, Value.init, cast(DataType)type, LANG.NONE,
-                                                           i, tuples, decimal(mantissa, cast(byte)exponent));
+                                                           i, tuples, decimal(mantissa, cast(byte)exponent), prev_rows);
                                             }
                                             else if (type == DataType.String)
                                             {
                                                 long lang = arr[ 2 ].via.uinteger;
                                                 update_row(subject, predicate, arr[ 1 ], cast(DataType)type, cast(LANG)lang,
-                                                           i, tuples, decimal.init);
+                                                           i, tuples, decimal.init, prev_rows);
                                             }
                                             else
                                             {
