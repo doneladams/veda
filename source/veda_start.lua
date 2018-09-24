@@ -1,3 +1,5 @@
+-- create simlink to /usr/share/tarantool
+
 local function start()
 
 log = require('log')

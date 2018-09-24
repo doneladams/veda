@@ -1,4 +1,5 @@
 #!/usr/bin/env tarantool
+-- create simlink to /etc/tarantool/instances.enabled
 
 box.cfg {
 force_recovery = true;
