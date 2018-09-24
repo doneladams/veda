@@ -11,9 +11,12 @@ Logger _log;
 Logger log()
 {
     if (_log is null)
-        _log = new Logger("individual-lmdb-dump-2-tarantool", "log", "");
+        _log = new Logger("convert_"~text(start_pos)~"_"~text(end_pos), "log", "");
     return _log;
 }
+
+    long start_pos;
+    long end_pos;
 
 void main(string[] args)
 {
@@ -23,8 +26,8 @@ void main(string[] args)
         return;
     }
 
-    long start_pos = to!long (args[ 1 ]);
-    long end_pos   = to!long (args[ 2 ]);
+    start_pos = to!long (args[ 1 ]);
+    end_pos   = to!long (args[ 2 ]);
 
     log.trace("start: %d, end: %d", start_pos, end_pos);
 

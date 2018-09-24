@@ -16,19 +16,21 @@ Logger log()
 
 long start_pos;
 long delta;
+long batch_size;
 
 void main(string[] args)
 {
-    if (args.length < 3)
+    if (args.length < 4)
     {
-        stderr.writeln("use queue2tarantool start_pos delta");
+        stderr.writeln("use queue2tarantool [start_pos] [delta] [batch_size]");
         return;
     }
 
     start_pos = to!long (args[ 1 ]);
     delta     = to!long (args[ 2 ]);
+    batch_size = to!long (args[ 3 ]);
 
-    log.trace("start: %d, delta: %d", start_pos, delta);
+    log.trace("start: %d, delta: %d, batch_size: %d", start_pos, delta, batch_size);
 
     KeyValueDB individual_tt_storage;
     KeyValueDB ticket_tt_storage;
@@ -56,10 +58,9 @@ public long convert(KeyValueDB dest, long start_pos, long delta)
 
     individual_queue.open();
 
-    auto new_id        = randomUUID().toString();
+    auto new_id        = "cs_" ~ text (start_pos) ~ "_" ~ text(delta);
     auto individual_cs = new Consumer(individual_queue, "./", new_id ~ "", Mode.RW, log);
     individual_cs.open();
-
 
     long dcount = 0;
 
@@ -87,10 +88,13 @@ public long convert(KeyValueDB dest, long start_pos, long delta)
             {
                 string new_bin = indv.serialize();
                 dest.store(indv.uri, new_bin, -1);
-                log.trace("OK, %d KEY=[%s]", count, indv.uri);
+                log.trace("OK, %d KEY=[%s]", individual_cs.count_popped, indv.uri);
             }
         }
         individual_cs.commit_and_next(true);
+
+	if (count >= batch_size)
+	    break;
     }
 
     return count;
