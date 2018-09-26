@@ -157,6 +157,7 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 				val1 := arr_val.Interface()
 				val := reflect.ValueOf(val1)
 
+				if reflect.Zero(reflect.TypeOf(val)).Interface() == val {
 				vval := val.Interface()
 
 				var sval string
@@ -211,6 +212,7 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 				if irow == _LANG && _lang == 0 {
 					_lang = Lang(nval)
 				}
+			    }
 			}
 
 			var resources []interface{}
