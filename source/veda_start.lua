@@ -18,7 +18,6 @@ if box.space.INDIVIDUALS == nil then
 
     print ('space.individuals:', space.id, '\n')
 
---    box.space.INDIVIDUALS:create_index('primary', {parts={1, 'string'}})
     box.space.INDIVIDUALS:create_index('primary', {parts={1, 'unsigned'}, sequence='G1'})
     box.space.INDIVIDUALS:create_index('S', {type = 'tree', unique = false, parts = {2, 'scalar'}})
 --    box.space.INDIVIDUALS:create_index('P', {type = 'tree', unique = false, parts = {3, 'scalar'}})
@@ -42,14 +41,13 @@ if box.space.TICKETS == nil then
 
     print ('space.tickets:', space.id, '\n')
 
---    box.space.TICKETS:create_index('primary', {parts={1, 'string'}})
     box.space.TICKETS:create_index('primary', {parts={1, 'unsigned'}, sequence='G1'})
     box.space.TICKETS:create_index('S', {type = 'tree', unique = false, parts = {2, 'scalar'}})
-    box.space.TICKETS:create_index('P', {type = 'tree', unique = false, parts = {3, 'scalar'}})
-    box.space.TICKETS:create_index('O', {type = 'tree', unique = false, parts = {4, 'scalar'}})
-    box.space.TICKETS:create_index('SP', {type = 'tree', unique = false, parts = {2, 'scalar', 3, 'scalar'}})
-    box.space.TICKETS:create_index('PO', {type = 'tree', unique = false, parts = {3, 'scalar', 4, 'scalar'}})
-    box.space.TICKETS:create_index('SO', {type = 'tree', unique = false, parts = {2, 'scalar', 4, 'scalar'}})
+--    box.space.TICKETS:create_index('P', {type = 'tree', unique = false, parts = {3, 'scalar'}})
+--    box.space.TICKETS:create_index('O', {type = 'tree', unique = false, parts = {4, 'scalar'}})
+--    box.space.TICKETS:create_index('SP', {type = 'tree', unique = false, parts = {2, 'scalar', 3, 'scalar'}})
+--    box.space.TICKETS:create_index('PO', {type = 'tree', unique = false, parts = {3, 'scalar', 4, 'scalar'}})
+--    box.space.TICKETS:create_index('SO', {type = 'tree', unique = false, parts = {2, 'scalar', 4, 'scalar'}})
     box.schema.user.grant('guest', 'read,write', 'space', 'TICKETS')
 end
 

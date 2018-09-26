@@ -3,7 +3,7 @@
  */
 module veda.storage.tarantool.tarantool_driver;
 
-import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch, std.uuid;
+import core.thread, std.conv, std.stdio, std.string, std.conv, std.datetime.stopwatch, std.uuid, std.variant;
 import veda.bind.tarantool.tnt_stream, veda.bind.tarantool.tnt_net, veda.bind.tarantool.tnt_opt, veda.bind.tarantool.tnt_ping;
 import veda.bind.tarantool.tnt_reply, veda.bind.tarantool.tnt_insert, veda.bind.tarantool.tnt_delete, veda.bind.tarantool.tnt_object,
        veda.bind.tarantool.tnt_select;
@@ -16,13 +16,30 @@ import std.digest.ripemd, std.digest.md;
 
 public enum TTFIELD : ubyte
 {
-    HASH      = 0,
+    ID        = 0,
     SUBJECT   = 1,
     PREDICATE = 2,
     OBJECT    = 3,
     TYPE      = 4,
     LANG      = 5,
     ORDER     = 6
+}
+
+struct TripleRow
+{
+    long     id;
+    string   subject;
+    string   predicate;
+
+    string   str_obj;
+    bool     bool_obj;
+    long     num_obj;
+
+    DataType type;
+    LANG     lang;
+    int      order;
+    bool     is_deleted;
+    bool     is_tested;
 }
 
 tnt_stream *tnt         = null;
@@ -61,6 +78,82 @@ public class TarantoolDriver : KeyValueDB
             //log.trace("@ get_binobj, uri=%s, indv=%s", uri, indv);
         }
         return res;
+    }
+
+    private ResultCode reply_to_triple_row(tnt_reply_ *reply, ref TripleRow row, string uri)
+    {
+        mp_type field_type = mp_typeof(*reply.data);
+
+        if (field_type != mp_type.MP_ARRAY)
+        {
+            log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", uri, field_type);
+            return ResultCode.Unprocessable_Entity;
+        }
+
+        int field_count = mp_decode_array(&reply.data);
+
+        for (int fidx = 0; fidx < field_count; ++fidx)
+        {
+            long   num_value;
+            string value;
+
+            field_type = mp_typeof(*reply.data);
+            if (field_type == mp_type.MP_BOOL)
+            {
+                bool obj = mp_decode_bool(&reply.data);
+                if (fidx == TTFIELD.OBJECT)
+                    row.bool_obj = obj;
+            }
+            else if (field_type == mp_type.MP_INT)
+            {
+                num_value = mp_decode_int(&reply.data);
+                if (fidx == TTFIELD.OBJECT)
+                    row.num_obj = num_value;
+                else if (fidx == TTFIELD.ID)
+                    row.id = num_value;
+            }
+            else if (field_type == mp_type.MP_UINT)
+            {
+                num_value = mp_decode_uint(&reply.data);
+                //log.trace("fidx=%d,    num value=%d\n", fidx, num_value);
+                if (fidx == TTFIELD.OBJECT)
+                    row.num_obj = num_value;
+                else if (fidx == TTFIELD.ORDER)
+                    row.order = cast(int)num_value;
+                else if (fidx == TTFIELD.ID)
+                    row.id = num_value;
+            }
+            else if (field_type == mp_type.MP_STR)
+            {
+                char *str_value;
+                uint str_value_length;
+                str_value = mp_decode_str(&reply.data, &str_value_length);
+                value     = cast(string)str_value[ 0..str_value_length ].dup;
+                //log.trace("fidx=%d,    str value=%s\n", fidx, cast(string)str_value[ 0..str_value_length ]);
+
+                if (fidx == cast(int)TTFIELD.OBJECT)
+                    row.str_obj = value;
+            }
+            else
+            {
+                log.trace("wrong field type\n");
+                //exit(1);
+            }
+
+            if (fidx == TTFIELD.SUBJECT && row.subject is null)
+                row.subject = value;
+
+            if (fidx == TTFIELD.PREDICATE && row.predicate is null)
+                row.predicate = value;
+
+            if (fidx == TTFIELD.TYPE)
+                row.type = cast(DataType)num_value;
+
+            if (fidx == TTFIELD.LANG)
+                row.lang = cast(LANG)num_value;
+        }
+
+        return ResultCode.OK;
     }
 
     public void get_individual(string uri, ref Individual indv)
@@ -106,7 +199,10 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", uri, reply.code, to!string(reply.error));
-                indv.setStatus(ResultCode.Unprocessable_Entity);
+                if (reply.code == 36)
+                    indv.setStatus(ResultCode.Not_Ready);
+                else
+                    indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
 
@@ -127,94 +223,45 @@ public class TarantoolDriver : KeyValueDB
             }
             //log.trace ("@get individual @8 tuple_count=%d", tuple_count);
 
-            string subject;
-
             for (int irow = 0; irow < tuple_count; ++irow)
             {
-                field_type = mp_typeof(*reply.data);
-                if (field_type != mp_type.MP_ARRAY)
+                TripleRow  row;
+                ResultCode rc = reply_to_triple_row(&reply, row, uri);
+                if (rc != ResultCode.OK)
                 {
-                    log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", uri, field_type);
-                    indv.setStatus(ResultCode.Unprocessable_Entity);
+                    indv.setStatus(rc);
                     return;
                 }
 
-                int    field_count = mp_decode_array(&reply.data);
-                string predicate;
-                string str_object;
-                long   num_object;
-                long   type  = 0;
-                long   lang  = 0;
-                int    order = 0;
-
                 //log.trace("  field count=%d\n", field_count);
-                for (int fidx = 0; fidx < field_count; ++fidx)
+
+                if (uri != row.subject)
                 {
-                    long   num_value;
-                    string value;
-
-                    field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_UINT)
-                    {
-                        num_value = mp_decode_uint(&reply.data);
-                        //log.trace("fidx=%d,    num value=%d\n", fidx, num_value);
-                        if (fidx == TTFIELD.OBJECT)
-                            num_object = num_value;
-                        if (fidx == TTFIELD.ORDER)
-                            order = cast(int)num_value;
-                    }
-                    else if (field_type == mp_type.MP_STR)
-                    {
-                        char *str_value;
-                        uint str_value_length;
-                        str_value = mp_decode_str(&reply.data, &str_value_length);
-                        value     = cast(string)str_value[ 0..str_value_length ].dup;
-                        //log.trace("fidx=%d,    str value=%s\n", fidx, cast(string)str_value[ 0..str_value_length ]);
-
-                        if (fidx == cast(int)TTFIELD.OBJECT && str_object is null)
-                            str_object = value;
-                    }
-                    else
-                    {
-                        log.trace("wrong field type\n");
-                        //exit(1);
-                    }
-
-                    if (fidx == TTFIELD.SUBJECT && subject is null)
-                    {
-                        subject = value;
-
-                        if (uri != subject)
-                        {
-                            log.trace("ERR! not found ?, request uri=%s, get uri=%s", uri, subject);
-                            indv.setStatus(ResultCode.Not_Found);
-                            return;
-                        }
-
-                        indv.uri = subject;
-                    }
-
-                    if (fidx == TTFIELD.PREDICATE && predicate is null)
-                        predicate = value;
-
-                    if (fidx == TTFIELD.TYPE && type == 0)
-                        type = num_value;
-
-                    if (fidx == TTFIELD.LANG && lang == 0)
-                        lang = num_value;
+                    log.trace("ERR! not found ?, request uri=%s, get uri=%s", uri, row.subject);
+                    indv.setStatus(ResultCode.Not_Found);
+                    return;
                 }
 
-                if (type == DataType.Uri || type == DataType.String)
+                if (indv.uri is null)
+                    indv.uri = row.subject;
+
+                if (row.type == DataType.Uri || row.type == DataType.String || row.type == DataType.Decimal)
                 {
-                    Resource rr = Resource(cast(DataType)type, str_object, cast(LANG)lang);
-                    rr.order = order;
-                    indv.addResource(predicate, rr);
+                    Resource rr = Resource(row.type, row.str_obj, row.lang);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
+                }
+                else if (row.type == DataType.Boolean)
+                {
+                    Resource rr = Resource(row.bool_obj);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
                 }
                 else
                 {
-                    Resource rr = Resource(cast(DataType)type, str_object);
-                    rr.order = order;
-                    indv.addResource(predicate, rr);
+                    Resource rr = Resource(row.type, row.num_obj);
+                    rr.order = row.order;
+                    indv.addResource(row.predicate, rr);
                 }
             }
 
@@ -238,38 +285,57 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    private void update_row(string subject, string predicate, string object, DataType type, LANG lang, int order, ref tnt_stream *[] tuples)
+    private void update_row(string subject, string predicate, Value object, DataType type, LANG lang, int order, ref tnt_stream *[] tuples,
+                            decimal num, ref TripleRow[] prev_rows)
     {
         tnt_stream *tuple = tnt_object(null);
 
-//        tuples ~= tuple;
-
         tnt_object_add_array(tuple, 7);
-
-        //auto   row          = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
-        //auto   row_hash     = digest!MD5(row);
-        //string str_row_hash = toHexString(row_hash).dup;
-
-        //auto uuid = sha1UUID("veda").toString();
-        //auto uuid = text(MonoTime.currTime.ticks());
-        //tnt_object_add_str(tuple, cast(const(char)*)uuid, cast(uint)uuid.length);
-
-        //auto uuid = MonoTime.currTime.ticks();
-        //tnt_object_add_int(tuple, uuid);
 
         tnt_object_add_nil(tuple);
 
         tnt_object_add_str(tuple, cast(const(char)*)subject, cast(uint)subject.length);
         tnt_object_add_str(tuple, cast(const(char)*)predicate, cast(uint)predicate.length);
 
-        if (object == "")
+        string str_obj;
+        long   num_obj;
+        bool   bool_obj;
+
+        if (type == DataType.Datetime || type == DataType.Integer)
         {
-            tnt_object_add_nil(tuple);
+            if (object.type == Value.Type.unsigned)
+                num_obj = object.via.uinteger;
+            else
+                num_obj = object.via.integer;
+
+            tnt_object_add_int(tuple, num_obj);
+        }
+        else if (type == DataType.Uri || type == DataType.String)
+        {
+            if (object.type == Value.type.nil)
+                str_obj = "";
+            else
+                str_obj = (cast(string)object.via.raw).dup;
+
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
+        }
+        else if (type == DataType.Boolean)
+        {
+            bool_obj = object.via.boolean;
+            tnt_object_add_bool(tuple, bool_obj);
+        }
+        else if (type == DataType.Decimal)
+        {
+            str_obj = num.asString();
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
         }
         else
         {
-            tnt_object_add_str(tuple, cast(const(char)*)object, cast(uint)object.length);
+            str_obj = "";
+            tnt_object_add_str(tuple, cast(const(char)*)str_obj, cast(uint)str_obj.length);
+            log.trace("ERR! update triple, unknown type %s", type);
         }
+
         tnt_object_add_int(tuple, type);
         tnt_object_add_int(tuple, lang);
         tnt_object_add_int(tuple, order);
@@ -287,11 +353,48 @@ public class TarantoolDriver : KeyValueDB
             log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
             tnt_reply_free(&reply);
             tnt_stream_free(tuple);
-            return;        // ResultCode.Internal_Server_Error;
+            return;
         }
 
         tnt_reply_free(&reply);
         tnt_stream_free(tuple);
+
+        foreach (row; prev_rows)
+        {
+            if (row.is_deleted == false && row.is_tested == false)
+            {
+                //log.trace("#2 [subject=%s, row.subject=%s], [predicate=%s, row.predicate=%s], [type=%d, row.type=%d], [lang=%d, row.lang=%d]", subject, row.subject,
+                //          predicate, row.predicate, type, row.type, lang,
+                //          row.lang);
+                if (subject == row.subject && predicate == row.predicate)
+                {
+                    if (type == row.type && lang == row.lang)
+                    {
+                        row.is_deleted = true;
+                        if (type == DataType.Datetime || type == DataType.Integer)
+                        {
+                            if (num_obj == row.num_obj)
+                                row.is_deleted = false;
+                        }
+                        else if (type == DataType.Uri || type == DataType.String || type == DataType.Decimal)
+                        {
+                            if (str_obj == row.str_obj)
+                                row.is_deleted = false;
+                        }
+                        else if (type == DataType.Boolean)
+                        {
+                            //log.trace("#3 bool_obj=%s", text (bool_obj));
+                            if (bool_obj == row.bool_obj)
+                                row.is_deleted = false;
+                        }
+                    }
+                    row.is_tested = true;
+                }
+            }
+
+            //if (row.is_deleted == true)
+            //    log.trace("row candidate for delete: %s", row);
+        }
     }
 
     ubyte magic_header = 146;
@@ -327,7 +430,9 @@ public class TarantoolDriver : KeyValueDB
             return ResultCode.Internal_Server_Error;
         }
 
-        remove(in_key);
+        TripleRow[] prev_rows = get_individual_as_triple(in_key);
+        if (prev_rows.length > 0)
+            remove_triple_rows(prev_rows, in_key);
 
         try
         {
@@ -375,55 +480,7 @@ public class TarantoolDriver : KeyValueDB
                                         {
                                             long type = arr[ 0 ].via.uinteger;
 
-                                            if (type == DataType.Datetime)
-                                            {
-                                                if (arr[ 1 ].type == Value.Type.unsigned)
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.uinteger), DataType.Datetime, LANG.NONE,
-                                                               i, tuples);
-                                                else
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.integer), DataType.Datetime, LANG.NONE,
-                                                               i, tuples);
-                                            }
-                                            else if (type == DataType.String)
-                                            {
-                                                if (arr[ 1 ].type == Value.type.raw)
-                                                    update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.String, LANG.NONE,
-                                                               i, tuples);
-                                                else if (arr[ 1 ].type == Value.type.nil)
-                                                    update_row(subject, predicate, "", DataType.String, LANG.NONE, i, tuples);
-                                            }
-                                            else if (type == DataType.Uri)
-                                            {
-                                                if (arr[ 1 ].type == Value.type.raw)
-                                                    update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.Uri, LANG.NONE,
-                                                               i, tuples);
-                                                else if (arr[ 1 ].type == Value.type.nil)
-                                                    update_row(subject, predicate, "", DataType.Uri, LANG.NONE, i, tuples);
-                                            }
-                                            else if (type == DataType.Integer)
-                                            {
-                                                if (arr[ 1 ].type == Value.Type.unsigned)
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.uinteger), DataType.Integer, LANG.NONE,
-                                                               i, tuples);
-                                                else
-                                                    update_row(subject, predicate, to!string(
-                                                                                             arr[ 1 ].via.integer), DataType.Integer, LANG.NONE,
-                                                               i, tuples);
-                                            }
-                                            else if (type == DataType.Boolean)
-                                            {
-                                                update_row(subject, predicate, to!string(
-                                                                                         arr[ 1 ].via.boolean), DataType.Boolean, LANG.NONE, i,
-                                                           tuples);
-                                            }
-                                            else
-                                            {
-                                                log.trace("ERR! msgpack2individual: [0][1] unknown type [%d]", type);
-                                                return ResultCode.Internal_Server_Error;
-                                            }
+                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init, prev_rows);
                                         }
                                         else if (arr.length == 3)
                                         {
@@ -443,15 +500,14 @@ public class TarantoolDriver : KeyValueDB
                                                 else
                                                     exponent = arr[ 2 ].via.integer;
 
-                                                update_row(subject, predicate, decimal(mantissa,
-                                                                                       cast(byte)exponent).asString(), DataType.Decimal, LANG.NONE,
-                                                           i, tuples);
+                                                update_row(subject, predicate, Value.init, cast(DataType)type, LANG.NONE,
+                                                           i, tuples, decimal(mantissa, cast(byte)exponent), prev_rows);
                                             }
                                             else if (type == DataType.String)
                                             {
                                                 long lang = arr[ 2 ].via.uinteger;
-                                                update_row(subject, predicate, (cast(string)arr[ 1 ].via.raw).dup, DataType.String, cast(LANG)lang,
-                                                           i, tuples);
+                                                update_row(subject, predicate, arr[ 1 ], cast(DataType)type, cast(LANG)lang,
+                                                           i, tuples, decimal.init, prev_rows);
                                             }
                                             else
                                             {
@@ -525,21 +581,12 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    public ResultCode remove(string in_key)
+    private TripleRow[] get_individual_as_triple(string in_key)
     {
-        if (db_is_opened != true)
-        {
-            open();
-            if (db_is_opened != true)
-                return ResultCode.Connect_Error;
-        }
+        TripleRow[] res;
 
-        long[] deleted_ids;
-
-        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
-
-        tnt_reply_ reply;
-        tnt_stream *tuple;
+        tnt_reply_  reply;
+        tnt_stream  *tuple;
 
         try
         {
@@ -559,7 +606,7 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", in_key, reply.code, to!string(reply.error));
-                return ResultCode.OK;
+                return res;
             }
 
             mp_type field_type = mp_typeof(*reply.data);
@@ -567,14 +614,14 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("VALUE CONTENT INVALID FORMAT [], KEY=%s, field_type=%s", in_key, field_type);
 
-                return ResultCode.OK;
+                return res;
             }
 
             uint tuple_count = mp_decode_array(&reply.data);
             if (tuple_count == 0)
             {
                 //log.trace("ERR! remove individual, not found ! request uri=%s", in_key);
-                return ResultCode.OK;
+                return res;
             }
             //log.trace("@remove individual, @8 tuple_count=%d", tuple_count);
 
@@ -582,42 +629,12 @@ public class TarantoolDriver : KeyValueDB
 
             for (int irow = 0; irow < tuple_count; ++irow)
             {
-                field_type = mp_typeof(*reply.data);
-                if (field_type != mp_type.MP_ARRAY)
-                {
-                    log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", in_key, field_type);
-                    return ResultCode.OK;
-                }
-
-                int field_count = mp_decode_array(&reply.data);
-
-                for (int fidx = 0; fidx < field_count; ++fidx)
-                {
-                    field_type = mp_typeof(*reply.data);
-                    if (field_type == mp_type.MP_UINT)
-                    {
-                        auto uid = mp_decode_uint(&reply.data);
-
-                        if (fidx == cast(int)TTFIELD.HASH)
-                            deleted_ids ~= uid;
-                    }
-                    else if (field_type == mp_type.MP_STR)
-                    {
-                        char *str_value;
-                        uint str_value_length;
-                        //str_value = 
-                        mp_decode_str(&reply.data, &str_value_length);
-
-                        //if (fidx == cast(int)TTFIELD.HASH)
-                        //    deleted_ids ~= cast(string)str_value[ 0..str_value_length ].dup;
-                    }
-                    else
-                    {
-                        log.trace("wrong field type\n");
-                        //exit(1);
-                    }
-                }
+                TripleRow  row;
+                ResultCode rc = reply_to_triple_row(&reply, row, in_key);
+                if (rc == ResultCode.OK)
+                    res ~= row;
             }
+            return res;
         }
         finally
         {
@@ -626,16 +643,23 @@ public class TarantoolDriver : KeyValueDB
             if (tuple !is null)
                 tnt_stream_free(tuple);
         }
+    }
 
-        //log.trace("deleted_ids=%s", deleted_ids);
+    private void remove_triple_rows(TripleRow[] rows, string in_key)
+    {
+        //log.trace("deleted_rows=%s", rows);
 
-        foreach (id; deleted_ids)
+        foreach (row; rows)
         {
+            tnt_stream *tuple;
+            tnt_reply_ reply;
+
+            //log.trace("row=%s", row);
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
 
             //tnt_object_add_str(tuple, cast(const(char)*)id, cast(uint)id.length);
-            tnt_object_add_int(tuple, id);
+            tnt_object_add_int(tuple, row.id);
 
             tnt_delete(tnt, space_id, 0, tuple);
             tnt_flush(tnt);
@@ -645,13 +669,33 @@ public class TarantoolDriver : KeyValueDB
             tnt.read_reply(tnt, &reply);
             if (reply.code != 0)
             {
-                log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, id, reply.code, to!string(reply.error));
+                log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
                 //tnt_reply_free(&reply);
-                //return ResultCode.Internal_Server_Error;
+                //return;
             }
+            //else
+            //{
+            //log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
+            //}
 
             tnt_reply_free(&reply);
         }
+    }
+
+    public ResultCode remove(string in_key)
+    {
+        if (db_is_opened != true)
+        {
+            open();
+            if (db_is_opened != true)
+                return ResultCode.Connect_Error;
+        }
+
+        //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
+
+        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        if (deleted_rows.length > 0)
+            remove_triple_rows(deleted_rows, in_key);
 
         return ResultCode.OK;
     }
@@ -679,28 +723,29 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-//                    tnt_reply_init(reply);
+                    // CHECK EXISTS SPACE
+                    tnt_reply_init(reply);
 
-//                    tnt_stream *tuple = tnt_object(null);
+                    tnt_stream *tuple = tnt_object(null);
 
-//                    tnt_object_add_array(tuple, 1);
-//                    tnt_object_add_str(tuple, "?", 1);
+                    tnt_object_add_array(tuple, 1);
+                    tnt_object_add_int(tuple, 0);
 
-//                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
-//                    tnt_flush(tnt);
-//                    tnt_stream_free(tuple);
+                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
+                    tnt_flush(tnt);
+                    tnt_stream_free(tuple);
 
-//                    tnt.read_reply(tnt, reply);
-//                    if (reply.code == 36)
-//                    {
-//                        tnt_reply_free(reply);
-//                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
-//                        log.trace("SLEEP AND REPEAT");
-//                        core.thread.Thread.sleep(dur!("seconds")(1));
-//                        return open();
-//                    }
-//                    else
-//                        tnt_reply_free(reply);
+                    tnt.read_reply(tnt, reply);
+                    if (reply.code == 36)
+                    {
+                        tnt_reply_free(reply);
+                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
+                        log.trace("SLEEP AND REPEAT");
+                        core.thread.Thread.sleep(dur!("seconds")(1));
+                        return open();
+                    }
+                    else
+                        tnt_reply_free(reply);
 
 
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
@@ -719,17 +764,17 @@ public class TarantoolDriver : KeyValueDB
 
     public void reopen()
     {
-        //close();
-        //open();
+//close();
+//open();
     }
 
     public void close()
     {
-        //               if (db_is_opened == true) {
+//if (db_is_opened == true) {
 //		tnt_close(tnt);
-//    tnt_stream_free(tnt);
-//                db_is_opened = false;
-//			}
+//      tnt_stream_free(tnt);
+//      db_is_opened = false;
+//	}
     }
 
     public long count_entries()

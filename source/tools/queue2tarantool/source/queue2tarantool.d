@@ -14,23 +14,25 @@ Logger log()
     return _log;
 }
 
-long start_pos;
-long delta;
-long batch_size;
+long   start_pos;
+long   delta;
+long   batch_size;
+string opt;
 
 void main(string[] args)
 {
-    if (args.length < 4)
+    if (args.length < 5)
     {
-        stderr.writeln("use queue2tarantool [start_pos] [delta] [batch_size]");
+        stderr.writeln("use queue2tarantool [start_pos] [delta] [batch_size] [opt]");
         return;
     }
 
-    start_pos = to!long (args[ 1 ]);
-    delta     = to!long (args[ 2 ]);
+    start_pos  = to!long (args[ 1 ]);
+    delta      = to!long (args[ 2 ]);
     batch_size = to!long (args[ 3 ]);
+    opt        = args[ 4 ];
 
-    log.trace("start: %d, delta: %d, batch_size: %d", start_pos, delta, batch_size);
+    log.trace("start: %d, delta: %d, batch_size: %d, opt: %s", start_pos, delta, batch_size, opt);
 
     KeyValueDB individual_tt_storage;
     KeyValueDB ticket_tt_storage;
@@ -46,11 +48,11 @@ void main(string[] args)
         ticket_tt_storage     = new TarantoolDriver(log, "TICKETS", 513);
     }
 
-    convert(individual_tt_storage, start_pos, delta);
+    convert(individual_tt_storage, start_pos, delta, opt);
 }
 
 
-public long convert(KeyValueDB dest, long start_pos, long delta)
+public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
 {
     long count;
 
@@ -58,7 +60,7 @@ public long convert(KeyValueDB dest, long start_pos, long delta)
 
     individual_queue.open();
 
-    auto new_id        = "cs_" ~ text (start_pos) ~ "_" ~ text(delta);
+    auto new_id        = "cs_" ~ text(start_pos) ~ "_" ~ text(delta);
     auto individual_cs = new Consumer(individual_queue, "./", new_id ~ "", Mode.RW, log);
     individual_cs.open();
 
@@ -86,15 +88,29 @@ public long convert(KeyValueDB dest, long start_pos, long delta)
             }
             else
             {
-                string new_bin = indv.serialize();
-                dest.store(indv.uri, new_bin, -1);
-                log.trace("OK, %d KEY=[%s]", individual_cs.count_popped, indv.uri);
+                bool need_store = true;
+                if (opt == "check")
+                {
+                    Individual indv1;
+                    dest.get_individual(indv.uri, indv1);
+                    if (indv1.getStatus() != ResultCode.OK)
+                        need_store = true;
+                    else
+                        need_store = false;
+                }
+
+                if (need_store == true)
+                {
+                    string new_bin = indv.serialize();
+                    dest.store(indv.uri, new_bin, -1);
+                    log.trace("OK, %d KEY=[%s]", individual_cs.count_popped, indv.uri);
+                }
             }
         }
         individual_cs.commit_and_next(true);
 
-	if (count >= batch_size)
-	    break;
+        if (count >= batch_size)
+            break;
     }
 
     return count;
