@@ -157,7 +157,7 @@ func ttResordToMap(uri string, tt_record []interface{}) Individual {
 				val1 := arr_val.Interface()
 				val := reflect.ValueOf(val1)
 
-				if reflect.Zero(reflect.TypeOf(val)).Interface() == val {
+				if val.IsValid() == true {
 				vval := val.Interface()
 
 				var sval string
