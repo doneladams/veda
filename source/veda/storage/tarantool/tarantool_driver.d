@@ -710,7 +710,7 @@ public class TarantoolDriver : KeyValueDB
         if (db_is_opened == false)
         {
             log.trace("start connect to tarantool %s", db_uri);
-
+	    stderr.writeln ("@1");
             tnt = tnt_net(null);
 
             tnt_set(tnt, tnt_opt_type.TNT_OPT_URI, db_uri.ptr);
@@ -719,6 +719,7 @@ public class TarantoolDriver : KeyValueDB
             int res = tnt_connect(tnt);
             if (res == 0)
             {
+	    stderr.writeln ("@2");
                 tnt_ping(tnt);
                 tnt_reply_ *reply = tnt_reply_init(null);
                 tnt.read_reply(tnt, reply);
@@ -728,14 +729,21 @@ public class TarantoolDriver : KeyValueDB
                     // CHECK EXISTS SPACE
                     tnt_reply_init(reply);
 
+	    stderr.writeln ("@3");
                     tnt_stream *tuple = tnt_object(null);
 
+	    stderr.writeln ("@4");
                     tnt_object_add_array(tuple, 1);
+	    stderr.writeln ("@5");
                     tnt_object_add_int(tuple, 0);
+	    stderr.writeln ("@6");
 
                     tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
+	    stderr.writeln ("@7");
                     tnt_flush(tnt);
+	    stderr.writeln ("@8");
                     tnt_stream_free(tuple);
+	    stderr.writeln ("@9");
 
                     tnt.read_reply(tnt, reply);
                     if (reply.code == 36)
