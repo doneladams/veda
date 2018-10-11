@@ -1,5 +1,5 @@
 import std.stdio, core.stdc.stdlib, std.uuid;
-import std.stdio, std.file, std.datetime, std.conv, std.digest.ripemd, std.bigint, std.string, std.uuid, core.memory;
+import std.stdio, std.file, std.datetime.stopwatch, std.conv, std.digest.ripemd, std.bigint, std.string, std.uuid, core.memory;
 alias core.thread.Thread core_thread;
 import veda.core.common.define;
 import veda.storage.tarantool.tarantool_driver, veda.storage.common, veda.common.type, veda.onto.individual;
@@ -14,10 +14,11 @@ Logger log()
     return _log;
 }
 
-long   start_pos;
-long   delta;
-long   batch_size;
-string opt;
+long start_pos;
+long delta;
+long batch_size;
+bool[ string ] opt;
+double delta_to_print_count = 10000;
 
 void main(string[] args)
 {
@@ -30,7 +31,12 @@ void main(string[] args)
     start_pos  = to!long (args[ 1 ]);
     delta      = to!long (args[ 2 ]);
     batch_size = to!long (args[ 3 ]);
-    opt        = args[ 4 ];
+
+    for (int idx = 4; idx < args.length; idx++)
+    {
+        string el = args[ idx ];
+        opt[ el ] = true;
+    }
 
     log.trace("start: %d, delta: %d, batch_size: %d, opt: %s", start_pos, delta, batch_size, opt);
 
@@ -52,7 +58,7 @@ void main(string[] args)
 }
 
 
-public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
+public long convert(KeyValueDB dest, long start_pos, long delta, bool[ string ] opt)
 {
     long count;
 
@@ -65,6 +71,8 @@ public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
     individual_cs.open();
 
     long dcount = 0;
+    count = individual_cs.count_popped;
+	auto sw = StopWatch(AutoStart.no);
 
     while (true)
     {
@@ -72,13 +80,19 @@ public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
         if (data is null)
             break;
 
-        if (count % 10000 == 0)
-            log.trace("count=%d", count);
+        if (count % delta_to_print_count == 0)
+        {
+			long tt = sw.peek.total!"msecs";
+			sw.reset ();
+			
+			auto cps = (delta_to_print_count/tt*1000);
+            log.trace("count=%d, cps=%s", count, cps);            
+        }
 
         count++;
         dcount++;
 
-        if (count == start_pos || dcount == delta)
+        // if (count == start_pos || dcount == delta)
         {
             dcount = 0;
             Individual indv;
@@ -89,14 +103,23 @@ public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
             else
             {
                 bool need_store = true;
-                if (opt == "check")
+                if (opt.get("check", false))
                 {
                     Individual indv1;
+                    
+					sw.start();                    					
                     dest.get_individual(indv.uri, indv1);
+                    sw.stop();
+                    
                     if (indv1.getStatus() != ResultCode.OK)
                         need_store = true;
                     else
                         need_store = false;
+
+                    if (opt.get("trace", false))
+                    {
+                        log.trace("TRACE, %d KEY=[%s] INDV+[%s]", individual_cs.count_popped, indv.uri, indv1);
+                    }
                 }
 
                 if (need_store == true)
@@ -107,11 +130,14 @@ public long convert(KeyValueDB dest, long start_pos, long delta, string opt)
                 }
             }
         }
+
         individual_cs.commit_and_next(true);
 
         if (count >= batch_size)
             break;
     }
+
+    log.trace("count=%d", count);
 
     return count;
 }
