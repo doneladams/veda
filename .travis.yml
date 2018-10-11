@@ -41,6 +41,7 @@ before_script:
   - sleep 180
 
 script:
+  - ./send-to-chunk-io.sh
   - travis_wait 20 grunt test --stack --verbose
   - testcafe chromium qa/testcafe/testLogin.js
   - testcafe chromium qa/testcafe/testLanguage.js
