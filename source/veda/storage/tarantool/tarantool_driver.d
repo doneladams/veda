@@ -190,9 +190,11 @@ stderr.writeln ("#3");
         tnt_reply_ reply;
         tnt_stream *tuple;
 
+stderr.writeln ("#3.1");
         try
         {
             tnt_reply_init(&reply);
+stderr.writeln ("#3.2");
 
             tuple = tnt_object(null);
 stderr.writeln ("#4");
