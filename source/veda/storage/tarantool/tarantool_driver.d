@@ -755,8 +755,11 @@ stderr.writeln ("#1");
 	    stderr.writeln ("@9");
 
                     tnt.read_reply(tnt, reply);
+	    stderr.writeln ("@10");
                     if (reply.code == 36)
                     {
+	    stderr.writeln ("@11");
+
                         tnt_reply_free(reply);
                         log.trace("ERR! SPACE %s NOT FOUND", space_name);
                         log.trace("SLEEP AND REPEAT");
@@ -766,6 +769,8 @@ stderr.writeln ("#1");
                     else
                         tnt_reply_free(reply);
 
+	    stderr.writeln ("@11");
+
 
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
                     db_is_opened = true;
@@ -773,9 +778,13 @@ stderr.writeln ("#1");
             }
             else
             {
+	    stderr.writeln ("@20");
+
                 log.trace("FAIL CONNECT TO TARANTOOL %s err=%s", db_uri, to!string(tnt_strerror(tnt)));
                 log.trace("SLEEP AND REPEAT");
                 core.thread.Thread.sleep(dur!("seconds")(1));
+
+	    stderr.writeln ("@21");
                 return open();
             }
         }
