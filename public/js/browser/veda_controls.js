@@ -76,11 +76,6 @@
       }
     }
 
-    this.on("veda_focus", function (e) {
-      input.trigger("focus");
-      e.stopPropagation();
-    });
-
     this.on("view edit search", function (e) {
       e.stopPropagation();
     });
@@ -94,7 +89,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "bottom",
-        container: control,
+        container: "body",
         trigger: "manual",
         animation: false
       });
@@ -347,7 +342,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "auto left",
-        container: control,
+        container: "body",
         trigger: "manual",
         animation: false
       });
@@ -376,11 +371,6 @@
     input.on("change focusout", function () {
       var value = opts.parser( this.value );
       change(value);
-    });
-
-    this.on("veda_focus", function (e) {
-      input.trigger("focus");
-      e.stopPropagation();
     });
 
     this.on("view edit search", function (e) {
@@ -569,15 +559,6 @@
       });
     }
 
-    this.on("veda_focus", function (e, value) {
-      input.each(function () {
-        if ( value.language === this.lang || !value.language ) {
-          $(this).trigger("focus");
-        }
-      });
-      e.stopPropagation();
-    });
-
     this.on("view edit search", function (e) {
       e.stopPropagation();
     });
@@ -597,7 +578,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "bottom",
-        container: control,
+        container: "body",
         trigger: "manual",
         animation: false
       });
@@ -844,7 +825,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "top",
-        container: control,
+        container: "body",
         trigger: "hover",
         animation: false
       });
@@ -961,8 +942,8 @@
     if (spec && spec.hasValue("v-ui:tooltip")) {
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
-        placement: "bottom",
-        container: control,
+        placement: "left",
+        container: "body",
         trigger: "hover",
         animation: false
       });
@@ -1021,9 +1002,9 @@
 
     populate();
 
-    individual.on(property_uri, handler);
+    individual.on(property_uri, changeHandler);
     this.one("remove", function () {
-      individual.off(property_uri, handler);
+      individual.off(property_uri, changeHandler);
     });
 
     if (template) {
@@ -1078,7 +1059,7 @@
       });
     }
 
-    function handler() {
+    function changeHandler() {
       $("input", control).each(function () {
         var value = $(this).data("value");
         var hasValue = individual.hasValue(property_uri, value);
@@ -1089,8 +1070,8 @@
     if (spec && spec.hasValue("v-ui:tooltip")) {
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
-        placement: "bottom",
-        container: control,
+        placement: "left",
+        container: "body",
         trigger: "hover",
         animation: false
       });
@@ -1164,7 +1145,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "bottom",
-        container: control,
+        container: "body",
         trigger: "manual",
         animation: false
       });
@@ -1889,7 +1870,7 @@
       control.tooltip({
         title: spec["v-ui:tooltip"].join(", "),
         placement: "top",
-        container: control,
+        container: "body",
         trigger: "manual",
         animation: false
       });
