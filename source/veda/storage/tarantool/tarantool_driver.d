@@ -709,6 +709,8 @@ public class TarantoolDriver : KeyValueDB
     {
         if (db_is_opened == false)
         {
+            log.trace("start connect to tarantool %s", db_uri);
+
             tnt = tnt_net(null);
 
             tnt_set(tnt, tnt_opt_type.TNT_OPT_URI, db_uri.ptr);
