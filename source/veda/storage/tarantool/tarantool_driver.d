@@ -173,6 +173,7 @@ stderr.writeln ("#1");
             return;
         }
 
+stderr.writeln ("#2");
         if (db_is_opened != true)
         {
             open();
@@ -182,6 +183,7 @@ stderr.writeln ("#1");
                 return;
             }
         }
+stderr.writeln ("#3");
 
         //log.trace("@%X %s get individual uri=[%s], space_id=%s", tnt, core.thread.Thread.getThis().name(), uri, text(space_id));
 
@@ -193,6 +195,7 @@ stderr.writeln ("#1");
             tnt_reply_init(&reply);
 
             tuple = tnt_object(null);
+stderr.writeln ("#4");
 
             tnt_object_add_array(tuple, 1);
             tnt_object_add_str(tuple, cast(const(char)*)(uri ~ "\0"), cast(uint)uri.length);
@@ -201,6 +204,7 @@ stderr.writeln ("#1");
             tnt_flush(tnt);
 
             tnt.read_reply(tnt, &reply);
+stderr.writeln ("#5");
 
             //log.trace("@get individual @5 reply.code=[%d] uri=%s", reply.code, uri);
             if (reply.code != 0)
@@ -212,6 +216,7 @@ stderr.writeln ("#1");
                     indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
+stderr.writeln ("#6");
 
             mp_type field_type = mp_typeof(*reply.data);
             if (field_type != mp_type.MP_ARRAY)
@@ -220,6 +225,7 @@ stderr.writeln ("#1");
                 indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
+stderr.writeln ("#7");
 
             uint tuple_count = mp_decode_array(&reply.data);
             if (tuple_count == 0)
@@ -229,6 +235,7 @@ stderr.writeln ("#1");
                 return;
             }
             //log.trace ("@get individual @8 tuple_count=%d", tuple_count);
+stderr.writeln ("#8");
 
             for (int irow = 0; irow < tuple_count; ++irow)
             {
@@ -285,7 +292,7 @@ stderr.writeln ("#1");
         }
         finally
         {
-stderr.writeln ("#1");
+stderr.writeln ("#e");
 
             tnt_reply_free(&reply);
 
