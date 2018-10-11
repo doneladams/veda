@@ -259,3 +259,5 @@ fi
     cd ..
     sudo cp ./source/lib64/libauthorization.so /usr/local/lib
     sudo ldconfig
+
+sudo apt-get install gdb
