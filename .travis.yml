@@ -41,7 +41,7 @@ before_script:
   - sleep 180
 
 script:
-  - gdb --batch ./veda-scripts-main core bt
+  - gdb --batch ./veda-scripts-main core
   - ./send-to-chunk-io.sh
   - travis_wait 20 grunt test --stack --verbose
   - testcafe chromium qa/testcafe/testLogin.js

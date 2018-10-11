@@ -67,6 +67,7 @@ public class TarantoolDriver : KeyValueDB
 
     public string get_binobj(string uri)
     {
+stderr.writeln ("!1");
         Individual indv;
         string     res = null;
 
@@ -77,11 +78,14 @@ public class TarantoolDriver : KeyValueDB
             res = indv.serialize();
             //log.trace("@ get_binobj, uri=%s, indv=%s", uri, indv);
         }
+stderr.writeln ("!2");
         return res;
     }
 
     private ResultCode reply_to_triple_row(tnt_reply_ *reply, ref TripleRow row, string uri)
     {
+stderr.writeln ("*1");
+
         mp_type field_type = mp_typeof(*reply.data);
 
         if (field_type != mp_type.MP_ARRAY)
@@ -152,12 +156,15 @@ public class TarantoolDriver : KeyValueDB
             if (fidx == TTFIELD.LANG)
                 row.lang = cast(LANG)num_value;
         }
+stderr.writeln ("*1");
 
         return ResultCode.OK;
     }
 
     public void get_individual(string uri, ref Individual indv)
     {
+stderr.writeln ("#1");
+
         indv.setStatus(ResultCode.Unprocessable_Entity);
 
         if (uri is null || uri.length < 2)
@@ -278,6 +285,8 @@ public class TarantoolDriver : KeyValueDB
         }
         finally
         {
+stderr.writeln ("#1");
+
             tnt_reply_free(&reply);
 
             if (tuple !is null)
