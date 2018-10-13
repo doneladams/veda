@@ -33,8 +33,9 @@
     	    "../../veda/mstorage/storage_manager.d"
  	],
 	"sourcePaths":[
-	    "../../veda/mstorage", 
-	    "../../veda/common", 
+	    "../../veda/mstorage",
+	    "../../veda/common",
+	    "../../veda/search",
 	    "../../veda/core",  
 	    "../../veda/onto", 
             "../../veda/onto/bj8individual",
