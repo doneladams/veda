@@ -558,3 +558,25 @@ private string array_to_str(string[] data)
     }
     return res;
 }
+   kill_prev_instance(started_modules.keys);
+
+        executeShell("rm data/module-info/*.lock");
+        executeShell("rm data/queue/*.lock");
+        executeShell("rm data/uris/*.lock");
+    }
+
+    stderr.writefln("EXIT!");
+}
+
+private string array_to_str(string[] data)
+{
+    string res;
+
+    foreach (idx, dd; data)
+    {
+        if (idx > 0)
+            res ~= " ";
+        res ~= dd;
+    }
+    return res;
+}

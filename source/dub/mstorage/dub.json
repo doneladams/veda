@@ -30,7 +30,7 @@
     	    "../../veda/authorization/authorization.d", 
     	    "../../veda/authorization/cache.d",
     	    "../../veda/authorization/right_set.d", 
-    	    "../../veda/storage/storage_manager.d"
+    	    "../../veda/mstorage/storage_manager.d"
  	],
 	"sourcePaths":[
 	    "../../veda/mstorage", 
