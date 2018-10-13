@@ -9,17 +9,17 @@ private
     import core.thread, std.stdio, std.string, core.stdc.string, std.outbuffer, std.datetime, std.conv, std.concurrency, std.process, std.json,
            std.regex, std.uuid, std.random;
     import veda.util.properd;
-    import veda.core.common.context, veda.core.common.know_predicates, veda.core.common.log_msg, veda.core.impl.thread_context, veda.search.xapian.xapian_search;
+    import veda.core.common.context, veda.core.common.know_predicates, veda.core.common.log_msg, veda.core.impl.thread_context, veda.core.search.vql;
     import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json;
     import veda.common.logger, veda.core.util.utils, veda.core.common.transaction;
-    import veda.mstorage.acl_manager, veda.mstorage.storage_manager, veda.mstorage.nanomsg_channel, veda.storage.storage;
+    import veda.mstorage.acl_manager, veda.storage.storage_manager, veda.mstorage.nanomsg_channel, veda.storage.storage;
     import veda.storage.common, veda.authorization.authorization;
     import veda.onto.individual;
 }
 
-alias veda.mstorage.storage_manager ticket_storage_module;
-alias veda.mstorage.storage_manager indv_storage_thread;
-alias veda.mstorage.acl_manager     acl_module;
+alias veda.storage.storage_manager ticket_storage_module;
+alias veda.storage.storage_manager indv_storage_thread;
+alias veda.mstorage.acl_manager    acl_module;
 
 // ////// Logger ///////////////////////////////////////////
 import veda.common.logger;
@@ -116,10 +116,8 @@ void init(string node_id)
     {
         Individual node;
 
-        core_context = PThreadContext.create_new(node_id, "core_context-mstorage", null, log);
-        core_context.set_vql(new XapianSearch(core_context));
-
-        l_context = core_context;
+        core_context = PThreadContext.create_new(node_id, "core_context-mstorage", log, null);
+        l_context    = core_context;
 
         sticket = sys_ticket(core_context);
         node    = core_context.get_configuration();
@@ -216,9 +214,9 @@ void commiter(string thread_name)
                        },
                        (Variant v) { writeln(thread_name, "::commiter::Received some other type.", v); });
 
-        veda.mstorage.storage_manager.flush_int_module(P_MODULE.subject_manager, false);
+        veda.storage.storage_manager.flush_int_module(P_MODULE.subject_manager, false);
         veda.mstorage.acl_manager.flush(false);
-        veda.mstorage.storage_manager.flush_int_module(P_MODULE.ticket_manager, false);
+        veda.storage.storage_manager.flush_int_module(P_MODULE.ticket_manager, false);
     }
 }
 

@@ -1,14 +1,12 @@
 /**
- * filltext query service
+ * filltext query module
  */
 
 import core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, core.runtime;
 import std.stdio, std.socket, std.conv, std.array, std.outbuffer, std.json;
 import kaleidic.nanomsg.nano, commando;
 import core.thread, core.atomic;
-import veda.onto.resource, veda.onto.lang, veda.onto.individual;
-import veda.common.logger, veda.util.properd, veda.core.common.context, veda.core.impl.thread_context, veda.common.type, veda.core.common.define;
-import veda.search.common.isearch, veda.search.xapian.xapian_search;
+import veda.common.logger, veda.core.common.context, veda.core.impl.thread_context, veda.common.type, veda.core.common.define;
 
 static this()
 {
@@ -55,66 +53,36 @@ private nothrow string req_prepare(string request, Context context)
                 int    _limit = cast(int)jsn.array[ 6 ].integer;
                 int    _from  = cast(int)jsn.array[ 7 ].integer;
 
-                string user_uri;
+                Ticket *ticket;
+                ticket = context.get_storage().get_ticket(_ticket, false);
 
-                if (_ticket !is null && _ticket.length > 3)
+                if (ticket !is null)
                 {
-                    if (_ticket[ 0 ] == 'U' && _ticket[ 1 ] == 'U' && _ticket[ 2 ] == '=')
+                    if (ticket.user_uri is null || ticket.user_uri.length == 0)
                     {
-                        // в данном случае вместо тикета передается id пользователя
-                        user_uri = _ticket[ 3..$ ];
+                        context.get_logger.trace("ERR! user not found in ticket object, ticket_id=%s, ticket=%s", _ticket, ticket);
                     }
                     else
                     {
-                        Ticket *ticket;
-                        ticket = context.get_storage().get_ticket(_ticket, false);
-                        if (ticket is null)
+                        try
                         {
-                            context.get_logger.trace("ERR! ticket not fount: ticket_id = %s", _ticket);
+                            res = context.get_individuals_ids_via_query(ticket.user_uri, _query, _sort, _databases, _from, _top, _limit, null, OptAuthorize.YES, false);
                         }
-                        else
+                        catch (Throwable tr)
                         {
-                            if (ticket.user_uri is null || ticket.user_uri.length == 0)
-                                context.get_logger.trace("ERR! user not found in ticket object, ticket_id=%s, ticket=%s", _ticket, ticket);
-                            else
-                                user_uri = ticket.user_uri;
+                            context.get_logger.trace("ERR! get_individuals_ids_via_query, %s", tr.msg);
+                            context.get_logger.trace("REQUEST: user=%s, query=%s, sort=%s, databases=%s, from=%d, top=%d, limit=%d", ticket.user_uri, _query, _sort,
+                                                     _databases, _from, _top,
+                                                     _limit);
                         }
                     }
                 }
-
-                if (user_uri !is null)
+                else
                 {
-                    try
-                    {
-                        if (_reopen)
-                        {
-                            context.reopen_ro_fulltext_indexer_db();
-
-                            Individual indv = context.get_individual(&sticket, "cfg:OntoVsn", OptAuthorize.NO);
-                            if (indv.getStatus() == ResultCode.OK)
-                            {
-                                long new_onto_vsn = indv.getFirstInteger("v-s:updateCounter");
-                                if (new_onto_vsn != onto_vsn)
-                                {
-                                    context.get_onto.load();
-                                    onto_vsn = new_onto_vsn;
-                                }
-                            }
-                        }
-
-                        res = context.get_individuals_ids_via_query(user_uri, _query, _sort, _databases, _from, _top, _limit, OptAuthorize.YES, false);
-                    }
-                    catch (Throwable tr)
-                    {
-                        context.get_logger.trace("ERR! get_individuals_ids_via_query, %s", tr.msg);
-                        context.get_logger.trace("REQUEST: user=%s, query=%s, sort=%s, databases=%s, from=%d, top=%d, limit=%d", user_uri, _query,
-                                                 _sort,
-                                                 _databases, _from, _top,
-                                                 _limit);
-                    }
+                    context.get_logger.trace("ERR! ticket not fount: ticket_id = %s", _ticket);
                 }
 
-                //context.get_logger.trace("REQUEST: user=%s, query=%s, sort=%s, databases=%s, from=%d, top=%d, limit=%d", user_uri, _query, _sort, _databases, _from, _top, _limit);
+                //context.get_logger.trace("REQUEST: user=%s, query=%s, sort=%s, databases=%s, from=%d, top=%d, limit=%d", ticket.user_uri, _query, _sort, _databases, _from, _top, _limit);
             }
         }
 
@@ -157,12 +125,10 @@ private string to_json_str(SearchResult res)
 
 private long   count;
 private Logger log;
-private long   onto_vsn;
-private Ticket sticket;
 
 void main(string[] args)
 {
-    string bind_url = null;
+    string bind_url = "tcp://127.0.0.1:23000";
 
     try
     {
@@ -179,22 +145,6 @@ void main(string[] args)
         return;
     }
 
-    if (bind_url is null || bind_url.length < 10)
-    {
-        try
-        {
-            string[ string ] properties;
-            properties = readProperties("./veda.properties");
-            bind_url   = properties.as!(string)("ft_query_service_url") ~ "\0";
-        }
-        catch (Throwable ex)
-        {
-            log.trace("ERR! unable read ./veda.properties");
-            return;
-        }
-    }
-
-
     string[] tpcs      = bind_url.split(":");
     string   log_sufix = "";
     if (tpcs.length == 3)
@@ -202,16 +152,10 @@ void main(string[] args)
         log_sufix = tpcs[ 2 ];
     }
 
-    int sock;
+    int     sock;
     log = new Logger("veda-core-ft-query-" ~ log_sufix, "log", "");
-
-    Context ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", null, log);
-    sticket = ctx.sys_ticket();
-    ctx.set_vql(new XapianSearch(ctx));
-
-    Individual indv = ctx.get_individual(&sticket, "cfg:OntoVsn", OptAuthorize.NO);
-    if (indv.getStatus() == ResultCode.OK)
-        onto_vsn = indv.getFirstInteger("v-s:updateCounter");
+    Ticket  systicket;
+    Context ctx = PThreadContext.create_new("cfg:standart_node", "ft-query", log, null);
 
     sock = nn_socket(AF_SP, NN_REP);
     if (sock < 0)

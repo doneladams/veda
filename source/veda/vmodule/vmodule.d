@@ -45,7 +45,7 @@ class VedaModuleBasic
     long           committed_op_id = 0;
 
     int            sock;
-    string         notify_channel_url = null;
+    string         notify_channel_url = "tcp://127.0.0.1:9111\0";
 
     bool           already_notify_channel = false;
 
@@ -69,7 +69,7 @@ class VedaModule : VedaModuleBasic
 
     Individual node;
 
-    string     main_module_url = null;
+    string     main_module_url = "tcp://127.0.0.1:9112\0";
     Ticket     sticket;
     string     message_header;
     string     module_uid;
@@ -149,19 +149,6 @@ class VedaModule : VedaModuleBasic
             return;
         }
 
-        try
-        {
-            string[ string ] properties;
-            properties         = readProperties("./veda.properties");
-            notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
-            main_module_url    = properties.as!(string)("main_module_url") ~ "\0";
-        }
-        catch (Throwable ex)
-        {
-            log.trace("ERR! unable read ./veda.properties");
-            return;
-        }
-
         module_info = new ModuleInfoFile(process_name, _log, OPEN_MODE.WRITER);
         if (!module_info.is_ready)
         {
@@ -173,7 +160,7 @@ class VedaModule : VedaModuleBasic
         context = create_context();
 
         if (context is null)
-            context = PThreadContext.create_new("cfg:standart_node", process_name, main_module_url, log);
+            context = PThreadContext.create_new("cfg:standart_node", process_name, log, main_module_url);
 
         if (node == Individual.init)
             node = context.get_configuration();
@@ -209,6 +196,19 @@ class VedaModule : VedaModuleBasic
         // attempt open [prepareall] queue
         open_perapare_batch_queue(true);
         //load_systicket();
+
+        try
+        {
+            string[ string ] properties;
+            properties         = readProperties("./veda.properties");
+            notify_channel_url = properties.as!(string)("notify_channel_url") ~ "\0";
+            main_module_url    = properties.as!(string)("main_module_url") ~ "\0";
+        }
+        catch (Throwable ex)
+        {
+            log.trace("ERR! unable read ./veda.properties");
+        }
+
 
         sock = nn_socket(AF_SP, NN_SUB);
         if (sock >= 0)

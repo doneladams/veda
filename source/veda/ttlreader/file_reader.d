@@ -8,9 +8,9 @@ import libasync, libasync.watcher, libasync.threads;
 import core.stdc.stdio, core.stdc.errno, core.stdc.string, core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd;
 import std.conv, std.digest.ripemd, std.bigint, std.datetime, std.concurrency, std.json, std.file, std.outbuffer, std.string, std.path,
        std.digest.md, std.utf, std.path, core.thread, core.memory, std.stdio : writeln, writefln, File;
-import veda.util.container, veda.core.util.utils, veda.common.logger, veda.util.raptor2individual, veda.search.ft_query.ft_query_client;
+import veda.util.container, veda.core.util.utils, veda.common.logger, veda.util.raptor2individual;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.core.common.context, veda.core.impl.thread_context, veda.core.common.define,
-       veda.core.common.know_predicates, veda.core.common.log_msg, veda.ttlreader.user_modules_tool, veda.util.properd;
+       veda.core.common.know_predicates, veda.core.common.log_msg, veda.ttlreader.user_modules_tool;
 
 
 // ////// Logger ///////////////////////////////////////////
@@ -94,20 +94,7 @@ void main(char[][] args)
             need_reload_ontology = true;
     }
 
-    string parent_url = null;
-
-    try
-    {
-        string[ string ] properties;
-        properties = readProperties("./veda.properties");
-        parent_url = properties.as!(string)("main_module_url") ~ "\0";
-    }
-    catch (Throwable ex)
-    {
-        log.trace("ERR! unable read ./veda.properties");
-        return;
-    }
-
+    string parent_url = "tcp://127.0.0.1:9112\0";
 
     Thread.sleep(dur!("seconds")(2));
 //	int checktime = 30;
@@ -116,11 +103,7 @@ void main(char[][] args)
 
     ubyte[] out_data;
 
-    Context context = PThreadContext.create_new(process_name, "file_reader", parent_url, log);
-
-    //context.set_vql (new XapianSearch(context));
-    context.set_vql(new FTQueryClient(context));
-
+    Context context = PThreadContext.create_new(process_name, "file_reader", log, parent_url);
     sticket = context.sys_ticket();
 
     while (sticket.result != ResultCode.OK)
@@ -131,7 +114,7 @@ void main(char[][] args)
     }
 
     string[] uris =
-        context.get_individuals_ids_via_query(sticket.user_uri, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, OptAuthorize.NO, false).result;
+        context.get_individuals_ids_via_query(sticket.user_uri, "'rdfs:isDefinedBy.isExists' == true", null, null, 0, 100000, 100000, null, OptAuthorize.NO, false).result;
     log.tracec("INFO: found %d individuals containing [rdfs:isDefinedBy]", uris.length);
 
     if (need_remove_ontology)
@@ -151,7 +134,7 @@ void main(char[][] args)
             context.update(null, -1, &sticket, INDV_OP.REMOVE, &individual, "ttl-reader", ALL_MODULES, OptFreeze.NONE, OptAuthorize.NO);
         }
 
-        uris = context.get_individuals_ids_via_query(sticket.user_uri, "'rdf:type' == 'v-s:TTLFile'", null, null, 0, 1000, 1000, OptAuthorize.NO, false).result;
+        uris = context.get_individuals_ids_via_query(sticket.user_uri, "'rdf:type' == 'v-s:TTLFile'", null, null, 0, 1000, 1000, null, OptAuthorize.NO, false).result;
         foreach (uri; uris)
         {
             log.tracec("WARN: [%s] WILL BE REMOVED", uri);
@@ -444,8 +427,8 @@ void processed(string[] changes, Context context, bool is_check_changes)
                     {
                         individuals[ uri ] = Individual.init;
 
-                        Individual indv_in_storage     = context.get_individual(&sticket, uri, OptAuthorize.NO);
-                        long       prev_update_counter = indv_in_storage.getFirstInteger("v-s:updateCounter");
+                        Individual indv_in_storage = context.get_individual(&sticket, uri, OptAuthorize.NO);
+						long prev_update_counter = indv_in_storage.getFirstInteger ("v-s:updateCounter"); 
                         indv_in_storage.removeResource("v-s:updateCounter");
                         indv_in_storage.removeResource("v-s:previousVersion");
                         indv_in_storage.removeResource("v-s:actualVersion");
@@ -463,8 +446,8 @@ void processed(string[] changes, Context context, bool is_check_changes)
                                     log.trace("store, uri=%s %s \n--- prev ---\n%s \n--- new ----\n%s", indv.uri, uri, text(indv),
                                               text(indv_in_storage));
 
-                                if (prev_update_counter > 0)
-                                    indv.addResource("v-s:updateCounter", Resource(prev_update_counter));
+								if (prev_update_counter > 0)
+									indv.addResource("v-s:updateCounter", Resource (prev_update_counter));
 
                                 ResultCode res = context.update(null, -1, &sticket, INDV_OP.PUT, &indv, null, ALL_MODULES, OptFreeze.NONE, OptAuthorize.NO).result;
 

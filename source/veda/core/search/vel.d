@@ -1,7 +1,7 @@
 /**
  * VQL parser
  */
-module veda.search.common.vel;
+module veda.core.search.vel;
 
 // VEDA EXPRESSION LANG
 

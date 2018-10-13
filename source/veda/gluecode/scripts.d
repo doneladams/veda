@@ -7,13 +7,13 @@ private import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime,
 private import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
 private import veda.common.logger, veda.core.impl.thread_context;
 private import veda.core.common.context, veda.util.tools, veda.core.common.log_msg, veda.core.common.know_predicates, veda.onto.onto;
-private import veda.vmodule.vmodule, veda.search.common.isearch, veda.search.xapian.xapian_search, veda.gluecode.script, veda.gluecode.v8d_header;
+private import veda.vmodule.vmodule, veda.core.search.vel, veda.core.search.vql, veda.gluecode.script, veda.gluecode.v8d_header;
 
 class ScriptProcess : VedaModule
 {
     private ScriptsWorkPlace wpl;
 
-    private Search           vql;
+    private VQL              vql;
     private string           empty_uid;
     private string           vars_for_event_script;
     private string           vars_for_codelet_script;
@@ -136,6 +136,10 @@ class ScriptProcess : VedaModule
                     continue;
 
                 //log.trace("look script:%s", script_id);
+                if (script.unsafe == true)
+                {
+                    log.trace("WARN! this script is UNSAFE!, %s", script_id);
+                }
                 else if (event_id !is null && event_id.length > 1 && (event_id == (individual_id ~ '+' ~ script_id) || event_id == "IGNORE"))
                 {
                     //writeln("skip script [", script_id, "], type:", type, ", indiv.:[", individual_id, "]");
@@ -153,11 +157,6 @@ class ScriptProcess : VedaModule
                     continue;
                 }
 
-
-                if (script.unsafe == true)
-                {
-                    log.trace("WARN! execute UNSAFE script!, %s", script_id);
-                }
 
                 //log.trace("filter pass script:%s", script_id);
 
@@ -218,11 +217,7 @@ class ScriptProcess : VedaModule
 
     override bool open()
     {
-
-        context.set_vql (new XapianSearch(context));
-        //context.set_vql(new FTQueryClient(context));
-
-	vql = context.get_vql();
+        vql       = new VQL(context);
         script_vm = get_ScriptVM(context);
 
         if (script_vm !is null)
@@ -234,8 +229,6 @@ class ScriptProcess : VedaModule
     override bool configure()
     {
         log.trace("configure scripts");
-
-        log.trace("use configuration: %s", node);
 
         vars_for_event_script =
             "var user_uri = get_env_str_var ('$user');"
@@ -298,7 +291,10 @@ class ScriptProcess : VedaModule
         }
 
         vql.reopen_db();
-        vql.query(sticket.user_uri, "'rdf:type' === 'v-s:Event'", null, null, 10000, 10000, res, OptAuthorize.NO, false);
+
+        vql.query(sticket.user_uri,
+                  "return { 'v-s:script'} filter { 'rdf:type' === 'v-s:Event'}",
+                  res, OptAuthorize.NO, false);
 
         foreach (ss; res)
             prepare_script(wpl, ss, script_vm, "", before_vars, vars_for_event_script, after_vars, false);

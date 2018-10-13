@@ -30,6 +30,7 @@ if box.space.INDIVIDUALS == nil then
 end
 
 if box.space.TICKETS == nil then
+
     if memtx then
         space = box.schema.space.create('TICKETS')
     else
