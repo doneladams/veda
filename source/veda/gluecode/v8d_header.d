@@ -5,7 +5,7 @@ module veda.gluecode.v8d_header;
 
 import std.stdio, std.conv, std.file, std.path, std.uuid, std.algorithm, std.array, std.json;
 import veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.lang, veda.onto.onto, veda.gluecode.script;
-import veda.core.common.context, veda.core.common.define, veda.core.util.utils, veda.util.queue, veda.core.common.transaction;
+import veda.core.common.context, veda.core.common.define, veda.core.util.utils, veda.util.queue, veda.core.common.transaction, veda.search.common.isearch;
 import veda.util.container;
 
 // ////// Logger ///////////////////////////////////////////
@@ -466,8 +466,7 @@ extern (C++)_Buff * query(const char *_ticket, int _ticket_length, const char *_
             return null;
         }
 
-        SearchResult sr = g_context.get_individuals_ids_via_query(ticket.user_uri, query, sort, databases, 0, top, limit, null, OptAuthorize.NO,
-                                                                  false);
+        SearchResult sr = g_context.get_individuals_ids_via_query(ticket.user_uri, query, sort, databases, 0, top, limit, OptAuthorize.NO, false);
 
         JSONValue jres;
         jres[ "result" ]         = sr.result;

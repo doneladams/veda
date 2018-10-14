@@ -13,7 +13,7 @@ private
     import veda.common.logger, veda.core.impl.thread_context;
     import veda.core.common.context, veda.util.tools, veda.core.common.log_msg, veda.core.common.know_predicates, veda.onto.onto;
     import veda.vmodule.vmodule, veda.core.common.transaction;
-    import veda.search.common.vel, veda.search.xapian.xapian_search, veda.gluecode.script, veda.gluecode.v8d_header;
+    import veda.search.common.isearch, veda.search.xapian.xapian_search, veda.gluecode.script, veda.gluecode.v8d_header;
 }
 // ////// Logger ///////////////////////////////////////////
 import veda.common.logger;
@@ -75,7 +75,7 @@ Onto             onto;
 Context          context;
 ScriptsWorkPlace _wpl;
 
-VQL              vql;
+Search              vql;
 string           empty_uid;
 string           vars_for_codelet_script;
 
@@ -98,14 +98,15 @@ private void ltrs_thread(string parent_url)
 
 //    core.thread.Thread.getThis().name = thread_name;
 
-    context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", log, parent_url);
+    context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", parent_url, log);
+    context.set_vql (new XapianSearch(context));
+
+	vql = context.get_vql ();
 
     vars_for_codelet_script =
         "var uri = get_env_str_var ('$uri');"
         ~ "var user_uri = get_env_str_var ('$user');"
         ~ "var execute_script = get_individual (ticket, '$execute_script');";
-
-    vql = new VQL(context);
 
     script_vm = get_ScriptVM(context);
 
@@ -354,6 +355,8 @@ class ScriptProcess : VedaModule
 
     override bool configure()
     {
+        log.trace("use configuration: %s", node);
+
         return true;
     }
 
@@ -364,6 +367,9 @@ class ScriptProcess : VedaModule
 
     override bool open()
     {
+        context.set_vql (new XapianSearch(context));
+        //context.set_vql(new FTQueryClient(context));
+
         return true;
     }
 

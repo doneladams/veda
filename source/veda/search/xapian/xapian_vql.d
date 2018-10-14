@@ -8,7 +8,7 @@ import std.string, std.concurrency, std.stdio, std.datetime, std.conv, std.algor
 import dt                                                                                                     = std.datetime.stopwatch;
 import veda.bind.xapian_d_header;
 import veda.core.util.utils, veda.onto.onto, veda.common.logger;
-import veda.search.common.vel;
+import veda.search.common.isearch, veda.search.common.vel;
 import veda.common.type, veda.core.common.context, veda.core.common.define, veda.core.common.log_msg;
 
 
@@ -697,7 +697,7 @@ class XapianVQL
                                                               int limit,
                                                               void delegate(string uri) add_out_element,
                                                               Context context,
-                                                              void delegate(string uri) prepare_element_event, bool trace, OptAuthorize op_auth
+                                                              bool trace, OptAuthorize op_auth
                                                               )
     {
         dt.StopWatch sw;
@@ -728,8 +728,6 @@ class XapianVQL
         }
 
         //writeln (cast(void*)xapian_enquire, " count_authorize=", count_authorize);
-        if (prepare_element_event !is null)
-            prepare_element_event("");
 
         XapianMSet matches = xapian_enquire.get_mset(from, limit, &err);
         if (err < 0)
@@ -752,9 +750,6 @@ class XapianVQL
         if (matches !is null)
         {
             sr.estimated = matches.get_matches_estimated(&err);
-
-            if (prepare_element_event !is null)
-                prepare_element_event("");
 
             XapianMSetIterator it = matches.iterator(&err);
 
@@ -804,9 +799,6 @@ class XapianVQL
                 processed++;
 
                 string subject_id = data_str[ 0..*data_len ].idup;
-
-                if (prepare_element_event !is null)
-                    prepare_element_event(subject_id);
 
                 if (trace)
                     log.trace("found subject_id:[%s]", subject_id);

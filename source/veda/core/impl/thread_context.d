@@ -14,7 +14,7 @@ private
            veda.util.module_info;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context;
     import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.storage.lmdb.lmdb_driver, veda.storage.common, veda.storage.storage;
-    import veda.search.xapian.xapian_search, veda.core.common.transaction, veda.util.module_info, veda.common.logger;
+    import veda.search.common.isearch, veda.core.common.transaction, veda.util.module_info, veda.common.logger;
     import veda.storage.lmdb.lmdb_storage;
     import veda.storage.tarantool.tarantool_storage;
 
@@ -34,7 +34,7 @@ class PThreadContext : Context
 
     private            string[ string ] prefix_map;
 
-    private VQL        _vql;
+    private Search     _vql;
 
     private Storage    storage;
 
@@ -212,7 +212,7 @@ class PThreadContext : Context
         return node_id;
     }
 
-    public static Context create_new(string _node_id, string context_name, Logger _log, string _main_module_url)
+    public static Context create_new(string _node_id, string context_name, string _main_module_url, Logger _log)
     {
         PThreadContext ctx = new PThreadContext();
 
@@ -239,11 +239,6 @@ class PThreadContext : Context
         ctx.name = context_name;
 
         ctx.get_configuration();
-
-        ctx._vql = new VQL(ctx);
-
-        ctx.onto = new Onto(ctx);
-        ctx.onto.load();
 
         ctx.log.trace_log_and_console("NEW CONTEXT [%s]", context_name);
 
@@ -295,6 +290,11 @@ class PThreadContext : Context
                 onto.load();
             }
         }
+        else
+        {
+            onto = new Onto(this);
+            onto.load();
+        }
 
         return onto;
     }
@@ -302,23 +302,6 @@ class PThreadContext : Context
     public string get_name()
     {
         return name;
-    }
-
-    public Individual[ string ] get_onto_as_map_individuals()
-    {
-        if (onto !is null)
-        {
-            long g_count_onto_update = get_count_onto_update();
-            if (g_count_onto_update > local_count_onto_update)
-            {
-                local_count_onto_update = g_count_onto_update;
-                onto.load();
-            }
-
-            return onto.get_individuals;
-        }
-        else
-            return (Individual[ string ]).init;
     }
 
     ref string[ string ] get_prefix_map()
@@ -379,7 +362,12 @@ class PThreadContext : Context
         }
     }
 
-    public VQL get_vql()
+    public void set_vql(Search in_vql)
+    {
+        _vql = in_vql;
+    }
+
+    public Search get_vql()
     {
         return _vql;
     }
@@ -434,14 +422,14 @@ class PThreadContext : Context
     }
 
     public SearchResult get_individuals_ids_via_query(string user_uri, string query_str, string sort_str, string db_str, int from, int top, int limit,
-                                                      void delegate(string uri) prepare_element_event, OptAuthorize op_auth, bool trace)
+                                                      OptAuthorize op_auth, bool trace)
     {
         SearchResult sr;
 
         if ((query_str.indexOf("==") > 0 || query_str.indexOf("&&") > 0 || query_str.indexOf("||") > 0) == false)
             query_str = "'*' == '" ~ query_str ~ "'";
 
-        sr = _vql.query(user_uri, query_str, sort_str, db_str, from, top, limit, prepare_element_event, op_auth, trace);
+        sr = _vql.query(user_uri, query_str, sort_str, db_str, from, top, limit, op_auth, trace);
 
         return sr;
     }
@@ -696,8 +684,10 @@ class PThreadContext : Context
                         }
                         this.get_logger().trace("REPEAT STORE ITEM: %s", item.uri);
 
-                        rc = this.update(in_tnx.src, in_tnx.id, ticket, item.cmd, &item.new_indv, item.event_id, item.assigned_subsystems, OptFreeze.NONE,
-                                         opt_authorize).result;
+                        rc =
+                            this.update(in_tnx.src, in_tnx.id, ticket, item.cmd, &item.new_indv, item.event_id, item.assigned_subsystems,
+                                        OptFreeze.NONE,
+                                        opt_authorize).result;
 
                         if (rc != ResultCode.Internal_Server_Error)
                             break;

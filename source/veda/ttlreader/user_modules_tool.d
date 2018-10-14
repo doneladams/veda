@@ -7,9 +7,9 @@ module veda.ttlreader.user_modules_tool;
 private import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime, std.array, std.socket, core.thread, std.net.curl, std.algorithm;
 private import url, std.uuid, std.json, std.process;
 private import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
-private import veda.common.logger, veda.core.impl.thread_context;
+private import veda.common.logger, veda.core.impl.thread_context, veda.search.ft_query.ft_query_client;
 private import veda.core.common.context, veda.util.tools, veda.util.raptor2individual;
-private import veda.vmodule.vmodule;
+private import veda.vmodule.vmodule, veda.search.common.isearch;
 
 void user_modules_tool_thread()
 {
@@ -152,9 +152,7 @@ class UserModuleInfo
 
         SearchResult sr =
             context.get_individuals_ids_via_query(sticket.user_uri, "'rdf:type' === 'v-s:Module'", "'rdf:type' asc", "base,system", 0, 100000,
-                                                  10000,
-                                                  null, OptAuthorize.NO,
-                                                  false);
+                                                  10000, OptAuthorize.NO, false);
 
         Individual[ string ] mmsrc;
 
@@ -275,10 +273,7 @@ class UserModuleInfo
 
             SearchResult sr =
                 context.get_individuals_ids_via_query(sticket.user_uri, "'rdfs:isDefinedBy' === '" ~ module_id ~ "'", "'rdfs:isDefinedBy' asc",
-                                                      "base,system,deleted", 0, 100000,
-                                                      10000,
-                                                      null, OptAuthorize.NO,
-                                                      false);
+                                                      "base,system,deleted", 0, 100000, 10000, OptAuthorize.NO, false);
 
             //log.trace("found %s ", sr.result);
 
@@ -773,7 +768,8 @@ class UserModuleInfo
 
                         Individual individual;
                         individual.uri = uri;
-                        OpResult   operation_result = context.update(null, -1, &sticket, INDV_OP.REMOVE, &individual, umt_event_id, ALL_MODULES, OptFreeze.NONE, OptAuthorize.NO);
+                        OpResult   operation_result = context.update(null, -1, &sticket, INDV_OP.REMOVE, &individual, umt_event_id, ALL_MODULES, OptFreeze.NONE,
+                                                                     OptAuthorize.NO);
                     }
 
                     uri = root_indv;
@@ -873,8 +869,10 @@ class UserModulesTool : VedaModule
         super(_subsystem_id, _module_id, log);
     }
 
-    override ResultCode prepare(string queue_name, string src, INDV_OP cmd, string user_uri, string prev_bin, ref Individual prev_indv, string new_bin, ref Individual new_indv,
-                                string event_id, long transaction_id, long op_id, long count_pushed, long count_popped)
+    override ResultCode prepare(string queue_name, string src, INDV_OP cmd, string user_uri, string prev_bin, ref Individual prev_indv, string new_bin,
+                                ref Individual new_indv,
+                                string event_id, long transaction_id, long op_id, long count_pushed,
+                                long count_popped)
     {
         if (event_id == umt_event_id /*|| user_uri == "cfg:VedaSystem"*/) // принимаем команды только от пользователей, umt_event_id игнорируется
             return ResultCode.OK;
@@ -1021,12 +1019,16 @@ class UserModulesTool : VedaModule
 
     override bool open()
     {
+        //context.set_vql (new XapianSearch(context));
+        context.set_vql(new FTQueryClient(context));
+
         return true;
     }
 
     override bool configure()
     {
         log.trace("use configuration: %s", node);
+
         return true;
     }
 

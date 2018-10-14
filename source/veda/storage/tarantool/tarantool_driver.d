@@ -67,6 +67,7 @@ public class TarantoolDriver : KeyValueDB
 
     public string get_binobj(string uri)
     {
+stderr.writeln ("!1");
         Individual indv;
         string     res = null;
 
@@ -77,11 +78,14 @@ public class TarantoolDriver : KeyValueDB
             res = indv.serialize();
             //log.trace("@ get_binobj, uri=%s, indv=%s", uri, indv);
         }
+stderr.writeln ("!2");
         return res;
     }
 
     private ResultCode reply_to_triple_row(tnt_reply_ *reply, ref TripleRow row, string uri)
     {
+stderr.writeln ("*1");
+
         mp_type field_type = mp_typeof(*reply.data);
 
         if (field_type != mp_type.MP_ARRAY)
@@ -152,12 +156,15 @@ public class TarantoolDriver : KeyValueDB
             if (fidx == TTFIELD.LANG)
                 row.lang = cast(LANG)num_value;
         }
+stderr.writeln ("*1");
 
         return ResultCode.OK;
     }
 
     public void get_individual(string uri, ref Individual indv)
     {
+stderr.writeln ("#1");
+
         indv.setStatus(ResultCode.Unprocessable_Entity);
 
         if (uri is null || uri.length < 2)
@@ -166,6 +173,7 @@ public class TarantoolDriver : KeyValueDB
             return;
         }
 
+stderr.writeln ("#2");
         if (db_is_opened != true)
         {
             open();
@@ -175,17 +183,21 @@ public class TarantoolDriver : KeyValueDB
                 return;
             }
         }
+stderr.writeln ("#3");
 
         //log.trace("@%X %s get individual uri=[%s], space_id=%s", tnt, core.thread.Thread.getThis().name(), uri, text(space_id));
 
         tnt_reply_ reply;
         tnt_stream *tuple;
 
+stderr.writeln ("#3.1");
         try
         {
             tnt_reply_init(&reply);
+stderr.writeln ("#3.2");
 
             tuple = tnt_object(null);
+stderr.writeln ("#4");
 
             tnt_object_add_array(tuple, 1);
             tnt_object_add_str(tuple, cast(const(char)*)(uri ~ "\0"), cast(uint)uri.length);
@@ -194,6 +206,7 @@ public class TarantoolDriver : KeyValueDB
             tnt_flush(tnt);
 
             tnt.read_reply(tnt, &reply);
+stderr.writeln ("#5");
 
             //log.trace("@get individual @5 reply.code=[%d] uri=%s", reply.code, uri);
             if (reply.code != 0)
@@ -205,6 +218,7 @@ public class TarantoolDriver : KeyValueDB
                     indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
+stderr.writeln ("#6");
 
             mp_type field_type = mp_typeof(*reply.data);
             if (field_type != mp_type.MP_ARRAY)
@@ -213,6 +227,7 @@ public class TarantoolDriver : KeyValueDB
                 indv.setStatus(ResultCode.Unprocessable_Entity);
                 return;
             }
+stderr.writeln ("#7");
 
             uint tuple_count = mp_decode_array(&reply.data);
             if (tuple_count == 0)
@@ -222,6 +237,7 @@ public class TarantoolDriver : KeyValueDB
                 return;
             }
             //log.trace ("@get individual @8 tuple_count=%d", tuple_count);
+stderr.writeln ("#8");
 
             for (int irow = 0; irow < tuple_count; ++irow)
             {
@@ -278,6 +294,8 @@ public class TarantoolDriver : KeyValueDB
         }
         finally
         {
+stderr.writeln ("#e");
+
             tnt_reply_free(&reply);
 
             if (tuple !is null)
@@ -709,6 +727,8 @@ public class TarantoolDriver : KeyValueDB
     {
         if (db_is_opened == false)
         {
+            log.trace("start connect to tarantool %s", db_uri);
+	    stderr.writeln ("@1");
             tnt = tnt_net(null);
 
             tnt_set(tnt, tnt_opt_type.TNT_OPT_URI, db_uri.ptr);
@@ -717,46 +737,26 @@ public class TarantoolDriver : KeyValueDB
             int res = tnt_connect(tnt);
             if (res == 0)
             {
+	    stderr.writeln ("@2");
                 tnt_ping(tnt);
                 tnt_reply_ *reply = tnt_reply_init(null);
                 tnt.read_reply(tnt, reply);
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-                    // CHECK EXISTS SPACE
-                    tnt_reply_init(reply);
-
-                    tnt_stream *tuple = tnt_object(null);
-
-                    tnt_object_add_array(tuple, 1);
-                    tnt_object_add_int(tuple, 0);
-
-                    tnt_select(tnt, space_id, 0, (2 ^ 32) - 1, 0, 0, tuple);
-                    tnt_flush(tnt);
-                    tnt_stream_free(tuple);
-
-                    tnt.read_reply(tnt, reply);
-                    if (reply.code == 36)
-                    {
-                        tnt_reply_free(reply);
-                        log.trace("ERR! SPACE %s NOT FOUND", space_name);
-                        log.trace("SLEEP AND REPEAT");
-                        core.thread.Thread.sleep(dur!("seconds")(1));
-                        return open();
-                    }
-                    else
-                        tnt_reply_free(reply);
-
-
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
                     db_is_opened = true;
                 }
             }
             else
             {
+	    stderr.writeln ("@20");
+
                 log.trace("FAIL CONNECT TO TARANTOOL %s err=%s", db_uri, to!string(tnt_strerror(tnt)));
                 log.trace("SLEEP AND REPEAT");
                 core.thread.Thread.sleep(dur!("seconds")(1));
+
+	    stderr.writeln ("@21");
                 return open();
             }
         }
