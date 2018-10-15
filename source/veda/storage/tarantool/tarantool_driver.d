@@ -651,10 +651,11 @@ public class TarantoolDriver : KeyValueDB
 
         foreach (row; rows)
         {
+            log.trace("row=%s", row);
+
             tnt_stream *tuple;
             tnt_reply_ reply;
 
-            //log.trace("row=%s", row);
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
 
@@ -673,11 +674,12 @@ public class TarantoolDriver : KeyValueDB
             }
             else
             {
-        	log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
+        	log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
             }
 
             tnt_reply_free(&reply);
         }
+        log.trace("deleted_rows end");
     }
 
     public ResultCode remove(string in_key)
