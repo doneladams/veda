@@ -430,7 +430,8 @@ public class TarantoolDriver : KeyValueDB
             return ResultCode.Internal_Server_Error;
         }
 
-        TripleRow[] prev_rows = get_individual_as_triple(in_key);
+        TripleRow[] prev_rows;
+		get_individual_as_triple(in_key, prev_rows);
         if (prev_rows.length > 0)
             remove_triple_rows(prev_rows, in_key);
 
@@ -581,10 +582,8 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    private TripleRow[] get_individual_as_triple(string in_key)
+    private void get_individual_as_triple(string in_key, ref TripleRow[] res)
     {
-        TripleRow[] res;
-
         tnt_reply_  reply;
         tnt_stream  *tuple;
 
@@ -606,7 +605,7 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", in_key, reply.code, to!string(reply.error));
-                return res;
+                return;
             }
 
             mp_type field_type = mp_typeof(*reply.data);
@@ -614,14 +613,14 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("VALUE CONTENT INVALID FORMAT [], KEY=%s, field_type=%s", in_key, field_type);
 
-                return res;
+                return;
             }
 
             uint tuple_count = mp_decode_array(&reply.data);
             if (tuple_count == 0)
             {
                 //log.trace("ERR! remove individual, not found ! request uri=%s", in_key);
-                return res;
+                return;
             }
             //log.trace("@remove individual, @8 tuple_count=%d", tuple_count);
 
@@ -634,7 +633,7 @@ public class TarantoolDriver : KeyValueDB
                 if (rc == ResultCode.OK)
                     res ~= row;
             }
-            return res;
+            return;
         }
         finally
         {
@@ -645,17 +644,17 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    private int remove_triple_rows(TripleRow[] rows, string in_key)
+    private long remove_triple_rows(TripleRow[] drows, string in_key)
     {
-        //log.trace("deleted_rows=%s", rows);
+        log.trace("deleted_rows=%s, length=%d", drows, drows.length);
 
         //foreach (row; rows)
         //{
         //    log.trace("0 row=%s", row);
         //}
-        int count_deleted = 0;
+        long count_deleted = 0;
 
-        foreach (row; rows)
+        foreach (row; drows)
         {
             //log.trace("row=%s", row);
 
@@ -676,12 +675,12 @@ public class TarantoolDriver : KeyValueDB
             tnt.read_reply(tnt, &reply);
             if (reply.code != 0)
             {
-                count_deleted++;
                 log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
             }
             else
             {
-                //log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
+                count_deleted++;
+                log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
             }
 
             tnt_reply_free(&reply);
@@ -691,7 +690,7 @@ public class TarantoolDriver : KeyValueDB
         //{
         //    log.trace("0 row=%s", row);
         //}
-        //log.trace("deleted_rows end, count=%d", count_deleted);
+        log.trace("deleted_rows end, count=%d", count_deleted);
         return count_deleted;
     }
 
@@ -706,13 +705,15 @@ public class TarantoolDriver : KeyValueDB
 
         //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
 
-        TripleRow[] deleted_rows = get_individual_as_triple(in_key);
+        TripleRow[] deleted_rows;
+	get_individual_as_triple(in_key, deleted_rows);
+	long need_count_deleted = deleted_rows.length;
         if (deleted_rows.length > 0)
         {
-            int count_deleted = remove_triple_rows(deleted_rows, in_key);
-            if (count_deleted != deleted_rows.length)
+            long count_deleted = remove_triple_rows(deleted_rows, in_key);
+            if (count_deleted != need_count_deleted)
             {
-                log.trace("ERR! fail delete rows from [%s], count_deleted(%d) < %d", in_key, deleted_rows.length);
+                log.trace("ERR! fail delete rows from [%s], count_deleted(%d) < %d", in_key, count_deleted, need_count_deleted);
             }
         }
 
