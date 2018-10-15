@@ -178,13 +178,12 @@ public class TarantoolDriver : KeyValueDB
 
         //log.trace("@%X %s get individual uri=[%s], space_id=%s", tnt, core.thread.Thread.getThis().name(), uri, text(space_id));
 
-        tnt_reply_ reply;
         tnt_stream *tuple;
+        tnt_reply_ *reply;
 
         try
         {
-            tnt_reply_init(&reply);
-
+            reply = tnt_reply_init(null);
             tuple = tnt_object(null);
 
             tnt_object_add_array(tuple, 1);
@@ -193,7 +192,7 @@ public class TarantoolDriver : KeyValueDB
             tnt_select(tnt, space_id, INDEX_S, 1024, 0, 0, tuple);
             tnt_flush(tnt);
 
-            tnt.read_reply(tnt, &reply);
+            tnt.read_reply(tnt, reply);
 
             //log.trace("@get individual @5 reply.code=[%d] uri=%s", reply.code, uri);
             if (reply.code != 0)
@@ -226,7 +225,7 @@ public class TarantoolDriver : KeyValueDB
             for (int irow = 0; irow < tuple_count; ++irow)
             {
                 TripleRow  row;
-                ResultCode rc = reply_to_triple_row(&reply, row, uri);
+                ResultCode rc = reply_to_triple_row(reply, row, uri);
                 if (rc != ResultCode.OK)
                 {
                     indv.setStatus(rc);
@@ -278,7 +277,7 @@ public class TarantoolDriver : KeyValueDB
         }
         finally
         {
-            tnt_reply_free(&reply);
+            tnt_reply_free(reply);
 
             if (tuple !is null)
                 tnt_stream_free(tuple);
@@ -344,19 +343,18 @@ public class TarantoolDriver : KeyValueDB
 
         tnt_flush(tnt);
 
-        tnt_reply_ reply;
-        tnt_reply_init(&reply);
-        tnt.read_reply(tnt, &reply);
+        tnt_reply_ *reply = tnt_reply_init(null);
+        tnt.read_reply(tnt, reply);
         if (reply.code != 0)
         {
             auto row = format("%s;%s;%s;%d;%d", subject, predicate, object, type, lang);
             log.trace("Insert failed errcode=%s msg=%s [%s]", reply.code, to!string(reply.error), row);
-            tnt_reply_free(&reply);
+            tnt_reply_free(reply);
             tnt_stream_free(tuple);
             return;
         }
 
-        tnt_reply_free(&reply);
+        tnt_reply_free(reply);
         tnt_stream_free(tuple);
 
         foreach (row; prev_rows)
@@ -431,7 +429,7 @@ public class TarantoolDriver : KeyValueDB
         }
 
         TripleRow[] prev_rows;
-		get_individual_as_triple(in_key, prev_rows);
+        get_individual_as_triple(in_key, prev_rows);
         if (prev_rows.length > 0)
             remove_triple_rows(prev_rows, in_key);
 
@@ -481,7 +479,8 @@ public class TarantoolDriver : KeyValueDB
                                         {
                                             long type = arr[ 0 ].via.uinteger;
 
-                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init, prev_rows);
+                                            update_row(subject, predicate, arr[ 1 ], cast(DataType)type, LANG.NONE, i, tuples, decimal.init,
+                                                       prev_rows);
                                         }
                                         else if (arr.length == 3)
                                         {
@@ -544,8 +543,7 @@ public class TarantoolDriver : KeyValueDB
                     return ResultCode.Internal_Server_Error;
                 }
 /*
-                tnt_reply_ reply;
-                tnt_reply_init(&reply);
+                                tnt_reply_ *reply = tnt_reply_init(null);
                 tnt.read_reply(tnt, &reply);
                 if (reply.code != 0)
                 {
@@ -584,12 +582,12 @@ public class TarantoolDriver : KeyValueDB
 
     private void get_individual_as_triple(string in_key, ref TripleRow[] res)
     {
-        tnt_reply_  reply;
-        tnt_stream  *tuple;
+        tnt_stream *tuple;
+        tnt_reply_ *reply;
 
         try
         {
-            tnt_reply_init(&reply);
+            reply = tnt_reply_init(null);
 
             tuple = tnt_object(null);
 
@@ -599,7 +597,7 @@ public class TarantoolDriver : KeyValueDB
             tnt_select(tnt, space_id, INDEX_S, 1024, 0, 0, tuple);
             tnt_flush(tnt);
 
-            tnt.read_reply(tnt, &reply);
+            tnt.read_reply(tnt, reply);
 
             //log.trace("@remove individual @5 reply.code=[%d]", reply.code);
             if (reply.code != 0)
@@ -629,7 +627,7 @@ public class TarantoolDriver : KeyValueDB
             for (int irow = 0; irow < tuple_count; ++irow)
             {
                 TripleRow  row;
-                ResultCode rc = reply_to_triple_row(&reply, row, in_key);
+                ResultCode rc = reply_to_triple_row(reply, row, in_key);
                 if (rc == ResultCode.OK)
                     res ~= row;
             }
@@ -637,7 +635,7 @@ public class TarantoolDriver : KeyValueDB
         }
         finally
         {
-            tnt_reply_free(&reply);
+            tnt_reply_free(reply);
 
             if (tuple !is null)
                 tnt_stream_free(tuple);
@@ -646,33 +644,27 @@ public class TarantoolDriver : KeyValueDB
 
     private long remove_triple_rows(TripleRow[] drows, string in_key)
     {
-        log.trace("deleted_rows=%s, length=%d", drows, drows.length);
+        //log.trace("deleted_rows=%s, length=%d", drows, drows.length);
 
-        //foreach (row; rows)
-        //{
-        //    log.trace("0 row=%s", row);
-        //}
-        long count_deleted = 0;
+        long       count_deleted = 0;
+
+        tnt_stream *tuple;
 
         foreach (row; drows)
         {
             //log.trace("row=%s", row);
 
-            tnt_stream *tuple;
-
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
 
-            //tnt_object_add_str(tuple, cast(const(char)*)id, cast(uint)id.length);
             tnt_object_add_int(tuple, row.id);
 
             tnt_delete(tnt, space_id, 0, tuple);
             tnt_flush(tnt);
             tnt_stream_free(tuple);
 
-            tnt_reply_ reply;
-            tnt_reply_init(&reply);
-            tnt.read_reply(tnt, &reply);
+            tnt_reply_ *reply = tnt_reply_init(null);
+            tnt.read_reply(tnt, reply);
             if (reply.code != 0)
             {
                 log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
@@ -680,17 +672,12 @@ public class TarantoolDriver : KeyValueDB
             else
             {
                 count_deleted++;
-                log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
+                //log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
             }
 
-            tnt_reply_free(&reply);
+            tnt_reply_free(reply);
         }
 
-        //foreach (row; rows)
-        //{
-        //    log.trace("0 row=%s", row);
-        //}
-        log.trace("deleted_rows end, count=%d", count_deleted);
         return count_deleted;
     }
 
@@ -706,8 +693,8 @@ public class TarantoolDriver : KeyValueDB
         //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
 
         TripleRow[] deleted_rows;
-	get_individual_as_triple(in_key, deleted_rows);
-	long need_count_deleted = deleted_rows.length;
+        get_individual_as_triple(in_key, deleted_rows);
+        long        need_count_deleted = deleted_rows.length;
         if (deleted_rows.length > 0)
         {
             long count_deleted = remove_triple_rows(deleted_rows, in_key);
