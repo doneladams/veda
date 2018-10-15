@@ -136,6 +136,10 @@ class ScriptProcess : VedaModule
                     continue;
 
                 //log.trace("look script:%s", script_id);
+                if (script.unsafe == true)
+                {
+                    log.trace("WARN! this script is UNSAFE!, %s", script_id);
+                }
                 else if (event_id !is null && event_id.length > 1 && (event_id == (individual_id ~ '+' ~ script_id) || event_id == "IGNORE"))
                 {
                     //writeln("skip script [", script_id, "], type:", type, ", indiv.:[", individual_id, "]");
@@ -153,11 +157,6 @@ class ScriptProcess : VedaModule
                     continue;
                 }
 
-
-                if (script.unsafe == true)
-                {
-                    log.trace("WARN! execute UNSAFE script!, %s", script_id);
-                }
 
                 //log.trace("filter pass script:%s", script_id);
 
