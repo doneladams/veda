@@ -645,14 +645,15 @@ public class TarantoolDriver : KeyValueDB
         }
     }
 
-    private void remove_triple_rows(TripleRow[] rows, string in_key)
+    private int remove_triple_rows(TripleRow[] rows, string in_key)
     {
-        log.trace("deleted_rows=%s", rows);
+        //log.trace("deleted_rows=%s", rows);
 
-        foreach (row; rows)
-        {
-            log.trace("0 row=%s", row);
-		}
+        //foreach (row; rows)
+        //{
+        //    log.trace("0 row=%s", row);
+        //}
+        int count_deleted = 0;
 
         foreach (row; rows)
         {
@@ -675,22 +676,23 @@ public class TarantoolDriver : KeyValueDB
             tnt.read_reply(tnt, &reply);
             if (reply.code != 0)
             {
+                count_deleted++;
                 log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
             }
             else
             {
-				log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
+                log.trace("Remove Ok, key=[%s] id=[%s]", in_key, row.id);
             }
 
             tnt_reply_free(&reply);
         }
 
-        foreach (row; rows)
-        {
-            log.trace("0 row=%s", row);
-		}
-
-        log.trace("deleted_rows end");
+        //foreach (row; rows)
+        //{
+        //    log.trace("0 row=%s", row);
+        //}
+        //log.trace("deleted_rows end, count=%d", count_deleted);
+        return count_deleted;
     }
 
     public ResultCode remove(string in_key)
@@ -706,7 +708,13 @@ public class TarantoolDriver : KeyValueDB
 
         TripleRow[] deleted_rows = get_individual_as_triple(in_key);
         if (deleted_rows.length > 0)
-            remove_triple_rows(deleted_rows, in_key);
+        {
+            int count_deleted = remove_triple_rows(deleted_rows, in_key);
+            if (count_deleted != deleted_rows.length)
+            {
+                log.trace("ERR! fail delete rows from [%s], count_deleted(%d) < %d", in_key, deleted_rows.length);
+            }
+        }
 
         return ResultCode.OK;
     }
