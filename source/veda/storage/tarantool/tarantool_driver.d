@@ -723,9 +723,8 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-/*
+            	    reply = tnt_reply_init(null);
                     // CHECK EXISTS SPACE
-                    tnt_reply_init(reply);
 
                     tnt_stream *tuple = tnt_object(null);
 
@@ -747,7 +746,7 @@ public class TarantoolDriver : KeyValueDB
                     }
                     else
                         tnt_reply_free(reply);
-*/
+
 
                     log.trace("SUCCESS CONNECT TO TARANTOOL %s", db_uri);
                     db_is_opened = true;
