@@ -659,7 +659,6 @@ public class TarantoolDriver : KeyValueDB
             log.trace("row=%s", row);
 
             tnt_stream *tuple;
-            tnt_reply_ reply;
 
             tuple = tnt_object(null);
             tnt_object_add_array(tuple, 1);
@@ -671,6 +670,7 @@ public class TarantoolDriver : KeyValueDB
             tnt_flush(tnt);
             tnt_stream_free(tuple);
 
+            tnt_reply_ reply;
             tnt_reply_init(&reply);
             tnt.read_reply(tnt, &reply);
             if (reply.code != 0)
@@ -684,6 +684,12 @@ public class TarantoolDriver : KeyValueDB
 
             tnt_reply_free(&reply);
         }
+
+        foreach (row; rows)
+        {
+            log.trace("0 row=%s", row);
+		}
+
         log.trace("deleted_rows end");
     }
 
