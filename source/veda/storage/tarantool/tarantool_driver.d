@@ -647,7 +647,7 @@ public class TarantoolDriver : KeyValueDB
 
     private void remove_triple_rows(TripleRow[] rows, string in_key)
     {
-        //log.trace("deleted_rows=%s", rows);
+        log.trace("deleted_rows=%s", rows);
 
         foreach (row; rows)
         {
@@ -670,13 +670,11 @@ public class TarantoolDriver : KeyValueDB
             if (reply.code != 0)
             {
                 log.trace("Remove failed [%s] id=[%s], errcode=%s msg=%s", in_key, row.id, reply.code, to!string(reply.error));
-                //tnt_reply_free(&reply);
-                //return;
             }
-            //else
-            //{
-            //log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
-            //}
+            else
+            {
+        	log.trace("Remove Ok [%s] id=[%s]", in_key, row.id);
+            }
 
             tnt_reply_free(&reply);
         }
@@ -723,7 +721,7 @@ public class TarantoolDriver : KeyValueDB
                 tnt_reply_free(reply);
                 if (reply.code == 0)
                 {
-            	    reply = tnt_reply_init(null);
+                    reply = tnt_reply_init(null);
                     // CHECK EXISTS SPACE
 
                     tnt_stream *tuple = tnt_object(null);
