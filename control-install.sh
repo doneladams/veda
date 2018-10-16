@@ -181,8 +181,9 @@ if ! ldconfig -p | grep libnanomsg; then
     mkdir build
     cd build
     cmake ..
-    make
-    sudo make install
+    cmake --build .
+    ctest .
+    sudo cmake --build . --target install
 
     echo '/usr/local/lib/x86_64-linux-gnu' > x86_64-linux-gnu-local.conf
     sudo cp x86_64-linux-gnu-local.conf /etc/ld.so.conf.d/x86_64-linux-gnu-local.conf
