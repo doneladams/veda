@@ -173,6 +173,7 @@ fi
 if ! ldconfig -p | grep libnanomsg; then
     echo "--- INSTALL NANOMSG ---"
     # make nanomsg dependency
+    sudo apt-get install libpthread-stubs0-dev
     mkdir tmp
     wget https://github.com/nanomsg/nanomsg/archive/$NANOMSG_VER.tar.gz -P tmp
     cd tmp
