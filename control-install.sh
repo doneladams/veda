@@ -182,7 +182,7 @@ if ! ldconfig -p | grep libnanomsg; then
     cd tmp
     tar -xvzf $NANOMSG_VER.tar.gz
     cd nanomsg-$NANOMSG_VER
-    configure
+    ./configure
     mkdir build
     cd build
     cmake ..
