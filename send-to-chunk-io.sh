@@ -5,6 +5,9 @@ zip -v -r ./chunk-io/logs.zip data
 zip -v ./chunk-io/logs.zip core
 #zip -v ./chunk-io/logs.zip veda-scripts-main
 zip -v ./chunk-io/logs.zip install.log
+zip -v ./chunk-io/logs.zip /home/travis/temp/tmp/nanomsg-1749fd7b039165a91b8d556b4df18e3e632ad830/build/CMakeFiles/CMakeOutput.log
+zip -v ./chunk-io/logs.zip /home/travis/temp/tmp/nanomsg-1749fd7b039165a91b8d556b4df18e3e632ad830/build/CMakeFiles/CMakeError.log
+
 
 cd chunk-io
 
