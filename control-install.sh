@@ -6,7 +6,10 @@ DUB_VER=1.5.0
 GO_VER=go1.11.1
 MSGPUCK_VER=2.0
 TARANTOOL_VER=1.10.2
-NANOMSG_VER=1.1.5
+
+# 1.1.5
+NANOMSG_VER=1749fd7b039165a91b8d556b4df18e3e632ad830
+
 #    TTC=213ed9f4ef8cc343ae46744d30ff2a063a8272e5
 TTC=22367d19d8603e58403114a35443f2f2f066db81
 
@@ -176,8 +179,8 @@ if ! ldconfig -p | grep libnanomsg; then
     # make nanomsg dependency
     sudo apt-get install libpthread-stubs0-dev
     mkdir tmp
-#    wget https://github.com/nanomsg/nanomsg/archive/$NANOMSG_VER.tar.gz -P tmp
-    wget https://github.com/nanomsg/nanomsg/archive/1749fd7b039165a91b8d556b4df18e3e632ad830.tar.gz -P tmp
+    wget https://github.com/nanomsg/nanomsg/archive/$NANOMSG_VER.tar.gz -P tmp
+#    wget https://github.com/nanomsg/nanomsg/archive/1749fd7b039165a91b8d556b4df18e3e632ad830.tar.gz -P tmp
     cd tmp
     tar -xvzf $NANOMSG_VER.tar.gz
     cd nanomsg-$NANOMSG_VER
