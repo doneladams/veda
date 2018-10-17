@@ -27,7 +27,6 @@ LIB_NAME[9]="build-essential"
 LIB_NAME[10]="autoconf"
 LIB_NAME[11]="automake"
 LIB_NAME[12]="curl"
-LIB_NAME[13]="libzmq3-dev"
 
 LIB_OK="Status: install ok installed"
 F_UL=0
@@ -42,9 +41,11 @@ build=3
 mkdir ~/temp
 cd ~/temp
 wget https://cmake.org/files/v$version/cmake-$version.$build-Linux-x86_64.sh
+sudo rm /usr/local/bin/cmake
 sudo mkdir /opt/cmake
 sudo sh cmake-$version.$build-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
 sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+cmake --version
 
 ### LIBS FROM APT ###
 
