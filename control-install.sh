@@ -6,7 +6,6 @@ DUB_VER=1.5.0
 GO_VER=go1.11.1
 MSGPUCK_VER=2.0
 TARANTOOL_VER=1.10.2
-
 NANOMSG_VER=1.1.4
 
 #    TTC=213ed9f4ef8cc343ae46744d30ff2a063a8272e5
@@ -19,7 +18,7 @@ LIB_NAME[1]="libevent-pthreads-2.0-5"
 LIB_NAME[3]="libevent-dev"
 LIB_NAME[4]="libssl-dev"
 LIB_NAME[5]="libmysqlclient-dev"
-#LIB_NAME[6]="cmake"
+LIB_NAME[6]="cmake"
 LIB_NAME[7]="libtool"
 LIB_NAME[8]="pkg-config"
 LIB_NAME[9]="build-essential"
@@ -144,7 +143,7 @@ ls $HOME/go
 
 if ! tarantool -V | grep $TARANTOOL_VER; then
 echo "--- INSTALL TARANTOOL ---"
-curl http://download.tarantool.org/tarantool/2.0/gpgkey | sudo apt-key add -
+curl http://download.tarantool.org/tarantool/1.10/gpgkey | sudo apt-key add -
 release=`lsb_release -c -s`
 
 # install https download transport for APT
@@ -152,9 +151,9 @@ sudo apt-get -y install apt-transport-https
 
 # append two lines to a list of source repositories
 sudo rm -f /etc/apt/sources.list.d/*tarantool*.list
-sudo tee /etc/apt/sources.list.d/tarantool_2_0.list <<- EOF
-deb http://download.tarantool.org/tarantool/2.0/ubuntu/ $release main
-deb-src http://download.tarantool.org/tarantool/2.0/ubuntu/ $release main
+sudo tee /etc/apt/sources.list.d/tarantool_1_0.list <<- EOF
+deb http://download.tarantool.org/tarantool/1.10/ubuntu/ $release main
+deb-src http://download.tarantool.org/tarantool/1.10/ubuntu/ $release main
 EOF
 
 # install
@@ -180,13 +179,11 @@ if ! ldconfig -p | grep libnanomsg; then
     cd tmp
     tar -xvzf $NANOMSG_VER.tar.gz
     cd nanomsg-$NANOMSG_VER
-    ./configure
     mkdir build
     cd build
     cmake ..
-    cmake --build .
-    ctest .
-    sudo cmake --build . --target install
+    make
+    sudo make install
 
     echo '/usr/local/lib/x86_64-linux-gnu' > x86_64-linux-gnu-local.conf
     sudo cp x86_64-linux-gnu-local.conf /etc/ld.so.conf.d/x86_64-linux-gnu-local.conf
