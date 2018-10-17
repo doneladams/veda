@@ -7,8 +7,7 @@ GO_VER=go1.11.1
 MSGPUCK_VER=2.0
 TARANTOOL_VER=1.10.2
 
-# 1.1.5
-NANOMSG_VER=1749fd7b039165a91b8d556b4df18e3e632ad830
+NANOMSG_VER=1.1.5
 
 #    TTC=213ed9f4ef8cc343ae46744d30ff2a063a8272e5
 TTC=22367d19d8603e58403114a35443f2f2f066db81
@@ -30,23 +29,6 @@ LIB_NAME[12]="curl"
 
 LIB_OK="Status: install ok installed"
 F_UL=0
-
-
-
-whereis cmake
-sudo rm -r /usr/local/cmake-3.9.2
-sudo apt remove cmake
-sudo apt purge --auto-remove cmake
-version=3.12
-build=3
-mkdir ~/temp
-cd ~/temp
-wget https://cmake.org/files/v$version/cmake-$version.$build-Linux-x86_64.sh
-sudo rm -r /usr/local/bin/cmake
-sudo mkdir /opt/cmake
-sudo sh cmake-$version.$build-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
-sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
-cmake --version
 
 ### LIBS FROM APT ###
 
@@ -200,6 +182,7 @@ if ! ldconfig -p | grep libnanomsg; then
     cd tmp
     tar -xvzf $NANOMSG_VER.tar.gz
     cd nanomsg-$NANOMSG_VER
+    configure
     mkdir build
     cd build
     cmake ..
