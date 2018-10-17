@@ -33,7 +33,8 @@ F_UL=0
 
 
 
-
+whereis cmake
+sudo rm -r /usr/local/cmake-3.9.2
 sudo apt remove cmake
 sudo apt purge --auto-remove cmake
 version=3.12
@@ -41,7 +42,7 @@ build=3
 mkdir ~/temp
 cd ~/temp
 wget https://cmake.org/files/v$version/cmake-$version.$build-Linux-x86_64.sh
-sudo rm /usr/local/bin/cmake
+sudo rm -r /usr/local/bin/cmake
 sudo mkdir /opt/cmake
 sudo sh cmake-$version.$build-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
 sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
