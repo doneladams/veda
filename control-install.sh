@@ -32,6 +32,20 @@ LIB_NAME[13]="libzmq3-dev"
 LIB_OK="Status: install ok installed"
 F_UL=0
 
+
+
+
+sudo apt remove cmake
+sudo apt purge --auto-remove cmake
+version=3.12
+build=3
+mkdir ~/temp
+cd ~/temp
+wget https://cmake.org/files/v$version/cmake-$version.$build-Linux-x86_64.sh.
+sudo mkdir /opt/cmake
+sudo sh cmake-$version.$build-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
+sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+
 ### LIBS FROM APT ###
 
 for i in "${LIB_NAME[@]}"; do
