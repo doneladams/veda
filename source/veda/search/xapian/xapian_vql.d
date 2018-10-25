@@ -47,7 +47,7 @@ class XapianVQL
                     else
                         asc_desc = true;
 
-                    int slot = get_slot(key2slot, key);
+                    int slot = get_slot(key2slot, key, log);
                     if (slot >= 0)
                     {
                         if (trace)
@@ -297,9 +297,9 @@ class XapianVQL
                         {
                             int slot;
                             if (rs !is null && rs[ 0 ] == '*' && is_good_token(rs))
-                                slot = get_slot(key2slot, ls ~ "#F");
+                                slot = get_slot(key2slot, ls ~ "#F", log);
                             else
-                                slot = get_slot(key2slot, ls);
+                                slot = get_slot(key2slot, ls, log);
 
                             //log.trace("@p slot=%d, predicate=%s", slot, ls);
 
@@ -589,7 +589,7 @@ class XapianVQL
                     //writeln("@p c_from=", c_from);
                     //writeln("@p c_to=", c_to);
 
-                    int slot = get_slot(key2slot, token_L);
+                    int slot = get_slot(key2slot, token_L, log);
 
                     query_r = new_Query_range(xapian_op.OP_VALUE_RANGE, slot, c_from, c_to, &err);
 
@@ -691,6 +691,7 @@ class XapianVQL
     }
 
     public SearchResult exec_xapian_query_and_queue_authorize(string user_uri,
+                                                              TTA query_as_tta,
                                                               XapianEnquire xapian_enquire,
                                                               int from,
                                                               int top,
@@ -721,7 +722,7 @@ class XapianVQL
         if (user_uri is null)
         {
             log.trace("exec_xapian_query_and_queue_authorize:user_uri is null");
-            sr.result_code = ResultCode.Ticket_not_found;
+            sr.result_code = ResultCode.TicketNotFound;
             sw.stop;
             sr.total_time = sw.peek.total !"msecs";
             return sr;
@@ -737,7 +738,7 @@ class XapianVQL
             if (err == -1)
                 sr.result_code = ResultCode.DatabaseModifiedError;
             else
-                sr.result_code = ResultCode.Internal_Server_Error;
+                sr.result_code = ResultCode.InternalServerError;
 
             //            sr.err         = err;
             sw.stop;
@@ -751,6 +752,12 @@ class XapianVQL
         {
             sr.estimated = matches.get_matches_estimated(&err);
 
+            if (sr.estimated > limit)
+            {
+                string str_x_query = query_as_tta.toString();
+                log.trace("WARN! estimated > limit: %d > %d, user_uri=%s, query=%s", sr.estimated, limit, user_uri, str_x_query);
+            }
+
             XapianMSetIterator it = matches.iterator(&err);
 
             bool               acl_db_reopen = true;
@@ -762,7 +769,7 @@ class XapianVQL
                     if (err == -1)
                         sr.result_code = ResultCode.DatabaseModifiedError;
                     else
-                        sr.result_code = ResultCode.Internal_Server_Error;
+                        sr.result_code = ResultCode.InternalServerError;
 
                     log.trace("exec_xapian_query_and_queue_authorize:mset:is_next, err=(%s), user_uri=%s", get_xapian_err_msg(err), user_uri);
 //                    sr.err = err;
@@ -783,7 +790,7 @@ class XapianVQL
                     if (err == -1)
                         sr.result_code = ResultCode.DatabaseModifiedError;
                     else
-                        sr.result_code = ResultCode.Internal_Server_Error;
+                        sr.result_code = ResultCode.InternalServerError;
 
                     log.trace("exec_xapian_query_and_queue_authorize:get_document_data, err=(%s), user_uri=%s", get_xapian_err_msg(err), user_uri);
 //                    sr.err = err;
@@ -838,7 +845,7 @@ class XapianVQL
 
         sr.processed   = processed;
         sr.count       = read_count;
-        sr.result_code = ResultCode.OK;
+        sr.result_code = ResultCode.Ok;
         sr.cursor      = from + processed;
         sw.stop;
         sr.total_time     = sw.peek.total !"msecs";

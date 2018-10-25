@@ -75,7 +75,7 @@ private nothrow string req_prepare(string request, Context context)
                         else
                         {
                             if (ticket.user_uri is null || ticket.user_uri.length == 0)
-                                context.get_logger.trace("ERR! user not found in ticket object, ticket_id=%s, ticket=%s", _ticket, ticket);
+                                context.get_logger.trace("ERR! ft_query: user not found in ticket object, ticket_id=%s, ticket=%s", _ticket, *ticket);
                             else
                                 user_uri = ticket.user_uri;
                         }
@@ -91,7 +91,7 @@ private nothrow string req_prepare(string request, Context context)
                             context.reopen_ro_fulltext_indexer_db();
 
                             Individual indv = context.get_individual(&sticket, "cfg:OntoVsn", OptAuthorize.NO);
-                            if (indv.getStatus() == ResultCode.OK)
+                            if (indv.getStatus() == ResultCode.Ok)
                             {
                                 long new_onto_vsn = indv.getFirstInteger("v-s:updateCounter");
                                 if (new_onto_vsn != onto_vsn)
@@ -210,7 +210,7 @@ void main(string[] args)
     ctx.set_vql(new XapianSearch(ctx));
 
     Individual indv = ctx.get_individual(&sticket, "cfg:OntoVsn", OptAuthorize.NO);
-    if (indv.getStatus() == ResultCode.OK)
+    if (indv.getStatus() == ResultCode.Ok)
         onto_vsn = indv.getFirstInteger("v-s:updateCounter");
 
     sock = nn_socket(AF_SP, NN_REP);

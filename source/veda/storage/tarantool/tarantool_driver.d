@@ -72,7 +72,7 @@ public class TarantoolDriver : KeyValueDB
 
         get_individual(uri, indv);
 
-        if (indv.getStatus() == ResultCode.OK)
+        if (indv.getStatus() == ResultCode.Ok)
         {
             res = indv.serialize();
             //log.trace("@ get_binobj, uri=%s, indv=%s", uri, indv);
@@ -87,7 +87,7 @@ public class TarantoolDriver : KeyValueDB
         if (field_type != mp_type.MP_ARRAY)
         {
             log.trace("VALUE CONTENT INVALID FORMAT [[]], KEY=%s, field_type=%s", uri, field_type);
-            return ResultCode.Unprocessable_Entity;
+            return ResultCode.UnprocessableEntity;
         }
 
         int field_count = mp_decode_array(&reply.data);
@@ -153,16 +153,16 @@ public class TarantoolDriver : KeyValueDB
                 row.lang = cast(LANG)num_value;
         }
 
-        return ResultCode.OK;
+        return ResultCode.Ok;
     }
 
     public void get_individual(string uri, ref Individual indv)
     {
-        indv.setStatus(ResultCode.Unprocessable_Entity);
+        indv.setStatus(ResultCode.UnprocessableEntity);
 
         if (uri is null || uri.length < 2)
         {
-            indv.setStatus(ResultCode.Bad_Request);
+            indv.setStatus(ResultCode.BadRequest);
             return;
         }
 
@@ -171,7 +171,7 @@ public class TarantoolDriver : KeyValueDB
             open();
             if (db_is_opened != true)
             {
-                indv.setStatus(ResultCode.Not_Ready);
+                indv.setStatus(ResultCode.NotReady);
                 return;
             }
         }
@@ -199,9 +199,9 @@ public class TarantoolDriver : KeyValueDB
             {
                 log.trace("Select [%s] failed, errcode=%s msg=%s", uri, reply.code, to!string(reply.error));
                 if (reply.code == 36)
-                    indv.setStatus(ResultCode.Not_Ready);
+                    indv.setStatus(ResultCode.NotReady);
                 else
-                    indv.setStatus(ResultCode.Unprocessable_Entity);
+                    indv.setStatus(ResultCode.UnprocessableEntity);
                 return;
             }
 
@@ -209,7 +209,7 @@ public class TarantoolDriver : KeyValueDB
             if (field_type != mp_type.MP_ARRAY)
             {
                 log.trace("VALUE CONTENT INVALID FORMAT [], KEY=%s, field_type=%s", uri, field_type);
-                indv.setStatus(ResultCode.Unprocessable_Entity);
+                indv.setStatus(ResultCode.UnprocessableEntity);
                 return;
             }
 
@@ -217,7 +217,7 @@ public class TarantoolDriver : KeyValueDB
             if (tuple_count == 0)
             {
                 //log.trace("ERR! not found ! request uri=[%s]", uri);
-                indv.setStatus(ResultCode.Not_Found);
+                indv.setStatus(ResultCode.NotFound);
                 return;
             }
             //log.trace ("@get individual @8 tuple_count=%d", tuple_count);
@@ -226,7 +226,7 @@ public class TarantoolDriver : KeyValueDB
             {
                 TripleRow  row;
                 ResultCode rc = reply_to_triple_row(reply, row, uri);
-                if (rc != ResultCode.OK)
+                if (rc != ResultCode.Ok)
                 {
                     indv.setStatus(rc);
                     return;
@@ -237,7 +237,7 @@ public class TarantoolDriver : KeyValueDB
                 if (uri != row.subject)
                 {
                     log.trace("ERR! not found ?, request uri=%s, get uri=%s", uri, row.subject);
-                    indv.setStatus(ResultCode.Not_Found);
+                    indv.setStatus(ResultCode.NotFound);
                     return;
                 }
 
@@ -269,7 +269,7 @@ public class TarantoolDriver : KeyValueDB
                 indv.reorder(predicate);
             }
 
-            indv.setStatus(ResultCode.OK);
+            indv.setStatus(ResultCode.Ok);
             //log.trace("driver:get:indv=%s", indv);
 
             //tnt_reply_free(&reply);
@@ -407,11 +407,11 @@ public class TarantoolDriver : KeyValueDB
         {
             open();
             if (db_is_opened != true)
-                return ResultCode.Connect_Error;
+                return ResultCode.ConnectError;
         }
 
         if (in_str.length < 3)
-            return ResultCode.Internal_Server_Error;
+            return ResultCode.InternalServerError;
 
         tnt_stream *[] tuples;
         ubyte[]        src = cast(ubyte[])in_str;
@@ -419,13 +419,13 @@ public class TarantoolDriver : KeyValueDB
         if (src[ 0 ] != magic_header)
         {
             log.trace("ERR! msgpack2individual: invalid format");
-            return ResultCode.Internal_Server_Error;
+            return ResultCode.InternalServerError;
         }
 
         if (src.length < 5)
         {
             log.trace("ERR! msgpack2individual: binobj is empty [%s]", src);
-            return ResultCode.Internal_Server_Error;
+            return ResultCode.InternalServerError;
         }
 
         TripleRow[] prev_rows;
@@ -446,7 +446,7 @@ public class TarantoolDriver : KeyValueDB
                     if (root_el_size != 2)
                     {
                         log.trace("ERR! msgpack2individual: root_el_size != 2");
-                        return ResultCode.Internal_Server_Error;
+                        return ResultCode.InternalServerError;
                     }
 
                     foreach (obj; unpacker.purge())
@@ -512,7 +512,7 @@ public class TarantoolDriver : KeyValueDB
                                             else
                                             {
                                                 log.trace("ERR! msgpack2individual: [0][1][3] unknown type [%d]", type);
-                                                return ResultCode.Internal_Server_Error;
+                                                return ResultCode.InternalServerError;
                                             }
                                         }
                                         break;
@@ -534,13 +534,13 @@ public class TarantoolDriver : KeyValueDB
                 else
                 {
                     log.trace("ERR! msgpack2individual: binobj is invalid! src=[%s]", in_str);
-                    return ResultCode.Internal_Server_Error;
+                    return ResultCode.InternalServerError;
                 }
 
                 if (tnt_flush(tnt) < 0)
                 {
                     log.trace("Insert failed network error [%s][%s]", in_key, in_str);
-                    return ResultCode.Internal_Server_Error;
+                    return ResultCode.InternalServerError;
                 }
 /*
                                 tnt_reply_ *reply = tnt_reply_init(null);
@@ -559,14 +559,14 @@ public class TarantoolDriver : KeyValueDB
                 //tnt_flush (tnt);
                 //reopen ();
 
-                return ResultCode.OK;
+                return ResultCode.Ok;
                 // return cast(int)(ptr - cast(char *)in_str.ptr); //read_element(individual, cast(ubyte[])in_str, dummy);
             }
             catch (Throwable ex)
             {
                 log.trace("ERR! msgpack2individual ex=", ex.msg, ", in_str=", in_str);
                 //throw new Exception("invalid binobj");
-                return ResultCode.Internal_Server_Error;
+                return ResultCode.InternalServerError;
             }
         } finally
         {
@@ -628,7 +628,7 @@ public class TarantoolDriver : KeyValueDB
             {
                 TripleRow  row;
                 ResultCode rc = reply_to_triple_row(reply, row, in_key);
-                if (rc == ResultCode.OK)
+                if (rc == ResultCode.Ok)
                     res ~= row;
             }
             return;
@@ -687,7 +687,7 @@ public class TarantoolDriver : KeyValueDB
         {
             open();
             if (db_is_opened != true)
-                return ResultCode.Connect_Error;
+                return ResultCode.ConnectError;
         }
 
         //log.trace("@%X %s remove individual uri=%s", tnt, core.thread.Thread.getThis().name(), in_key);
@@ -704,7 +704,7 @@ public class TarantoolDriver : KeyValueDB
             }
         }
 
-        return ResultCode.OK;
+        return ResultCode.Ok;
     }
 
     public long get_last_op_id()
