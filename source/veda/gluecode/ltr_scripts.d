@@ -10,10 +10,10 @@ private
     import core.thread, core.stdc.stdlib, core.sys.posix.signal, core.sys.posix.unistd, std.container.array;
     import std.stdio, std.conv, std.utf, std.string, std.file, std.datetime, std.uuid, std.concurrency, std.algorithm, std.uuid;
     import veda.common.type, veda.core.common.define, veda.onto.resource, veda.onto.lang, veda.onto.individual, veda.util.queue;
-    import veda.common.logger, veda.core.impl.thread_context;
+    import veda.common.logger, veda.core.impl.thread_context, veda.vmodule.vmodule, veda.core.common.transaction;
     import veda.core.common.context, veda.util.tools, veda.core.common.log_msg, veda.core.common.know_predicates, veda.onto.onto;
-    import veda.vmodule.vmodule, veda.core.common.transaction;
-    import veda.search.common.isearch, veda.search.xapian.xapian_search, veda.gluecode.script, veda.gluecode.v8d_header;
+    import veda.search.common.isearch, veda.search.ft_query.ft_query_client;
+    import veda.gluecode.script, veda.gluecode.v8d_header;
 }
 // ////// Logger ///////////////////////////////////////////
 import veda.common.logger;
@@ -99,14 +99,16 @@ private void ltrs_thread(string parent_url)
 //    core.thread.Thread.getThis().name = thread_name;
 
     context = PThreadContext.create_new("cfg:standart_node", "ltr_scripts", parent_url, log);
-    context.set_vql(new XapianSearch(context));
+    
+    context.set_vql(new FTQueryClient(context));
+    //context.set_vql(new XapianSearch(context));
 
     vql = context.get_vql();
 
     vars_for_codelet_script =
         "var uri = get_env_str_var ('$uri');"
         ~ "var user_uri = get_env_str_var ('$user');"
-        ~ "var execute_script = get_individual (ticket, '$execute_script');";
+        ~ "var execute_script = get_individual ('$execute_script');";
 
     script_vm = get_ScriptVM(context);
 
@@ -279,7 +281,7 @@ ResultCode execute_script(string user_uri, string uri, string script_uri, string
 
     if (script is ScriptInfo.init)
     {
-        Individual codelet = context.get_individual(&sticket, script_uri, OptAuthorize.NO);
+        Individual codelet = context.get_individual(script_uri);
         prepare_script(_wpl, codelet, script_vm, "", "", vars_for_codelet_script, "", false);
     }
 
@@ -369,8 +371,8 @@ class ScriptProcess : VedaModule
 
     override bool open()
     {
-        context.set_vql(new XapianSearch(context));
-        //context.set_vql(new FTQueryClient(context));
+        //context.set_vql(new XapianSearch(context));
+        context.set_vql(new FTQueryClient(context));
 
         return true;
     }

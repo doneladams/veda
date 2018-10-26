@@ -13,7 +13,7 @@ private
     import veda.core.common.define, veda.common.type, veda.onto.individual, veda.onto.resource, veda.onto.bj8individual.individual8json;
     import veda.common.logger, veda.core.util.utils, veda.core.common.transaction;
     import veda.mstorage.acl_manager, veda.mstorage.storage_manager, veda.mstorage.nanomsg_channel, veda.storage.storage;
-    import veda.storage.common, veda.authorization.authorization;
+    import veda.storage.common, veda.authorization.authorization, veda.authorization.az_client, veda.authorization.az_lib;
     import veda.onto.individual;
 }
 
@@ -100,6 +100,30 @@ void main(char[][] args)
     //thread_term();
 }
 
+public Authorization get_acl_client(Logger log)
+{
+    Authorization acl_client;
+
+    try
+    {
+        string[ string ] properties;
+        properties = readProperties("./veda.properties");
+        string acl_service = properties.as!(string)("acl_service_url");
+        if (acl_service !is null)
+            acl_client = new ClientAuthorization(acl_service, log);
+        else
+        {
+            acl_client = new AuthorizationUseLib(log);
+        }
+    }
+    catch (Throwable ex)
+    {
+        log.trace("ERR! unable read ./veda.properties");
+    }
+
+    return acl_client;
+}
+
 void init(string node_id)
 {
     Context core_context;
@@ -117,6 +141,7 @@ void init(string node_id)
         Individual node;
 
         core_context = PThreadContext.create_new(node_id, "core_context-mstorage", null, log);
+        core_context.set_az(get_acl_client(log));
         core_context.set_vql(new XapianSearch(core_context));
 
         l_context = core_context;
@@ -140,8 +165,8 @@ void init(string node_id)
         if (node.getStatus() != ResultCode.Ok)
         {
             core_context.reopen_ro_individuals_storage_db();
-            core_context.reopen_ro_acl_storage_db();
-            node = core_context.get_individual(&sticket, node_id, OptAuthorize.NO);
+            core_context.get_az().reopen();
+            node = core_context.get_individual(node_id);
 
             log.trace_log_and_console("VEDA NODE CONFIGURATION:[%s]", node);
         }
@@ -402,7 +427,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             tnx.id            = -1;
             tnx.is_autocommit = true;
             OpResult op_res = add_to_transaction(
-                                                 storage.get_acl_client(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
+                                                 ctx.get_az(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
                                                  OptFreeze.NONE, OptAuthorize.YES,
                                                  OptTrace.NONE);
 
@@ -413,7 +438,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             tnx.id            = -1;
             tnx.is_autocommit = true;
             op_res            = add_to_transaction(
-                                                   storage.get_acl_client(), tnx, &sticket, INDV_OP.PUT, &user, false, "",
+                                                   ctx.get_az(), tnx, &sticket, INDV_OP.PUT, &user, false, "",
                                                    OptFreeze.NONE,
                                                    OptAuthorize.YES,
                                                    OptTrace.NONE);
@@ -431,7 +456,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             {
                 log.trace("ERR! authenticate:update password: secret not found, user=[%s]", iuser.uri);
                 ticket.result = ResultCode.InvalidSecret;
-                remove_secret(i_usesCredential, iuser.uri, storage, &sticket);
+                remove_secret(ctx, i_usesCredential, iuser.uri, storage, &sticket);
                 return ticket;
             }
 
@@ -439,7 +464,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             {
                 log.trace("ERR! authenticate:request for update password: send secret not equal request secret [%s], user=[%s]", secret, iuser.uri);
                 ticket.result = ResultCode.InvalidSecret;
-                remove_secret(i_usesCredential, iuser.uri, storage, &sticket);
+                remove_secret(ctx, i_usesCredential, iuser.uri, storage, &sticket);
                 return ticket;
             }
 
@@ -459,7 +484,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             {
                 log.trace("ERR! authenticate:update password: now password equal previous password, reject. user=[%s]", iuser.uri);
                 ticket.result = ResultCode.NewPasswordIsEqualToOld;
-                remove_secret(i_usesCredential, iuser.uri, storage, &sticket);
+                remove_secret(ctx, i_usesCredential, iuser.uri, storage, &sticket);
                 return ticket;
             }
 
@@ -467,7 +492,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             {
                 log.trace("ERR! authenticate:update password: now password is empty, reject. user=[%s]", iuser.uri);
                 ticket.result = ResultCode.EmptyPassword;
-                remove_secret(i_usesCredential, iuser.uri, storage, &sticket);
+                remove_secret(ctx, i_usesCredential, iuser.uri, storage, &sticket);
                 return ticket;
             }
 
@@ -481,7 +506,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
             tnx.id            = -1;
             tnx.is_autocommit = true;
             OpResult op_res = add_to_transaction(
-                                                 storage.get_acl_client(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
+                                                 ctx.get_az(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
                                                  OptFreeze.NONE, OptAuthorize.YES,
                                                  OptTrace.NONE);
 
@@ -547,7 +572,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
                 tnx.id            = -1;
                 tnx.is_autocommit = true;
                 OpResult op_res = add_to_transaction(
-                                                     storage.get_acl_client(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
+                                                     ctx.get_az(), tnx, &sticket, INDV_OP.PUT, &i_usesCredential, false, "",
                                                      OptFreeze.NONE, OptAuthorize.YES,
                                                      OptTrace.NONE);
 
@@ -571,7 +596,7 @@ private Ticket authenticate(Context ctx, string login, string password, string s
                     mail_with_secret.addResource("v-s:messageBody", Resource(DataType.String, "your secret code is " ~ n_secret));
 
                     op_res = add_to_transaction(
-                                                storage.get_acl_client(), tnx, &sticket, INDV_OP.PUT, &mail_with_secret, false, "",
+                                                ctx.get_az(), tnx, &sticket, INDV_OP.PUT, &mail_with_secret, false, "",
                                                 OptFreeze.NONE, OptAuthorize.YES,
                                                 OptTrace.NONE);
 
@@ -599,15 +624,21 @@ private Ticket authenticate(Context ctx, string login, string password, string s
                 ticket = create_new_ticket(login, user_id);
                 return ticket;
             }
+            else
+            {
+                log.trace("WARN! request passw not equal with exist", user.uri);
+            }
         }
+
+        log.trace("WARN! user %s not pass", user.uri);
     }
 
-    log.trace("ERR! authenticate:fail authenticate, login=[%s] password=[%s]", login, password);
+    log.trace("ERR! authenticate:fail authenticate, login=[%s] password=[%s], candidate users =%s", login, password, candidate_users);
     ticket.result = ResultCode.AuthenticationFailed;
     return ticket;
 }
 
-private void remove_secret(ref Individual i_usesCredential, string user_uri, Storage storage, Ticket *sticket)
+private void remove_secret(Context ctx, ref Individual i_usesCredential, string user_uri, Storage storage, Ticket *sticket)
 {
     string old_secret = i_usesCredential.getFirstLiteral("v-s:secret");
 
@@ -619,7 +650,7 @@ private void remove_secret(ref Individual i_usesCredential, string user_uri, Sto
         tnx.id            = -1;
         tnx.is_autocommit = true;
         OpResult op_res = add_to_transaction(
-                                             storage.get_acl_client(), tnx, sticket, INDV_OP.PUT, &i_usesCredential, false, "",
+                                             ctx.get_az(), tnx, sticket, INDV_OP.PUT, &i_usesCredential, false, "",
                                              OptFreeze.NONE, OptAuthorize.YES,
                                              OptTrace.NONE);
 
@@ -722,7 +753,7 @@ public string execute_json(string in_msg, Context ctx)
                     tnx.src           = src;
                     tnx.is_autocommit = true;
                     OpResult ires = add_to_transaction(
-                                                       ctx.get_storage().get_acl_client(), tnx, ticket, INDV_OP.PUT, &individual, assigned_subsystems,
+                                                       ctx.get_az(), tnx, ticket, INDV_OP.PUT, &individual, assigned_subsystems,
                                                        event_id.str,
                                                        OptFreeze.NONE, OptAuthorize.YES,
                                                        OptTrace.NONE);
@@ -747,7 +778,7 @@ public string execute_json(string in_msg, Context ctx)
                     tnx.src           = src;
                     tnx.is_autocommit = true;
                     OpResult ires = add_to_transaction(
-                                                       ctx.get_storage().get_acl_client(), tnx, ticket, INDV_OP.ADD_IN, &individual,
+                                                       ctx.get_az(), tnx, ticket, INDV_OP.ADD_IN, &individual,
                                                        assigned_subsystems, event_id.str,
                                                        OptFreeze.NONE, OptAuthorize.YES,
                                                        OptTrace.NONE);
@@ -770,7 +801,7 @@ public string execute_json(string in_msg, Context ctx)
                     tnx.src           = src;
                     tnx.is_autocommit = true;
                     OpResult ires = add_to_transaction(
-                                                       ctx.get_storage().get_acl_client(), tnx, ticket, INDV_OP.SET_IN, &individual,
+                                                       ctx.get_az(), tnx, ticket, INDV_OP.SET_IN, &individual,
                                                        assigned_subsystems, event_id.str,
                                                        OptFreeze.NONE, OptAuthorize.YES,
                                                        OptTrace.NONE);
@@ -793,7 +824,7 @@ public string execute_json(string in_msg, Context ctx)
                     tnx.src           = src;
                     tnx.is_autocommit = true;
                     OpResult ires = add_to_transaction(
-                                                       ctx.get_storage().get_acl_client(), tnx, ticket, INDV_OP.REMOVE_FROM, &individual,
+                                                       ctx.get_az(), tnx, ticket, INDV_OP.REMOVE_FROM, &individual,
                                                        assigned_subsystems,
                                                        event_id.str,
                                                        OptFreeze.NONE, OptAuthorize.YES,
@@ -817,7 +848,7 @@ public string execute_json(string in_msg, Context ctx)
                     tnx.src           = src;
                     tnx.is_autocommit = true;
                     OpResult ires = add_to_transaction(
-                                                       ctx.get_storage().get_acl_client(), tnx, ticket, INDV_OP.REMOVE, &individual,
+                                                       ctx.get_az(), tnx, ticket, INDV_OP.REMOVE, &individual,
                                                        assigned_subsystems, event_id.str,
                                                        OptFreeze.NONE, OptAuthorize.YES,
                                                        OptTrace.NONE);
@@ -949,7 +980,7 @@ private Ticket sys_ticket(Context ctx, bool is_new = false)
             tnx.id            = -1;
             tnx.is_autocommit = true;
             OpResult opres = add_to_transaction(
-                                                ctx.get_storage().get_acl_client(), tnx, &ticket, INDV_OP.PUT, &sys_account_permission, false, "srv",
+                                                ctx.get_az(), tnx, &ticket, INDV_OP.PUT, &sys_account_permission, false, "srv",
                                                 OptFreeze.NONE,
                                                 OptAuthorize.NO,
                                                 OptTrace.NONE);
@@ -1368,7 +1399,7 @@ private Ticket get_ticket_trusted(Context ctx, string tr_ticket_id, string login
         bool      is_allow_trusted = false;
 
         OutBuffer trace_acl = new OutBuffer();
-        ctx.get_rights_origin_from_acl(tr_ticket, tr_ticket.user_uri, trace_acl, null);
+        ctx.get_az().get_rights_origin_from_acl(tr_ticket, tr_ticket.user_uri, trace_acl, null);
         foreach (rr; trace_acl.toString().split('\n'))
         {
             string[] cc = rr.split(";");

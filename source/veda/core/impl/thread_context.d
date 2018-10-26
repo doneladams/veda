@@ -1,4 +1,5 @@
 /**
+
  * Межмодульное API - Реализация
  */
 
@@ -9,14 +10,12 @@ private
     import core.thread, std.stdio, std.format, std.datetime, std.concurrency, std.conv, std.outbuffer, std.string, std.file, std.path,
            std.json, std.regex;
     import veda.util.properd;
-    import veda.bind.xapian_d_header;
     import veda.util.container, veda.common.logger, veda.core.util.utils, veda.onto.bj8individual.individual8json, veda.core.common.log_msg,
            veda.util.module_info;
     import veda.common.type, veda.core.common.know_predicates, veda.core.common.define, veda.core.common.context;
     import veda.onto.onto, veda.onto.individual, veda.onto.resource, veda.storage.lmdb.lmdb_driver, veda.storage.common, veda.storage.storage;
     import veda.search.common.isearch, veda.core.common.transaction, veda.util.module_info, veda.common.logger;
-    import veda.storage.lmdb.lmdb_storage;
-    import veda.storage.tarantool.tarantool_storage;
+    import veda.storage.lmdb.lmdb_storage, veda.storage.tarantool.tarantool_storage, veda.authorization.authorization;
 
     version (isMStorage)
     {
@@ -28,23 +27,23 @@ private
 /// реализация интерфейса Context
 class PThreadContext : Context
 {
-    private Onto       onto;
+    private Onto          onto;
 
-    private string     name;
+    private string        name;
 
-    private            string[ string ] prefix_map;
+    private               string[ string ] prefix_map;
 
-    private Search     _vql;
+    private Search        _vql;
+    private Storage       storage;
+    private Authorization az;
 
-    private Storage    storage;
+    private long          local_last_update_time;
+    private Individual    node = Individual.init;
+    private string        node_id;
 
-    private long       local_last_update_time;
-    private Individual node = Individual.init;
-    private string     node_id;
-
-    private bool       API_ready = true;
-    private string     main_module_url;
-    private Logger     log;
+    private bool          API_ready = true;
+    private string        main_module_url;
+    private Logger        log;
 
     Storage get_storage()
     {
@@ -270,7 +269,7 @@ class PThreadContext : Context
             this.reopen_ro_individuals_storage_db();
             Ticket sticket = sys_ticket();
 
-            node = get_individual(&sticket, node_id, OptAuthorize.NO);
+            node = get_individual(node_id);
             if (node.getStatus() != ResultCode.Ok)
                 node = Individual.init;
         }
@@ -372,6 +371,16 @@ class PThreadContext : Context
         return _vql;
     }
 
+    public Authorization get_az()
+    {
+        return az;
+    }
+
+    public void set_az(Authorization in_az)
+    {
+        az = in_az;
+    }
+
     public void reopen_ro_fulltext_indexer_db()
     {
         if (_vql !is null)
@@ -384,42 +393,7 @@ class PThreadContext : Context
             storage.get_inividuals_storage_r().reopen();
     }
 
-    public void reopen_ro_acl_storage_db()
-    {
-        if (storage !is null)
-            storage.get_acl_client().reopen();
-    }
-
     // ////////// external ////////////
-
-    public ubyte get_rights(Ticket *ticket, string uri, ubyte access)
-    {
-        if (ticket is null)
-            return 0;
-
-        return storage.get_acl_client().authorize(uri, ticket.user_uri, access, true, null, null,
-                                                  null);
-    }
-
-    public void get_rights_origin_from_acl(Ticket *ticket, string uri, OutBuffer trace_acl, OutBuffer trace_info)
-    {
-        if (ticket is null)
-            return;
-
-        storage.get_acl_client().authorize(uri, ticket.user_uri, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true,
-                                           trace_acl, null,
-                                           trace_info);
-    }
-
-    public void get_membership_from_acl(Ticket *ticket, string uri, OutBuffer trace_group)
-    {
-        if (ticket is null)
-            return;
-
-        storage.get_acl_client().authorize(uri, ticket.user_uri, Access.can_create | Access.can_read | Access.can_update | Access.can_delete, true,
-                                           null, trace_group,
-                                           null);
-    }
 
     public SearchResult get_individuals_ids_via_query(string user_uri, string query_str, string sort_str, string db_str, int from, int top, int limit,
                                                       OptAuthorize op_auth, bool trace)
@@ -434,36 +408,13 @@ class PThreadContext : Context
         return sr;
     }
 
-    public Individual get_individual(Ticket *ticket, string uri, OptAuthorize opt_authorize)
+    public Individual get_individual(string uri)
     {
         Individual individual = Individual.init;
-
-        if (ticket is null)
-        {
-            log.trace("get_individual, uri=%s, ticket is null", uri);
-            return individual;
-        }
-
-        if (trace_msg[ T_API_150 ] == 1)
-        {
-            if (ticket !is null)
-                log.trace("get_individual, uri=%s, ticket=%s", uri, ticket.id);
-        }
 
         try
         {
             storage.get_obj_from_individual_storage(uri, individual);
-            if (individual.getStatus() == ResultCode.Ok)
-            {
-                if (!(opt_authorize == OptAuthorize.NO ||
-                      storage.get_acl_client().authorize(uri, ticket.user_uri, Access.can_read, true, null, null, null) == Access.can_read))
-                {
-                    if (trace_msg[ T_API_160 ] == 1)
-                        log.trace("get_individual, not authorized, uri=%s, user_uri=%s", uri, ticket.user_uri);
-                    individual.setStatus(ResultCode.NotAuthorized);
-                }
-            }
-
             return individual;
         }
         finally
@@ -471,49 +422,6 @@ class PThreadContext : Context
 //            stat(CMD_GET, sw);
             if (trace_msg[ T_API_170 ] == 1)
                 log.trace("get_individual: end, uri=%s", uri);
-        }
-    }
-
-    public Individual[] get_individuals(Ticket *ticket, string[] uris)
-    {
-        //StopWatch sw; sw.start;
-
-        try
-        {
-            Individual[] res = Individual[].init;
-
-            if (ticket is null)
-            {
-                log.trace("get_individuals, uris=%s, ticket is null", uris);
-                return res;
-            }
-
-            foreach (uri; uris)
-            {
-                if (storage.get_acl_client().authorize(uri, ticket.user_uri, Access.can_read, true, null, null, null) == Access.can_read)
-                {
-                    Individual individual = Individual.init;
-
-                    storage.get_obj_from_individual_storage(uri, individual);
-                    if (individual.getStatus() == ResultCode.Ok)
-                    {
-                        res ~= individual;
-                    }
-                    else
-                    {
-                        Individual indv;
-                        indv.uri = uri;
-                        indv.setStatus(ResultCode.UnprocessableEntity);
-                        res ~= indv;
-                    }
-                }
-            }
-
-            return res;
-        }
-        finally
-        {
-            //stat(CMD_GET, sw);
         }
     }
 
@@ -676,7 +584,7 @@ class PThreadContext : Context
                         Thread.sleep(dur!("msecs")(pause));
                         pause += 10;
 
-                        Individual prev = this.get_individual(ticket, item.uri, OptAuthorize.NO);
+                        Individual prev = this.get_individual(item.uri);
                         if (prev.getFirstInteger("v-s:updateCounter", -1) == update_counter)
                         {
                             rc = ResultCode.Ok;
